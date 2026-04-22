@@ -1,0 +1,51 @@
+{
+  "app_id": "seo",
+  "version": "1.0.0",
+  "description": "SEO & Content — keyword research, rankings, AI writing, WordPress publishing, knowledge base",
+  "category": "marketing",
+  "capabilities": [],
+  "tools": [
+    {
+      "name": "seo",
+      "description": "SEO & content management. Keyword research, rankings, AI article writing, newsletter drafts, WordPress publishing, brand knowledge base.",
+      "scopes": [
+        "ai.complete",
+        "store.read",
+        "store.write",
+        "http.request",
+        "notify.push"
+      ],
+      "parameters": {
+        "message": {"type": "string", "required": false},
+        "kwargs": {"type": "string", "required": true}
+      }
+    },
+    {
+      "name": "__panel__workspace",
+      "description": "Panel: SEO workspace — Content Plan, Editor, Rankings, Keywords, Settings",
+      "scopes": [],
+      "parameters": {"params": {"type": "string", "required": false}}
+    },
+    {
+      "name": "__panel__sidebar",
+      "description": "Panel: SEO navigation sidebar",
+      "scopes": [],
+      "parameters": {"params": {"type": "string", "required": false}}
+    },
+    {
+      "name": "__panel__docs",
+      "description": "Panel: Knowledge Base — upload brand documentation for AI context",
+      "scopes": [],
+      "parameters": {"params": {"type": "string", "required": false}}
+    }
+  ],
+  "signals": [],
+  "schedules": [],
+  "required_scopes": [
+    "ai.complete",
+    "store.read",
+    "store.write",
+    "http.request",
+    "notify.push"
+  ]
+}

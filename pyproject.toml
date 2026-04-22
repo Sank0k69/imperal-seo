@@ -1,0 +1,22 @@
+[project]
+name = "seo"
+version = "1.0.0"
+description = "SEO & Content — keyword research, rankings, AI writing, WordPress publishing, knowledge base"
+requires-python = ">=3.10"
+dependencies = ["imperal-sdk>=1.5.16"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+
+[tool.setuptools]
+py-modules = [
+    "main", "app", "params",
+    "api_seranking", "api_wordpress",
+    "handlers_nav", "handlers_content", "handlers_seo", "handlers_publish", "handlers_docs",
+    "panels_side", "panels_workspace", "panels_editor", "panels_docs",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
