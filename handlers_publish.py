@@ -18,19 +18,19 @@ async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
     """Create or update a WordPress post from a content item."""
     s = await load_settings(ctx)
     if not s.get("wp_app_password"):
-        return ActionResult.error(
+        return ActionResult.error(error=(
             "WordPress Application Password not configured. "
             "Go to Settings, or generate one in WP Admin → Users → Profile → Application Passwords."
-        )
+        ))
 
     item = await get_content(ctx, params.content_id)
     if not item:
-        return ActionResult.error("Content item not found")
+        return ActionResult.error(error="Content item not found")
 
     title = item.get("title") or item.get("keyword", "Untitled")
     content = item.get("content", "")
     if not content:
-        return ActionResult.error("Content is empty — write or generate a draft first.")
+        return ActionResult.error(error="Content is empty — write or generate a draft first.")
 
     wp_post_id = item.get("wp_post_id")
     wp_url = s["wp_url"]
@@ -58,7 +58,7 @@ async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
         action = "created"
 
     if not post.get("id"):
-        return ActionResult.error(f"WordPress returned an unexpected response: {post}")
+        return ActionResult.error(error=f"WordPress returned an unexpected response: {post}")
 
     new_status = "published" if params.status == "publish" else item.get("status", "review")
     await update_content(ctx, params.content_id, {

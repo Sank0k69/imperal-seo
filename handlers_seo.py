@@ -17,7 +17,7 @@ async def fetch_keywords(ctx, params: FetchKeywordsParams) -> ActionResult:
     s = await load_settings(ctx)
     key = s.get("seranking_data_key", "")
     if not key:
-        return ActionResult.error("SE Ranking Data API key not configured. Go to Settings.")
+        return ActionResult.error(error="SE Ranking Data API key not configured. Go to Settings.")
 
     domain = params.domain or s.get("seranking_domain", "blog.webhostmost.com")
     source = params.source or s.get("seranking_source", "us")
@@ -55,7 +55,7 @@ async def fetch_gaps(ctx, params: FetchGapsParams) -> ActionResult:
     s = await load_settings(ctx)
     key = s.get("seranking_data_key", "")
     if not key:
-        return ActionResult.error("SE Ranking Data API key not configured. Go to Settings.")
+        return ActionResult.error(error="SE Ranking Data API key not configured. Go to Settings.")
 
     domain = s.get("seranking_domain", "blog.webhostmost.com")
     source = params.source or s.get("seranking_source", "us")
@@ -90,9 +90,9 @@ async def fetch_rankings(ctx, params: FetchRankingsParams) -> ActionResult:
     project_id = s.get("seranking_project_id", "")
 
     if not key:
-        return ActionResult.error("SE Ranking Project API key not configured. Go to Settings.")
+        return ActionResult.error(error="SE Ranking Project API key not configured. Go to Settings.")
     if not project_id:
-        return ActionResult.error("SE Ranking Project ID not configured. Go to Settings.")
+        return ActionResult.error(error="SE Ranking Project ID not configured. Go to Settings.")
 
     rankings = await project_rankings(ctx, key, project_id)
 
@@ -122,7 +122,7 @@ async def list_ser_projects(ctx, params: ListProjectsParams) -> ActionResult:
     s = await load_settings(ctx)
     key = s.get("seranking_project_key", "")
     if not key:
-        return ActionResult.error("SE Ranking Project API key not configured. Go to Settings.")
+        return ActionResult.error(error="SE Ranking Project API key not configured. Go to Settings.")
 
     projects = await list_projects(ctx, key)
     lines = [f"• {p.get('id')} — {p.get('name', p.get('site', '?'))}" for p in projects[:20]]

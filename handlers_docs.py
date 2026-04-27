@@ -21,7 +21,7 @@ async def upload_doc(ctx, params: UploadDocParams) -> ActionResult:
     """Receive base64 file(s) from FileUpload, decode and store as knowledge base docs."""
     raw_files = getattr(params, "files", None) or []
     if not raw_files:
-        return ActionResult.error("No files received.")
+        return ActionResult.error(error="No files received.")
 
     if isinstance(raw_files, str):
         raw_files = [raw_files]
@@ -64,7 +64,7 @@ async def upload_doc(ctx, params: UploadDocParams) -> ActionResult:
         saved.append(name)
 
     if not saved:
-        return ActionResult.error("No valid .md or .txt files found in the upload.")
+        return ActionResult.error(error="No valid .md or .txt files found in the upload.")
 
     return ActionResult.success(
         {"saved": saved},
@@ -83,7 +83,7 @@ async def delete_doc(ctx, params: DeleteDocParams) -> ActionResult:
     try:
         await ctx.store.delete(DOCS_COLLECTION, params.doc_id)
     except Exception as e:
-        return ActionResult.error(f"Could not delete doc: {e}")
+        return ActionResult.error(error=f"Could not delete doc: {e}")
     return ActionResult.success({"id": params.doc_id}, summary="Doc deleted")
 
 

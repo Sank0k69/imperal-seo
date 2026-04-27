@@ -149,7 +149,7 @@ async def delete_content(ctx, content_id: str) -> None:
 async def health_check(ctx):
     """Verify extension is alive; returns degraded if no APIs are configured."""
     s = await load_settings(ctx)
-    if not ser_ready(s) and not ml_ready(s) and not wp_ready(s):
+    if not ser_ready(s) and not wp_ready(s):
         return {"status": "degraded", "reason": "No API keys configured — open Settings."}
     return {"status": "ok"}
 

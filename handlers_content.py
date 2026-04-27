@@ -17,7 +17,7 @@ async def save_draft(ctx, params: SaveDraftParams) -> ActionResult:
     """Save editor content (title, HTML body, subject) to the store."""
     item = await get_content(ctx, params.content_id)
     if not item:
-        return ActionResult.error("Content item not found")
+        return ActionResult.error(error="Content item not found")
 
     updates = {}
     if params.title:
@@ -45,10 +45,10 @@ async def update_status(ctx, params: UpdateStatusParams) -> ActionResult:
     """Move content item through the pipeline: idea→writing→review→published."""
     valid = {"idea", "writing", "review", "published"}
     if params.status not in valid:
-        return ActionResult.error(f"Invalid status '{params.status}'. Use: {', '.join(valid)}")
+        return ActionResult.error(error=f"Invalid status '{params.status}'. Use: {', '.join(valid)}")
     item = await get_content(ctx, params.content_id)
     if not item:
-        return ActionResult.error("Content item not found")
+        return ActionResult.error(error="Content item not found")
     await update_content(ctx, params.content_id, {"status": params.status})
     return ActionResult.success(
         {"id": params.content_id, "status": params.status},
@@ -66,7 +66,7 @@ async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
     """Permanently remove a content item from the plan."""
     item = await get_content(ctx, params.content_id)
     if not item:
-        return ActionResult.error("Content item not found")
+        return ActionResult.error(error="Content item not found")
     await delete_content(ctx, params.content_id)
     return ActionResult.success(
         {"id": params.content_id},
@@ -84,7 +84,7 @@ async def ai_brief(ctx, params: AiBriefParams) -> ActionResult:
     """Generate an SEO brief or newsletter brief using AI and save it to the item."""
     item = await get_content(ctx, params.content_id)
     if not item:
-        return ActionResult.error("Content item not found")
+        return ActionResult.error(error="Content item not found")
 
     kw = item.get("keyword", "")
     content_type = item.get("type", "blog")
@@ -140,7 +140,7 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     """Write a full HTML article or newsletter draft using AI."""
     item = await get_content(ctx, params.content_id)
     if not item:
-        return ActionResult.error("Content item not found")
+        return ActionResult.error(error="Content item not found")
 
     kw = item.get("keyword", "")
     content_type = item.get("type", "blog")
@@ -208,7 +208,7 @@ async def generate_newsletter(ctx, params: GenerateNewsletterParams) -> ActionRe
     """Generate a complete newsletter using brand settings configured by the user."""
     item = await get_content(ctx, params.content_id)
     if not item:
-        return ActionResult.error("Content item not found")
+        return ActionResult.error(error="Content item not found")
 
     s = await load_settings(ctx)
     company = s.get("company_name") or "our company"

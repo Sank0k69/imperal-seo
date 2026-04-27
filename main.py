@@ -1,5 +1,5 @@
 """Hot-reload entry point — imports register all decorators."""
-from app import ext  # noqa: F401
+from app import ext, chat  # noqa: F401
 import handlers_nav      # noqa: F401
 import handlers_content  # noqa: F401
 import handlers_seo      # noqa: F401
