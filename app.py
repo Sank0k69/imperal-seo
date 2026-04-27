@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from imperal_sdk import Extension, ChatExtension
 
-ext = Extension("seo", version="1.2.0")
+ext = Extension("wp-blogger", version="1.2.0")
 
 chat = ChatExtension(
     ext,
-    tool_name="seo",
+    tool_name="wp-blogger",
     description=(
-        "SEO & content management. Keyword research, rankings tracking, "
-        "content plan, AI article/newsletter writing, publish to WordPress and MailerLite."
+        "WP Blogger. Keyword research, rankings tracking, "
+        "content plan, AI article writing, publish to WordPress."
     ),
     max_rounds=10,
 )

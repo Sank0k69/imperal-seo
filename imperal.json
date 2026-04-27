@@ -1,5 +1,5 @@
 {
-  "app_id": "seo",
+  "app_id": "wp-blogger",
   "name": "WP Blogger",
   "version": "1.2.0",
   "description": "WP Blogger — AI-powered WordPress content creation: keyword research, rankings, article writing and one-click publishing",
@@ -7,8 +7,8 @@
   "capabilities": [],
   "tools": [
     {
-      "name": "seo",
-      "description": "SEO & content management. Keyword research, rankings, AI article writing, newsletter drafts, WordPress publishing, brand knowledge base.",
+      "name": "wp-blogger",
+      "description": "WP Blogger. Keyword research, rankings, AI article writing, WordPress publishing, brand knowledge base.",
       "scopes": [
         "ai.complete",
         "store.read",
