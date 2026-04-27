@@ -5,6 +5,9 @@ from imperal_sdk.testing import MockContext
 import handlers_nav
 import handlers_publish
 
+_FAKE_PW = "fake-test-pw"        # nosec — not a real credential
+_FAKE_KEY = "fake-test-data-key"  # nosec — not a real credential
+
 
 @pytest.fixture
 def ctx():
@@ -29,7 +32,7 @@ async def test_publish_wp_no_key(ctx):
 async def test_publish_wp_empty_content(ctx):
     """Returns error when content body is empty."""
     await handlers_publish.save_settings_fn(ctx, handlers_publish.SaveSettingsParams(
-        wp_app_password="test_app_pw",
+        wp_app_password=_FAKE_PW,
     ))
     create_result = await handlers_nav.new_content(ctx, handlers_nav.CreateContentParams(
         keyword="empty article", type="blog",
@@ -47,7 +50,7 @@ async def test_publish_wp_empty_content(ctx):
 async def test_publish_wp_missing_item(ctx):
     """Returns error when content ID does not exist."""
     await handlers_publish.save_settings_fn(ctx, handlers_publish.SaveSettingsParams(
-        wp_app_password="test_app_pw",
+        wp_app_password=_FAKE_PW,
     ))
     result = await handlers_publish.publish_wp(ctx, handlers_publish.PublishWpParams(
         content_id="nonexistent_id",
@@ -59,27 +62,27 @@ async def test_publish_wp_missing_item(ctx):
 
 async def test_save_settings(ctx):
     result = await handlers_publish.save_settings_fn(ctx, handlers_publish.SaveSettingsParams(
-        seranking_data_key="data_key_test",
-        wp_app_password="wp_pw_test",
+        seranking_data_key=_FAKE_KEY,
+        wp_app_password=_FAKE_PW,
     ))
     assert result.status == "success"
 
     page = await ctx.store.query("seo_settings", limit=1)
     s = page.data[0].data
-    assert s["seranking_data_key"] == "data_key_test"
-    assert s["wp_app_password"] == "wp_pw_test"
+    assert s["seranking_data_key"] == _FAKE_KEY
+    assert s["wp_app_password"] == _FAKE_PW
 
 
 async def test_save_settings_partial_update(ctx):
     """Partial update merges with existing settings."""
     await handlers_publish.save_settings_fn(ctx, handlers_publish.SaveSettingsParams(
-        seranking_data_key="key_one",
+        seranking_data_key="key_one",  # nosec
     ))
     await handlers_publish.save_settings_fn(ctx, handlers_publish.SaveSettingsParams(
-        wp_app_password="pw_two",
+        wp_app_password="pw_two",  # nosec
     ))
 
     page = await ctx.store.query("seo_settings", limit=1)
     s = page.data[0].data
-    assert s["seranking_data_key"] == "key_one"
-    assert s["wp_app_password"] == "pw_two"
+    assert s["seranking_data_key"] == "key_one"  # nosec
+    assert s["wp_app_password"] == "pw_two"  # nosec

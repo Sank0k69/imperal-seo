@@ -1,9 +1,4 @@
-"""Main workspace panel — context-sensitive views.
-
-Views: plan | editor | rankings | keywords | settings
-Active view stored in seo_ui_state (ctx.store).
-Editor view is in panels_editor.py.
-"""
+"""Main workspace panel — plan | editor | rankings | keywords | settings."""
 from __future__ import annotations
 
 from imperal_sdk import ui
@@ -14,11 +9,8 @@ from panels_docs import _docs_view
 from handlers_docs import _load_docs
 
 REFRESH = (
-    "on_event:seo.content.created,"
-    "seo.content.updated,"
-    "seo.content.deleted,"
-    "seo.content.published,"
-    "seo.settings.saved"
+    "on_event:seo.content.created,seo.content.updated,"
+    "seo.content.deleted,seo.content.published,seo.settings.saved"
 )
 
 
