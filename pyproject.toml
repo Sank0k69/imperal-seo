@@ -1,9 +1,9 @@
 [project]
-name = "seo"
-version = "1.0.0"
-description = "SEO & Content — keyword research, rankings, AI writing, WordPress publishing, knowledge base"
+name = "wp-blogger"
+version = "1.2.0"
+description = "WP Blogger — AI-powered WordPress content creation: keyword research, rankings, article writing and one-click publishing"
 requires-python = ">=3.10"
-dependencies = ["imperal-sdk>=1.5.16"]
+dependencies = ["imperal-sdk>=3.1.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]

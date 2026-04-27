@@ -1,9 +1,9 @@
-"""SEO & Content extension — core init, settings, store helpers."""
+"""WP Blogger extension — core init, settings, store helpers."""
 from __future__ import annotations
 
 from imperal_sdk import Extension, ChatExtension
 
-ext = Extension("seo", version="1.0.0")
+ext = Extension("seo", version="1.2.0")
 
 chat = ChatExtension(
     ext,
