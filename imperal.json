@@ -32,12 +32,6 @@
       "description": "Panel: SEO navigation sidebar",
       "scopes": [],
       "parameters": {"params": {"type": "string", "required": false}}
-    },
-    {
-      "name": "__panel__docs",
-      "description": "Panel: Knowledge Base — upload brand documentation for AI context",
-      "scopes": [],
-      "parameters": {"params": {"type": "string", "required": false}}
     }
   ],
   "signals": [],

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from imperal_sdk import ui
 
-from app import ext
 from handlers_docs import _load_docs
 
 REFRESH = "on_event:seo.docs.updated"
@@ -36,14 +35,6 @@ After I answer all questions, output a clean Markdown file with sections:
 ## CTAs & Links
 ## Content Themes
 """.strip()
-
-
-@ext.panel("docs", slot="right", title="Knowledge Base", icon="BookOpen",
-           default_width=860, refresh=REFRESH)
-async def docs_panel(ctx):
-    """Documentation upload panel — onboarding prompt + file upload + doc list."""
-    docs = await _load_docs(ctx)
-    return await _docs_view(ctx, docs)
 
 
 async def _docs_view(ctx, docs: list[dict]) -> ui.UINode:

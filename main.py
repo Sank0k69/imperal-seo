@@ -12,7 +12,7 @@ for _m in list(sys.modules):
         "app", "params", "api_seranking", "api_wordpress",
         "handlers_nav", "handlers_content", "handlers_seo",
         "handlers_publish", "handlers_docs",
-        "panels_side", "panels_workspace", "panels_editor", "panels_docs",
+        "panels_side", "panels_workspace", "panels_editor", "panels_docs",  # noqa
     ):
         del sys.modules[_m]
 
@@ -25,4 +25,3 @@ import handlers_publish  # noqa: E402, F401
 import handlers_docs     # noqa: E402, F401
 import panels_side       # noqa: E402, F401
 import panels_workspace  # noqa: E402, F401
-import panels_docs       # noqa: E402, F401
