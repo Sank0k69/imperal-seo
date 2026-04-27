@@ -134,7 +134,7 @@ def _newsletter_editor(item: dict, content_id: str, mode: str) -> ui.UINode:
                 ui.Input(param_name="subject", value=subject, placeholder="Email subject line"),
                 ui.RichEditor(
                     param_name="content",
-                    value=content_html,
+                    content=content_html,
                     placeholder="Newsletter body will appear here after generation.",
                 ),
             ],
@@ -232,7 +232,7 @@ def _blog_editor(item: dict, content_id: str, mode: str) -> ui.UINode:
                 ui.Input(param_name="title", value=title, placeholder="Title (H1)"),
                 ui.RichEditor(
                     param_name="content",
-                    value=content_html,
+                    content=content_html,
                     placeholder="Start writing or use AI Brief → AI Write above...",
                 ),
             ],

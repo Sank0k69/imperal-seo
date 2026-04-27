@@ -10,8 +10,8 @@ from imperal_sdk import ui
 from app import ext, load_settings, load_ui_state, list_content, ser_ready, wp_ready
 
 
-def _nav_btn(label: str, action: str, icon: str) -> ui.UINode:
-    return ui.Form(action=action, submit_label=label, children=[], icon=icon)
+def _nav_btn(label: str, action: str, icon: str = "") -> ui.UINode:
+    return ui.Form(action=action, submit_label=label, children=[])
 
 
 @ext.panel("sidebar", slot="left", title="SEO & Content", icon="FileText",
