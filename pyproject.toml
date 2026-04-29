@@ -1,6 +1,6 @@
 [project]
 name = "wp-blogger"
-version = "1.2.1"
+version = "1.2.2"
 description = "WP Blogger — AI-powered WordPress content creation: keyword research, rankings, article writing and one-click publishing"
 requires-python = ">=3.10"
 dependencies = ["imperal-sdk>=3.4.0"]

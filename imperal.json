@@ -1,8 +1,8 @@
 {
   "app_id": "wp-blogger",
   "name": "WP Blogger",
-  "version": "1.2.1",
-  "description": "WP Blogger — AI-powered WordPress content creation: keyword research, rankings, article writing and one-click publishing",
+  "version": "1.2.2",
+  "description": "WP Blogger \u2014 AI-powered WordPress content creation: keyword research, rankings, article writing and one-click publishing",
   "category": "marketing",
   "capabilities": [],
   "tools": [
@@ -17,21 +17,37 @@
         "notify.push"
       ],
       "parameters": {
-        "message": {"type": "string", "required": false},
-        "kwargs": {"type": "string", "required": true}
+        "message": {
+          "type": "string",
+          "required": false
+        },
+        "kwargs": {
+          "type": "string",
+          "required": true
+        }
       }
     },
     {
       "name": "__panel__workspace",
-      "description": "Panel: SEO workspace — Content Plan, Editor, Rankings, Keywords, Settings",
+      "description": "Panel: SEO workspace \u2014 Content Plan, Editor, Rankings, Keywords, Settings",
       "scopes": [],
-      "parameters": {"params": {"type": "string", "required": false}}
+      "parameters": {
+        "params": {
+          "type": "string",
+          "required": false
+        }
+      }
     },
     {
       "name": "__panel__sidebar",
       "description": "Panel: SEO navigation sidebar",
       "scopes": [],
-      "parameters": {"params": {"type": "string", "required": false}}
+      "parameters": {
+        "params": {
+          "type": "string",
+          "required": false
+        }
+      }
     }
   ],
   "signals": [],

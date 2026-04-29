@@ -44,7 +44,7 @@ async def domain_keywords(
         headers=_data_headers(key),
         params=params,
     )
-    return _parse_list(resp)
+    return _parse_list(resp.json() if resp.ok else [])
 
 
 async def keyword_gaps(
@@ -70,7 +70,7 @@ async def keyword_gaps(
         headers=_data_headers(key),
         params=params,
     )
-    return _parse_list(resp)
+    return _parse_list(resp.json() if resp.ok else [])
 
 
 async def account_subscription(ctx, key: str) -> dict:
@@ -79,7 +79,7 @@ async def account_subscription(ctx, key: str) -> dict:
         f"{DATA_BASE}/account/subscription",
         headers=_data_headers(key),
     )
-    return _parse_dict(resp)
+    return _parse_dict(resp.json() if resp.ok else {})
 
 
 # ── Project API ───────────────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ async def list_projects(ctx, key: str) -> list[dict]:
         f"{PROJ_BASE}/project/list-projects",
         headers=_proj_headers(key),
     )
-    return _parse_list(resp)
+    return _parse_list(resp.json() if resp.ok else [])
 
 
 async def project_rankings(ctx, key: str, project_id: str) -> list[dict]:
@@ -100,7 +100,7 @@ async def project_rankings(ctx, key: str, project_id: str) -> list[dict]:
         headers=_proj_headers(key),
         params={"project_id": project_id},
     )
-    return _parse_list(resp)
+    return _parse_list(resp.json() if resp.ok else [])
 
 
 async def project_summary(ctx, key: str, project_id: str) -> dict:
@@ -110,7 +110,7 @@ async def project_summary(ctx, key: str, project_id: str) -> dict:
         headers=_proj_headers(key),
         params={"project_id": project_id},
     )
-    return _parse_dict(resp)
+    return _parse_dict(resp.json() if resp.ok else {})
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
