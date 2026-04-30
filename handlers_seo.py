@@ -43,6 +43,8 @@ async def fetch_keywords(ctx, params: FetchKeywordsParams) -> ActionResult:
 )
 async def fetch_gaps(ctx, params: FetchGapsParams) -> ActionResult:
     s = await load_settings(ctx)
+    if not s.get("seranking_data_key"):
+        return ActionResult.error(error="SE Ranking Data API key not configured. Go to Settings.")
     domain = s.get("seranking_domain", "")
     source = params.source or s.get("seranking_source", "us")
     if not domain:
