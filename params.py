@@ -48,11 +48,11 @@ class AiWriteParams(BaseModel):
 
 
 class FetchKeywordsParams(BaseModel):
-    domain: str = Field("blog.webhostmost.com", description="Domain to analyse")
-    source: str = Field("us", description="Regional database code, e.g. 'us', 'gb'")
-    limit: int = Field(50, description="Number of keywords to return (max 100)")
-    min_volume: int = Field(100, description="Minimum monthly search volume")
-    max_difficulty: int = Field(60, description="Maximum keyword difficulty")
+    domain: str = Field("", description="Domain to analyse — leave empty to use domain from Settings")
+    source: str = Field("", description="Regional database code, e.g. 'us', 'gb' — empty = use Settings")
+    limit: int = Field(80, description="Number of keywords to return (max 100)")
+    min_volume: int = Field(50, description="Minimum monthly search volume")
+    max_difficulty: int = Field(70, description="Maximum keyword difficulty")
 
 
 class FetchGapsParams(BaseModel):
@@ -90,6 +90,11 @@ class GenerateNewsletterParams(BaseModel):
     content_id: str = Field(..., description="Newsletter content item ID")
     news_text: str = Field(..., description="The news, update, or topic to write the newsletter about")
     tone_note: str = Field("", description="Optional tone instruction, e.g. 'more urgent', 'focus on price'")
+
+
+class BuildPlanParams(BaseModel):
+    competitor: Optional[str] = Field("", description="Competitor domain for gap analysis — empty = use Settings")
+    language: str = Field("en", description="Content language: 'en' or 'ru'")
 
 
 class SaveSettingsParams(BaseModel):

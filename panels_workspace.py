@@ -62,6 +62,12 @@ async def _plan_view(ctx) -> ui.UINode:
         rows=rows,
     ) if rows else ui.Empty(message="No content yet. Add an item using the left panel.")
 
+    build_plan_form = ui.Form(
+        action="build_content_plan",
+        submit_label="Build Content Plan (AI)",
+        children=[],
+    )
+
     open_form = ui.Form(
         action="open_editor",
         submit_label="Open in editor →",
@@ -85,6 +91,7 @@ async def _plan_view(ctx) -> ui.UINode:
             ui.Header(text="Content Plan", level=3),
             ui.Form(action="go_keywords", submit_label="+ Find keywords", children=[]),
         ], direction="horizontal", justify="between"),
+        build_plan_form,
         table,
         ui.Divider(),
         open_form,

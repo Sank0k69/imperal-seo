@@ -9,7 +9,7 @@ sys.path.insert(0, _dir)
 
 for _m in list(sys.modules):
     if _m in (
-        "app", "params", "api_seranking", "api_wordpress",
+        "app", "params", "api_client", "api_seranking", "api_wordpress",
         "handlers_nav", "handlers_content", "handlers_seo",
         "handlers_publish", "handlers_docs",
         "panels_side", "panels_workspace", "panels_editor", "panels_docs",  # noqa

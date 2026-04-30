@@ -117,8 +117,8 @@ async def ai_brief(ctx, params: AiBriefParams) -> ActionResult:
             "and 3 internal link opportunities."
         )
 
-    result = await ctx.ai.complete(system=system, prompt=prompt)
-    brief_text = result if isinstance(result, str) else str(result)
+    result = await ctx.ai.complete(f"{system}\n\n{prompt}")
+    brief_text = getattr(result, "text", None) or str(result)
 
     await update_content(ctx, params.content_id, {
         "content": f"<pre>{brief_text}</pre>",
@@ -184,8 +184,8 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
             "End with a clear takeaway."
         )
 
-    result = await ctx.ai.complete(system=system, prompt=prompt)
-    draft_html = result if isinstance(result, str) else str(result)
+    result = await ctx.ai.complete(f"{system}\n\n{prompt}")
+    draft_html = getattr(result, "text", None) or str(result)
 
     updates = {"content": draft_html, "status": "review"}
     if not item.get("title") and title != kw:
@@ -260,8 +260,8 @@ LINKS:
     tone = f"\n\nTone note from editor: {params.tone_note}" if params.tone_note else ""
     prompt = f"Write a newsletter based on this news/topic:\n\n{params.news_text}{tone}"
 
-    result = await ctx.ai.complete(system=system, prompt=prompt)
-    newsletter_html = result if isinstance(result, str) else str(result)
+    result = await ctx.ai.complete(f"{system}\n\n{prompt}")
+    newsletter_html = getattr(result, "text", None) or str(result)
 
     # Extract subject for the item title if not set
     subject_line = ""
