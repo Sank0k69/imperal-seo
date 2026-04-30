@@ -3,8 +3,7 @@ from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, get_content, update_content, delete_content, save_ui_state, load_settings, load_ui_state
-from api_client import keywords_for_article, generate_article as _mos_generate
-from handlers_docs import build_docs_context
+from api_client import keywords_for_article, generate_article as _mos_generate, generate_brief as _mos_brief, generate_newsletter_mos as _mos_newsletter
 from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, AiWriteParams, GenerateNewsletterParams
 
 
@@ -80,40 +79,20 @@ async def ai_brief(ctx, params: AiBriefParams) -> ActionResult:
     if not item:
         return ActionResult.error(error="Content item not found")
 
-    kw = item.get("keyword", "")
+    kw           = item.get("keyword", "")
     content_type = item.get("type", "blog")
-    vol = item.get("volume", 0)
-    diff = item.get("difficulty", 0)
+    vol          = item.get("volume", 0)
+    diff         = item.get("difficulty", 0)
+    s            = await load_settings(ctx)
+    language     = s.get("language", "en")
 
-    docs_ctx = await build_docs_context(ctx)
-    docs_block = f"\n\nBRAND DOCUMENTATION:\n{docs_ctx}" if docs_ctx else ""
+    data = await _mos_brief(ctx, keyword=kw, content_type=content_type,
+                            volume=vol, difficulty=diff,
+                            extra=params.extra or "", language=language)
+    if "error" in data:
+        return ActionResult.error(error=data["error"])
 
-    system = (
-        "You are a senior SEO content strategist. "
-        "Write in clear, practical English. Focus on search intent and conversion."
-        + docs_block
-    )
-
-    if content_type == "newsletter":
-        prompt = (
-            f"Create a newsletter brief for the topic: '{kw}'.\n"
-            f"Extra context: {params.extra}\n\n"
-            "Include: subject line options (3), goal, audience pain point, "
-            "main message, CTA, and a 5-section outline."
-        )
-    else:
-        prompt = (
-            f"Create an SEO blog post brief for the keyword: '{kw}'\n"
-            f"Search volume: {vol}/mo | Difficulty: {diff}/100\n"
-            f"Extra context: {params.extra}\n\n"
-            "Include: search intent, target reader, recommended title (H1), "
-            "meta description (120-160 chars), 6-8 section outline with H2/H3 suggestions, "
-            "and 3 internal link opportunities."
-        )
-
-    result = await ctx.ai.complete(f"{system}\n\n{prompt}")
-    brief_text = getattr(result, "text", None) or str(result)
-
+    brief_text = data.get("brief", "")
     await update_content(ctx, cid, {"content": f"<pre>{brief_text}</pre>", "status": "writing"})
     return ActionResult.success({"brief": brief_text[:300]}, summary=f"Brief generated for '{kw}'")
 
@@ -142,43 +121,36 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     s            = await load_settings(ctx)
     language     = s.get("language", "en")
 
-    # Newsletter uses direct AI (different flow)
+    # Newsletter — delegate to MOS
     if content_type == "newsletter":
-        docs_ctx = await build_docs_context(ctx)
-        docs_block = f"\n\nBRAND DOCUMENTATION:\n{docs_ctx}" if docs_ctx else ""
-        system = (
-            "You are a professional content writer. "
-            "Output valid HTML (use <h2>, <h3>, <p>, <ul>, <li>, <strong>). "
-            "Do not include <html>, <head>, <body> tags." + docs_block
-        )
-        subject = item.get("subject", kw)
-        prompt = (
-            f"Write a complete HTML email newsletter.\n"
-            f"Subject: {subject}\nTopic: {kw}\nBrief/outline:\n{existing}\n\n"
-            "300-500 words. Clear CTA at the end. Personal and valuable."
-        )
-        result = await ctx.ai.complete(f"{system}\n\n{prompt}")
-        draft_html = getattr(result, "text", None) or str(result)
-        await update_content(ctx, cid, {"content": draft_html, "status": "review"})
+        news_text = existing or item.get("subject", kw) or kw
+        data = await _mos_newsletter(ctx, news_text=news_text)
+        if "error" in data:
+            return ActionResult.error(error=data["error"])
+        draft_html   = data.get("content", "")
+        subject_line = data.get("subject", "")
+        updates: dict = {"content": draft_html, "status": "review"}
+        if subject_line and not item.get("subject"): updates["subject"] = subject_line
+        if subject_line and not item.get("title"):   updates["title"]   = subject_line
+        await update_content(ctx, cid, updates)
         return ActionResult.success({"length": len(draft_html)}, summary=f"Newsletter draft written for '{kw}'")
 
-    # Improve mode — use MOS refine
+    # Improve mode — MOS /refine
     if params.section == "improve":
         if not existing:
             return ActionResult.error(error="No content to improve. Run AI Write first.")
-        docs_ctx = await build_docs_context(ctx)
-        docs_block = f"\n\nBRAND DOCUMENTATION:\n{docs_ctx}" if docs_ctx else ""
-        system = (
-            "You are a professional content writer. "
-            "Output valid HTML. Do not include <html>, <head>, <body> tags." + docs_block
-        )
-        prompt = (
-            f"Improve this article about '{kw}' for SEO and AI-search visibility.\n"
-            "Add a FAQ section if missing. Improve readability. Make answers more direct.\n\n"
-            f"Current content:\n{existing}"
-        )
-        result = await ctx.ai.complete(f"{system}\n\n{prompt}")
-        draft_html = getattr(result, "text", None) or str(result)
+        from api_client import _post
+        data = await _post(ctx, "/api/content/refine", {
+            "user_key":    "",
+            "content":     existing,
+            "instruction": (
+                f"Improve this article about '{kw}' for SEO and AI-search visibility. "
+                "Add a FAQ section if missing. Improve readability. Make answers more direct."
+            ),
+        }, timeout=120)
+        if "error" in data:
+            return ActionResult.error(error=data["error"])
+        draft_html = data.get("content", existing)
         await update_content(ctx, cid, {"content": draft_html})
         return ActionResult.success({"length": len(draft_html)}, summary=f"Article improved for '{kw}'")
 
@@ -250,59 +222,12 @@ async def generate_newsletter(ctx, params: GenerateNewsletterParams) -> ActionRe
     if not item:
         return ActionResult.error(error="Content item not found")
 
-    s = await load_settings(ctx)
-    company     = s.get("company_name") or "our company"
-    description = s.get("brand_description") or ""
-    voice       = s.get("brand_voice") or "Direct and smart. Short punchy sentences. No corporate fluff."
-    cta         = s.get("newsletter_cta") or "Learn more"
-    site        = s.get("site_url") or ""
-    blog        = s.get("blog_url") or ""
-    tg          = s.get("tg_url") or ""
-    community   = s.get("community_url") or ""
+    data = await _mos_newsletter(ctx, news_text=params.news_text, tone_note=params.tone_note or "")
+    if "error" in data:
+        return ActionResult.error(error=data["error"])
 
-    links_block = "\n".join(filter(None, [
-        f"• Telegram: {tg}" if tg else "",
-        f"• Blog: {blog}" if blog else "",
-        f"• Site: {site}" if site else "",
-        f"• Community: {community}" if community else "",
-    ]))
-
-    docs_ctx = await build_docs_context(ctx)
-    docs_block = f"\n\nBRAND DOCUMENTATION:\n{docs_ctx}" if docs_ctx else ""
-
-    brand_section = (
-        f"COMPANY: {company}\n"
-        f"{f'About: {description}' if description else ''}\n"
-        f"VOICE: {voice}\nCTA text: \"{cta}\"\n"
-        if company and company != "our company"
-        else "Use your knowledge about this company and its brand voice.\n"
-    )
-
-    system = f"""You are writing an email newsletter.
-
-{brand_section}
-RULES: Write as the company. No fake urgency, no exaggerated claims, no corporate speak.
-
-OUTPUT FORMAT:
-SUBJECT: [subject line, max 50 chars]
-PREVIEW: [preview text, 80-100 chars]
----
-[body: 150-300 words, HTML]
----
-LINKS:
-{links_block if links_block else '(add links in Settings → Brand)'}{docs_block}"""
-
-    tone = f"\n\nTone note: {params.tone_note}" if params.tone_note else ""
-    prompt = f"Write a newsletter based on:\n\n{params.news_text}{tone}"
-
-    result = await ctx.ai.complete(f"{system}\n\n{prompt}")
-    newsletter_html = getattr(result, "text", None) or str(result)
-
-    subject_line = ""
-    for line in newsletter_html.splitlines():
-        if line.startswith("SUBJECT:"):
-            subject_line = line.replace("SUBJECT:", "").strip()
-            break
+    newsletter_html = data.get("content", "")
+    subject_line    = data.get("subject", "")
 
     updates: dict = {"content": newsletter_html, "status": "review"}
     if subject_line and not item.get("subject"): updates["subject"] = subject_line

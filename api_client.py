@@ -94,6 +94,36 @@ async def content_plan(ctx, competitor: str = "", language: str = "en") -> dict:
     }, timeout=TIMEOUT_PLAN)
 
 
+async def generate_brief(ctx, keyword: str, content_type: str = "blog",
+                         volume: int = 0, difficulty: int = 0,
+                         extra: str = "", language: str = "en") -> dict:
+    s = await load_settings(ctx)
+    return await _post(ctx, "/api/content/brief", {
+        "keyword":      keyword,
+        "content_type": content_type,
+        "volume":       volume,
+        "difficulty":   difficulty,
+        "extra":        extra,
+        "language":     language,
+    }, timeout=60)
+
+
+async def generate_newsletter_mos(ctx, news_text: str, tone_note: str = "") -> dict:
+    s = await load_settings(ctx)
+    return await _post(ctx, "/api/content/newsletter", {
+        "news_text":         news_text,
+        "tone_note":         tone_note,
+        "company_name":      s.get("company_name", ""),
+        "brand_description": s.get("brand_description", ""),
+        "brand_voice":       s.get("brand_voice", ""),
+        "newsletter_cta":    s.get("newsletter_cta", ""),
+        "site_url":          s.get("site_url", ""),
+        "blog_url":          s.get("blog_url", ""),
+        "tg_url":            s.get("tg_url", ""),
+        "language":          s.get("language", "en"),
+    }, timeout=60)
+
+
 async def keywords_for_article(ctx, keyword: str) -> dict:
     s = await load_settings(ctx)
     return await _post(ctx, "/api/content/keywords_for_article", {
