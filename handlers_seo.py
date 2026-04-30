@@ -142,6 +142,8 @@ async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
             "status":     "idea",
             "volume":     a.get("volume", 0),
             "difficulty": a.get("difficulty", 0),
+            "intent":     a.get("intent", ""),
+            "priority":   a.get("priority", ""),
             "angle":      a.get("angle", ""),
             "wp_post_id": None,
             "ml_campaign_id": None,

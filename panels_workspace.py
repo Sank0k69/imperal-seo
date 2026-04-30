@@ -40,27 +40,31 @@ async def _plan_view(ctx) -> ui.UINode:
 
     rows = [
         {
-            "keyword": item.get("keyword", "—"),
-            "type": item.get("type", "blog"),
-            "status": item.get("status", "idea"),
-            "volume": f"{item.get('volume', 0):,}" if item.get("volume") else "—",
+            "keyword":    item.get("keyword", "—"),
+            "type":       item.get("type", "blog"),
+            "intent":     item.get("intent", "—"),
+            "priority":   item.get("priority", "—"),
+            "status":     item.get("status", "idea"),
+            "volume":     f"{item.get('volume', 0):,}" if item.get("volume") else "—",
             "difficulty": str(item.get("difficulty", "—")),
-            "id": item.get("id", ""),
+            "id":         item.get("id", ""),
         }
         for item in items
     ]
 
     table = ui.DataTable(
         columns=[
-            ui.DataColumn(key="keyword", label="Keyword / Topic", width="35%"),
-            ui.DataColumn(key="type", label="Type", width="12%"),
-            ui.DataColumn(key="status", label="Status", width="13%"),
-            ui.DataColumn(key="volume", label="Volume", width="12%"),
-            ui.DataColumn(key="difficulty", label="Diff", width="10%"),
-            ui.DataColumn(key="id", label="ID", width="18%"),
+            ui.DataColumn(key="keyword",    label="Keyword / Topic",  width="28%"),
+            ui.DataColumn(key="type",       label="Type",             width="10%"),
+            ui.DataColumn(key="intent",     label="Intent",           width="12%"),
+            ui.DataColumn(key="priority",   label="Priority",         width="12%"),
+            ui.DataColumn(key="status",     label="Status",           width="10%"),
+            ui.DataColumn(key="volume",     label="Vol",              width="10%"),
+            ui.DataColumn(key="difficulty", label="Diff",             width="8%"),
+            ui.DataColumn(key="id",         label="ID",               width="10%"),
         ],
         rows=rows,
-    ) if rows else ui.Empty(message="No content yet. Add an item using the left panel.")
+    ) if rows else ui.Empty(message="No content yet. Click 'Build Content Plan (AI)' to generate one.")
 
     build_plan_form = ui.Form(
         action="build_content_plan",
