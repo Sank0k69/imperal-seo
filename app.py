@@ -66,7 +66,7 @@ async def load_settings(ctx) -> dict:
 
 async def save_settings(ctx, values: dict) -> dict:
     current = await load_settings(ctx)
-    merged = {**current, **{k: v for k, v in values.items() if v is not None}}
+    merged = {**current, **{k: v for k, v in values.items() if v is not None and v != ""}}
     page = await ctx.store.query(SETTINGS_COL, limit=1)
     docs = getattr(page, "data", None) or []
     if docs:
