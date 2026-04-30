@@ -283,6 +283,11 @@ async def _settings_view(ctx) -> ui.UINode:
             ui.Input(param_name="seranking_domain",
                      value=s.get("seranking_domain", ""),
                      placeholder="Your domain — e.g. blog.yourdomain.com"),
+            ui.Input(
+                param_name="seranking_competitor",
+                value=s.get("seranking_competitor", ""),
+                placeholder="Competitor domain for gap analysis — e.g. hostinger.com",
+            ),
             ui.Divider(),
             ui.Header(text="WordPress", level=5),
             ui.Input(param_name="wp_url",
@@ -295,6 +300,19 @@ async def _settings_view(ctx) -> ui.UINode:
                 param_name="wp_app_password",
                 placeholder=f"Application Password{' (set)' if s.get('wp_app_password') else ' — WP Admin → Users → Profile → Application Passwords'}",
             ),
+            ui.Divider(),
+            ui.Header(text="Matomo Analytics", level=5),
+            ui.Text(content="Used in content plan to detect growing blog clusters.", variant="caption"),
+            ui.Input(param_name="matomo_url",
+                     value=s.get("matomo_url", ""),
+                     placeholder="Matomo URL — https://analytics.yourdomain.com"),
+            ui.Input(
+                param_name="matomo_token",
+                placeholder=f"API token{' (set)' if s.get('matomo_token') else ' — Matomo → Settings → Personal → Security → Auth token'}",
+            ),
+            ui.Input(param_name="matomo_site_id",
+                     value=str(s.get("matomo_site_id", "1")),
+                     placeholder="Site ID (default: 1)"),
         ],
     )
 

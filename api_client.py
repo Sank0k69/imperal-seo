@@ -77,17 +77,48 @@ async def ser_projects(ctx) -> dict:
 async def content_plan(ctx, competitor: str = "", language: str = "en") -> dict:
     s = await load_settings(ctx)
     return await _post(ctx, "/api/content/plan", {
-        "user_key": "",
+        "user_key":     "",
         "seranking_key": s.get("seranking_data_key", ""),
-        "domain": s.get("seranking_domain", ""),
-        "source": s.get("seranking_source", "us"),
-        "competitor": competitor or s.get("seranking_competitor", ""),
-        "language": language,
-        "profile_name": "",
-        "wp_url": s.get("wp_url", ""),
-        "wp_user": s.get("wp_username", ""),
-        "wp_password": s.get("wp_app_password", ""),
+        "domain":        s.get("seranking_domain", ""),
+        "source":        s.get("seranking_source", "us"),
+        "competitor":    competitor or s.get("seranking_competitor", ""),
+        "language":      language,
+        "profile_name":  "",
+        "wp_url":        s.get("wp_url", ""),
+        "wp_user":       s.get("wp_username", ""),
+        "wp_password":   s.get("wp_app_password", ""),
+        # Matomo — blog growth data
+        "matomo_url":      s.get("matomo_url", ""),
+        "matomo_token":    s.get("matomo_token", ""),
+        "matomo_site_id":  s.get("matomo_site_id", 1),
     }, timeout=TIMEOUT_PLAN)
+
+
+async def keywords_for_article(ctx, keyword: str) -> dict:
+    s = await load_settings(ctx)
+    return await _post(ctx, "/api/content/keywords_for_article", {
+        "seranking_key": s.get("seranking_data_key", ""),
+        "domain":        s.get("seranking_domain", ""),
+        "keyword":       keyword,
+        "language":      s.get("language", "en"),
+    }, timeout=60)
+
+
+async def generate_article(ctx, topic: str, keyword: str, article_type: str = "blog",
+                            word_count: int = 1500, language: str = "en",
+                            secondary_keywords: list = None, lsi_terms: list = None,
+                            questions: list = None) -> dict:
+    return await _post(ctx, "/api/content/generate", {
+        "user_key":           "",
+        "topic":              topic,
+        "keyword":            keyword,
+        "language":           language,
+        "word_count":         word_count,
+        "article_type":       article_type,
+        "secondary_keywords": secondary_keywords or [],
+        "lsi_terms":          lsi_terms or [],
+        "questions":          questions or [],
+    }, timeout=120)
 
 
 async def wp_publish(ctx, title: str, content: str, status: str = "draft") -> dict:

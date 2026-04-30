@@ -110,11 +110,16 @@ class SaveSettingsParams(BaseModel):
     seranking_project_id: Optional[str] = None
     seranking_domain: Optional[str] = None
     seranking_source: Optional[str] = None
+    seranking_competitor: Optional[str] = None
     # WordPress
     wp_url: Optional[str] = None
     wp_username: Optional[str] = None
     wp_app_password: Optional[str] = None
     wp_author_id: Optional[int] = None
+    # Matomo analytics
+    matomo_url: Optional[str] = None
+    matomo_token: Optional[str] = None
+    matomo_site_id: Optional[int] = None
     # Brand identity
     company_name: Optional[str] = None
     brand_description: Optional[str] = None

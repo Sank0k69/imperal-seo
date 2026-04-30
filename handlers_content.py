@@ -3,6 +3,7 @@ from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, get_content, update_content, delete_content, save_ui_state, load_settings, load_ui_state
+from api_client import keywords_for_article, generate_article as _mos_generate
 from handlers_docs import build_docs_context
 from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, AiWriteParams, GenerateNewsletterParams
 
@@ -119,7 +120,12 @@ async def ai_brief(ctx, params: AiBriefParams) -> ActionResult:
 
 @chat.function(
     "ai_write",
-    description="Generate a full article or newsletter draft using AI. section: full|intro|conclusion|improve.",
+    description=(
+        "Generate a full SEO + AI-optimized article. "
+        "Phase 1: enrich keyword set (secondary KWs, LSI, FAQ questions). "
+        "Phase 2: write via MOS content engine with structured output. "
+        "section: full | improve"
+    ),
     action_type="write",
     event="seo.content.updated",
 )
@@ -129,54 +135,107 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     if not item:
         return ActionResult.error(error="Content item not found")
 
-    kw = item.get("keyword", "")
+    kw           = item.get("keyword", "")
     content_type = item.get("type", "blog")
-    existing = item.get("content", "")
-    title = item.get("title", kw)
+    existing     = item.get("content", "")
+    title        = item.get("title", kw)
+    s            = await load_settings(ctx)
+    language     = s.get("language", "en")
 
-    docs_ctx = await build_docs_context(ctx)
-    docs_block = f"\n\nBRAND DOCUMENTATION:\n{docs_ctx}" if docs_ctx else ""
-
-    system = (
-        "You are a professional content writer. "
-        "Write in an engaging, clear style — helpful, not salesy. "
-        "Output valid HTML (use <h2>, <h3>, <p>, <ul>, <li>, <strong>). "
-        "Do not include <html>, <head>, <body> tags."
-        + docs_block
-    )
-
+    # Newsletter uses direct AI (different flow)
     if content_type == "newsletter":
+        docs_ctx = await build_docs_context(ctx)
+        docs_block = f"\n\nBRAND DOCUMENTATION:\n{docs_ctx}" if docs_ctx else ""
+        system = (
+            "You are a professional content writer. "
+            "Output valid HTML (use <h2>, <h3>, <p>, <ul>, <li>, <strong>). "
+            "Do not include <html>, <head>, <body> tags." + docs_block
+        )
         subject = item.get("subject", kw)
         prompt = (
             f"Write a complete HTML email newsletter.\n"
             f"Subject: {subject}\nTopic: {kw}\nBrief/outline:\n{existing}\n\n"
-            "Keep it 300-500 words. Include a clear CTA at the end. "
-            "Make it personal and valuable for web hosting customers."
+            "300-500 words. Clear CTA at the end. Personal and valuable."
         )
-    elif params.section == "improve":
+        result = await ctx.ai.complete(f"{system}\n\n{prompt}")
+        draft_html = getattr(result, "text", None) or str(result)
+        await update_content(ctx, cid, {"content": draft_html, "status": "review"})
+        return ActionResult.success({"length": len(draft_html)}, summary=f"Newsletter draft written for '{kw}'")
+
+    # Improve mode — use MOS refine
+    if params.section == "improve":
+        if not existing:
+            return ActionResult.error(error="No content to improve. Run AI Write first.")
+        docs_ctx = await build_docs_context(ctx)
+        docs_block = f"\n\nBRAND DOCUMENTATION:\n{docs_ctx}" if docs_ctx else ""
+        system = (
+            "You are a professional content writer. "
+            "Output valid HTML. Do not include <html>, <head>, <body> tags." + docs_block
+        )
         prompt = (
-            f"Improve the following article about '{kw}'. "
-            "Make it more engaging, fix SEO issues, improve readability.\n\n"
+            f"Improve this article about '{kw}' for SEO and AI-search visibility.\n"
+            "Add a FAQ section if missing. Improve readability. Make answers more direct.\n\n"
             f"Current content:\n{existing}"
         )
-    else:
-        prompt = (
-            f"Write a complete SEO-optimized blog post about '{kw}'.\n"
-            f"Title: {title}\nOutline/brief:\n{existing}\n\n"
-            "Target: 1200-1800 words. Include practical examples relevant to "
-            "web hosting users. Natural keyword placement. Strong introduction. "
-            "End with a clear takeaway."
-        )
+        result = await ctx.ai.complete(f"{system}\n\n{prompt}")
+        draft_html = getattr(result, "text", None) or str(result)
+        await update_content(ctx, cid, {"content": draft_html})
+        return ActionResult.success({"length": len(draft_html)}, summary=f"Article improved for '{kw}'")
 
-    result = await ctx.ai.complete(f"{system}\n\n{prompt}")
-    draft_html = getattr(result, "text", None) or str(result)
+    # Full write — Phase 1: enrich keywords via MOS
+    kw_data = await keywords_for_article(ctx, kw)
+    secondary = kw_data.get("secondary_keywords", []) if "error" not in kw_data else []
+    lsi       = kw_data.get("lsi_terms", [])           if "error" not in kw_data else []
+    questions = kw_data.get("questions", [])            if "error" not in kw_data else []
+    word_count = kw_data.get("word_count", 1400)        if "error" not in kw_data else 1400
+    title_opts = kw_data.get("title_options", [])       if "error" not in kw_data else []
 
-    updates = {"content": draft_html, "status": "review"}
-    if not item.get("title") and title != kw:
-        updates["title"] = title
+    # Use first title option if item has no title yet
+    best_title = title_opts[0] if title_opts and not item.get("title") else title
+
+    # Phase 2: write via MOS content engine
+    article_type = item.get("type", "blog")
+    data = await _mos_generate(
+        ctx,
+        topic=best_title or kw,
+        keyword=kw,
+        article_type=article_type,
+        word_count=word_count,
+        language=language,
+        secondary_keywords=secondary,
+        lsi_terms=lsi,
+        questions=questions,
+    )
+
+    if "error" in data:
+        return ActionResult.error(error=data["error"])
+
+    draft_html   = data.get("content", "")
+    final_title  = data.get("title", best_title or kw)
+    meta_desc    = data.get("meta_description", "")
+    faq_schema   = data.get("faq_schema", "")
+    kw_used      = data.get("word_count", 0)
+
+    updates = {
+        "content":            draft_html,
+        "status":             "review",
+        "secondary_keywords": secondary,
+        "meta_description":   meta_desc,
+        "faq_schema":         faq_schema,
+    }
+    if final_title and final_title != kw:
+        updates["title"] = final_title
 
     await update_content(ctx, cid, updates)
-    return ActionResult.success({"length": len(draft_html)}, summary=f"Draft written for '{kw}' ({len(draft_html)} chars)")
+    return ActionResult.success(
+        {"length": len(draft_html), "word_count": kw_used, "secondary_keywords": len(secondary)},
+        summary=(
+            f"Article written for '{kw}' (~{kw_used} words).\n"
+            f"Title: {final_title}\n"
+            f"Secondary KWs: {', '.join(secondary[:3])}{'...' if len(secondary) > 3 else ''}\n"
+            f"FAQ: {'included' if questions else 'none'}"
+        ),
+    )
 
 
 @chat.function(
