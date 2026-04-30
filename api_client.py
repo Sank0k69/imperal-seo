@@ -6,14 +6,15 @@ from app import load_settings
 SERVER_URL = "https://mos.lexa-lox.xyz"
 SERVER_API_KEY = "dd5f08814b30d05ff8b573231a14a6826c39d7c07f226995c9a8b1573ceebb90"
 TIMEOUT = 30
+TIMEOUT_PLAN = 120  # content plan: 3 parallel API calls + AI generation
 
 
-async def _post(ctx, endpoint: str, payload: dict) -> dict:
+async def _post(ctx, endpoint: str, payload: dict, timeout: int = TIMEOUT) -> dict:
     resp = await ctx.http.post(
         f"{SERVER_URL}{endpoint}",
         json=payload,
         headers={"X-API-Key": SERVER_API_KEY},
-        timeout=TIMEOUT,
+        timeout=timeout,
     )
     if not resp.ok:
         return {"error": f"Server error {resp.status_code}"}
@@ -86,7 +87,7 @@ async def content_plan(ctx, competitor: str = "", language: str = "en") -> dict:
         "wp_url": s.get("wp_url", ""),
         "wp_user": s.get("wp_username", ""),
         "wp_password": s.get("wp_app_password", ""),
-    })
+    }, timeout=TIMEOUT_PLAN)
 
 
 async def wp_publish(ctx, title: str, content: str, status: str = "draft") -> dict:
