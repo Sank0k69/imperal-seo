@@ -75,7 +75,6 @@ def _blog_editor(item: dict, mode: str) -> ui.UINode:
             ),
         ],
         collapsible=True,
-        collapsed=has_content,
     )
 
     # ── Step 2: AI Write ──────────────────────────────────────────────────────
@@ -149,8 +148,7 @@ def _blog_editor(item: dict, mode: str) -> ui.UINode:
                 ),
             ],
             collapsible=True,
-            collapsed=False,
-        )
+            )
     else:
         publish_section = ui.Section(
             title="Step 4 — Publish to WordPress",
