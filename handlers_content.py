@@ -2,9 +2,17 @@
 from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from app import chat, get_content, update_content, delete_content, save_ui_state, load_settings
+from app import chat, get_content, update_content, delete_content, save_ui_state, load_settings, load_ui_state
 from handlers_docs import build_docs_context
 from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, AiWriteParams, GenerateNewsletterParams
+
+
+async def _resolve_id(ctx, content_id: str) -> str:
+    """Return content_id if set, else use the currently open editor item."""
+    if content_id:
+        return content_id
+    state = await load_ui_state(ctx)
+    return state.get("selected_id", "")
 
 
 @chat.function(
@@ -14,25 +22,17 @@ from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiB
     event="seo.content.updated",
 )
 async def save_draft(ctx, params: SaveDraftParams) -> ActionResult:
-    """Save editor content (title, HTML body, subject) to the store."""
-    item = await get_content(ctx, params.content_id)
+    cid = await _resolve_id(ctx, params.content_id)
+    item = await get_content(ctx, cid)
     if not item:
         return ActionResult.error(error="Content item not found")
-
     updates = {}
-    if params.title:
-        updates["title"] = params.title
-    if params.content:
-        updates["content"] = params.content
-    if params.subject:
-        updates["subject"] = params.subject
+    if params.title:   updates["title"]   = params.title
+    if params.content: updates["content"] = params.content
+    if params.subject: updates["subject"] = params.subject
     if updates:
-        await update_content(ctx, params.content_id, updates)
-
-    return ActionResult.success(
-        {"id": params.content_id},
-        summary=f"Draft saved: {params.title or item.get('title', '...')}",
-    )
+        await update_content(ctx, cid, updates)
+    return ActionResult.success({"id": cid}, summary=f"Draft saved: {params.title or item.get('title', '...')}")
 
 
 @chat.function(
@@ -42,18 +42,15 @@ async def save_draft(ctx, params: SaveDraftParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def update_status(ctx, params: UpdateStatusParams) -> ActionResult:
-    """Move content item through the pipeline: idea→writing→review→published."""
     valid = {"idea", "writing", "review", "published"}
     if params.status not in valid:
         return ActionResult.error(error=f"Invalid status '{params.status}'. Use: {', '.join(valid)}")
-    item = await get_content(ctx, params.content_id)
+    cid = await _resolve_id(ctx, params.content_id)
+    item = await get_content(ctx, cid)
     if not item:
         return ActionResult.error(error="Content item not found")
-    await update_content(ctx, params.content_id, {"status": params.status})
-    return ActionResult.success(
-        {"id": params.content_id, "status": params.status},
-        summary=f"Status → {params.status}: {item.get('keyword', '')}",
-    )
+    await update_content(ctx, cid, {"status": params.status})
+    return ActionResult.success({"id": cid, "status": params.status}, summary=f"Status → {params.status}: {item.get('keyword', '')}")
 
 
 @chat.function(
@@ -63,15 +60,11 @@ async def update_status(ctx, params: UpdateStatusParams) -> ActionResult:
     event="seo.content.deleted",
 )
 async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
-    """Permanently remove a content item from the plan."""
     item = await get_content(ctx, params.content_id)
     if not item:
         return ActionResult.error(error="Content item not found")
     await delete_content(ctx, params.content_id)
-    return ActionResult.success(
-        {"id": params.content_id},
-        summary=f"Deleted: {item.get('keyword', params.content_id)}",
-    )
+    return ActionResult.success({"id": params.content_id}, summary=f"Deleted: {item.get('keyword', params.content_id)}")
 
 
 @chat.function(
@@ -81,8 +74,8 @@ async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def ai_brief(ctx, params: AiBriefParams) -> ActionResult:
-    """Generate an SEO brief or newsletter brief using AI and save it to the item."""
-    item = await get_content(ctx, params.content_id)
+    cid = await _resolve_id(ctx, params.content_id)
+    item = await get_content(ctx, cid)
     if not item:
         return ActionResult.error(error="Content item not found")
 
@@ -113,21 +106,15 @@ async def ai_brief(ctx, params: AiBriefParams) -> ActionResult:
             f"Search volume: {vol}/mo | Difficulty: {diff}/100\n"
             f"Extra context: {params.extra}\n\n"
             "Include: search intent, target reader, recommended title (H1), "
-            "meta description, 6-8 section outline with H2/H3 suggestions, "
+            "meta description (120-160 chars), 6-8 section outline with H2/H3 suggestions, "
             "and 3 internal link opportunities."
         )
 
     result = await ctx.ai.complete(f"{system}\n\n{prompt}")
     brief_text = getattr(result, "text", None) or str(result)
 
-    await update_content(ctx, params.content_id, {
-        "content": f"<pre>{brief_text}</pre>",
-        "status": "writing",
-    })
-    return ActionResult.success(
-        {"brief": brief_text[:300]},
-        summary=f"Brief generated for '{kw}'",
-    )
+    await update_content(ctx, cid, {"content": f"<pre>{brief_text}</pre>", "status": "writing"})
+    return ActionResult.success({"brief": brief_text[:300]}, summary=f"Brief generated for '{kw}'")
 
 
 @chat.function(
@@ -137,8 +124,8 @@ async def ai_brief(ctx, params: AiBriefParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
-    """Write a full HTML article or newsletter draft using AI."""
-    item = await get_content(ctx, params.content_id)
+    cid = await _resolve_id(ctx, params.content_id)
+    item = await get_content(ctx, cid)
     if not item:
         return ActionResult.error(error="Content item not found")
 
@@ -162,9 +149,7 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
         subject = item.get("subject", kw)
         prompt = (
             f"Write a complete HTML email newsletter.\n"
-            f"Subject: {subject}\n"
-            f"Topic: {kw}\n"
-            f"Brief/outline:\n{existing}\n\n"
+            f"Subject: {subject}\nTopic: {kw}\nBrief/outline:\n{existing}\n\n"
             "Keep it 300-500 words. Include a clear CTA at the end. "
             "Make it personal and valuable for web hosting customers."
         )
@@ -177,8 +162,7 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     else:
         prompt = (
             f"Write a complete SEO-optimized blog post about '{kw}'.\n"
-            f"Title: {title}\n"
-            f"Outline/brief:\n{existing}\n\n"
+            f"Title: {title}\nOutline/brief:\n{existing}\n\n"
             "Target: 1200-1800 words. Include practical examples relevant to "
             "web hosting users. Natural keyword placement. Strong introduction. "
             "End with a clear takeaway."
@@ -191,34 +175,31 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     if not item.get("title") and title != kw:
         updates["title"] = title
 
-    await update_content(ctx, params.content_id, updates)
-    return ActionResult.success(
-        {"length": len(draft_html)},
-        summary=f"Draft written for '{kw}' ({len(draft_html)} chars)",
-    )
+    await update_content(ctx, cid, updates)
+    return ActionResult.success({"length": len(draft_html)}, summary=f"Draft written for '{kw}' ({len(draft_html)} chars)")
 
 
 @chat.function(
     "generate_newsletter",
-    description="Write a newsletter from a news item or topic. Uses brand voice from Settings. Returns Subject, Preview, Body, CTA, links.",
+    description="Write a newsletter from a news item or topic. Uses brand voice from Settings.",
     action_type="write",
     event="seo.content.updated",
 )
 async def generate_newsletter(ctx, params: GenerateNewsletterParams) -> ActionResult:
-    """Generate a complete newsletter using brand settings configured by the user."""
-    item = await get_content(ctx, params.content_id)
+    cid = await _resolve_id(ctx, params.content_id)
+    item = await get_content(ctx, cid)
     if not item:
         return ActionResult.error(error="Content item not found")
 
     s = await load_settings(ctx)
-    company = s.get("company_name") or "our company"
+    company     = s.get("company_name") or "our company"
     description = s.get("brand_description") or ""
-    voice = s.get("brand_voice") or "Direct and smart. Short punchy sentences. No corporate fluff."
-    cta = s.get("newsletter_cta") or "Learn more"
-    site = s.get("site_url") or ""
-    blog = s.get("blog_url") or ""
-    tg = s.get("tg_url") or ""
-    community = s.get("community_url") or ""
+    voice       = s.get("brand_voice") or "Direct and smart. Short punchy sentences. No corporate fluff."
+    cta         = s.get("newsletter_cta") or "Learn more"
+    site        = s.get("site_url") or ""
+    blog        = s.get("blog_url") or ""
+    tg          = s.get("tg_url") or ""
+    community   = s.get("community_url") or ""
 
     links_block = "\n".join(filter(None, [
         f"• Telegram: {tg}" if tg else "",
@@ -230,40 +211,34 @@ async def generate_newsletter(ctx, params: GenerateNewsletterParams) -> ActionRe
     docs_ctx = await build_docs_context(ctx)
     docs_block = f"\n\nBRAND DOCUMENTATION:\n{docs_ctx}" if docs_ctx else ""
 
-    if company and company != "our company":
-        brand_section = f"""COMPANY: {company}
-{f'About: {description}' if description else ''}
-VOICE: {voice}
-CTA text: "{cta}"
-"""
-    else:
-        # No brand settings — rely on platform/Webbee context
-        brand_section = "Use your knowledge about this company and its brand voice.\n"
+    brand_section = (
+        f"COMPANY: {company}\n"
+        f"{f'About: {description}' if description else ''}\n"
+        f"VOICE: {voice}\nCTA text: \"{cta}\"\n"
+        if company and company != "our company"
+        else "Use your knowledge about this company and its brand voice.\n"
+    )
 
     system = f"""You are writing an email newsletter.
 
 {brand_section}
-RULES:
-- Write as the company, use "we/you"
-- No fake urgency, no exaggerated claims, no corporate speak
+RULES: Write as the company. No fake urgency, no exaggerated claims, no corporate speak.
 
-OUTPUT FORMAT — return exactly this structure:
-SUBJECT: [compelling subject line, max 50 chars]
-PREVIEW: [preview text shown in inbox, 80-100 chars]
+OUTPUT FORMAT:
+SUBJECT: [subject line, max 50 chars]
+PREVIEW: [preview text, 80-100 chars]
 ---
-[newsletter body: 150-300 words, HTML with <p>, <strong>, <a href="...">, <ul><li>]
-[end with a clear CTA as a styled button-link]
+[body: 150-300 words, HTML]
 ---
 LINKS:
-{links_block if links_block else '(add your links in Settings → Brand)'}{docs_block}"""
+{links_block if links_block else '(add links in Settings → Brand)'}{docs_block}"""
 
-    tone = f"\n\nTone note from editor: {params.tone_note}" if params.tone_note else ""
-    prompt = f"Write a newsletter based on this news/topic:\n\n{params.news_text}{tone}"
+    tone = f"\n\nTone note: {params.tone_note}" if params.tone_note else ""
+    prompt = f"Write a newsletter based on:\n\n{params.news_text}{tone}"
 
     result = await ctx.ai.complete(f"{system}\n\n{prompt}")
     newsletter_html = getattr(result, "text", None) or str(result)
 
-    # Extract subject for the item title if not set
     subject_line = ""
     for line in newsletter_html.splitlines():
         if line.startswith("SUBJECT:"):
@@ -271,15 +246,9 @@ LINKS:
             break
 
     updates: dict = {"content": newsletter_html, "status": "review"}
-    if subject_line and not item.get("subject"):
-        updates["subject"] = subject_line
-    if subject_line and not item.get("title"):
-        updates["title"] = subject_line
+    if subject_line and not item.get("subject"): updates["subject"] = subject_line
+    if subject_line and not item.get("title"):   updates["title"]   = subject_line
 
-    await update_content(ctx, params.content_id, updates)
-    # Auto-switch to preview so the result is immediately visible for copying
+    await update_content(ctx, cid, updates)
     await save_ui_state(ctx, {"editor_mode": "preview"})
-    return ActionResult.success(
-        {"subject": subject_line, "length": len(newsletter_html)},
-        summary=f"Newsletter written. Subject: {subject_line}",
-    )
+    return ActionResult.success({"subject": subject_line, "length": len(newsletter_html)}, summary=f"Newsletter written. Subject: {subject_line}")

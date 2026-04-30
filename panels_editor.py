@@ -1,9 +1,4 @@
-"""Editor view for content items — blog posts and newsletters.
-
-Rendered by panels_workspace.py when active_view == 'editor'.
-Newsletter mode: generate-from-news form + email-preview copy window.
-Blog mode: RichEditor + WP publish.
-"""
+"""Editor view — clean step-by-step UX. All handlers read content_id from UI state."""
 from __future__ import annotations
 
 from imperal_sdk import ui
@@ -11,9 +6,9 @@ from imperal_sdk import ui
 from app import get_content
 
 STATUS_COLOR = {
-    "idea": "gray",
-    "writing": "blue",
-    "review": "yellow",
+    "idea":      "gray",
+    "writing":   "blue",
+    "review":    "yellow",
     "published": "green",
 }
 
@@ -29,21 +24,186 @@ async def editor_view(ctx, state: dict) -> ui.UINode:
     if not item:
         return ui.Alert(message=f"Item {content_id} not found.", type="error")
 
-    item_type = item.get("type", "blog")
+    if item.get("type") == "newsletter":
+        return _newsletter_editor(item, mode)
+    return _blog_editor(item, mode)
 
-    if item_type == "newsletter":
-        return _newsletter_editor(item, content_id, mode)
-    return _blog_editor(item, content_id, mode)
+
+# ── Blog editor ───────────────────────────────────────────────────────────────
+
+def _blog_editor(item: dict, mode: str) -> ui.UINode:
+    kw           = item.get("keyword", "")
+    title        = item.get("title", "")
+    content_html = item.get("content", "")
+    status       = item.get("status", "idea")
+    wp_id        = item.get("wp_post_id")
+    wp_url       = item.get("target_url", "")
+    meta_desc    = item.get("meta_description", "")
+    focus_kw     = item.get("focus_keyword", "") or kw
+
+    has_content = bool(content_html and len(content_html.strip()) > 100)
+
+    # ── Header ────────────────────────────────────────────────────────────────
+    header = ui.Stack(children=[
+        ui.Stack(children=[
+            ui.Form(action="go_plan", submit_label="← Plan", children=[]),
+            ui.Header(text=title or kw, level=3),
+            ui.Badge(label=status, color=STATUS_COLOR.get(status, "gray")),
+        ], direction="horizontal", gap=8),
+        ui.Form(
+            action="set_editor_mode",
+            submit_label="Preview" if mode == "edit" else "Edit",
+            children=[ui.Input(param_name="mode", value="preview" if mode == "edit" else "edit")],
+        ),
+    ], direction="horizontal", justify="between")
+
+    meta = ui.Stack(children=[
+        ui.Text(content=f"Keyword: {kw}  ·  Volume: {item.get('volume', 0):,}/mo  ·  Difficulty: {item.get('difficulty', '—')}/100", variant="caption"),
+    ])
+
+    # ── Step 1: AI Brief ──────────────────────────────────────────────────────
+    step1 = ui.Section(
+        title="Step 1 — Generate Brief (optional)",
+        children=[
+            ui.Text(content="AI builds an SEO outline: title, meta description, H2/H3 structure, search intent.", variant="caption"),
+            ui.Form(
+                action="ai_brief",
+                submit_label="Generate Brief",
+                children=[
+                    ui.Input(param_name="extra", placeholder="Extra context (optional) — e.g. 'focus on VPS for developers'"),
+                ],
+            ),
+        ],
+        collapsible=True,
+        collapsed=has_content,
+    )
+
+    # ── Step 2: AI Write ──────────────────────────────────────────────────────
+    step2_children = [
+        ui.Text(content="AI writes the full article (~1200-1800 words). Run Brief first for better results.", variant="caption"),
+        ui.Form(action="ai_write", submit_label="Write Full Article", children=[]),
+    ]
+    if has_content:
+        step2_children.append(
+            ui.Form(action="ai_write", submit_label="Improve Article",
+                    children=[ui.Input(param_name="section", value="improve")])
+        )
+    step2 = ui.Section(title="Step 2 — Write with AI", children=step2_children)
+
+    # ── Step 3: Editor ────────────────────────────────────────────────────────
+    if mode == "preview":
+        outer = "background:#f5f5f5;padding:32px;border-radius:8px;"
+        inner = (
+            "max-width:720px;margin:0 auto;background:#fff;border-radius:6px;"
+            "padding:48px 52px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
+            "font-size:16px;line-height:1.8;color:#1a1a1a;"
+        )
+        step3 = ui.Html(content=(
+            f'<div style="{outer}"><div style="{inner}">'
+            f'<h1 style="color:#111;margin-top:0;font-size:26px;">{title or kw}</h1>'
+            + (content_html or "<p><em>No content yet — run AI Write.</em></p>")
+            + "</div></div>"
+        ))
+    else:
+        step3 = ui.Section(
+            title="Step 3 — Edit & Save",
+            children=[
+                ui.Form(
+                    action="save_draft",
+                    submit_label="Save",
+                    children=[
+                        ui.Input(param_name="title", value=title, placeholder="Article title (H1)"),
+                        ui.RichEditor(
+                            param_name="content",
+                            content=content_html,
+                            placeholder="Run AI Write above, or start typing here...",
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+    # ── Step 4: Publish ───────────────────────────────────────────────────────
+    if wp_id:
+        publish_section = ui.Section(
+            title=f"Step 4 — Published (WP #{wp_id})",
+            children=[
+                ui.Badge(label=f"WP post #{wp_id}", color="green"),
+                *([ ui.Text(content=wp_url, variant="caption") ] if wp_url else []),
+                ui.Stack(children=[
+                    ui.Form(action="publish_wp", submit_label="Update WP Post",
+                            children=[ui.Input(param_name="status", value="draft")]),
+                    ui.Form(action="publish_wp", submit_label="Set as Published",
+                            children=[ui.Input(param_name="status", value="publish")]),
+                ], direction="horizontal", gap=8),
+                ui.Divider(),
+                ui.Header(text="SEO Meta (Yoast)", level=5),
+                ui.Text(content="Set focus keyword and meta description in WordPress.", variant="caption"),
+                ui.Form(
+                    action="set_wp_seo",
+                    submit_label="Set SEO Meta",
+                    children=[
+                        ui.Input(param_name="focus_keyword",    value=focus_kw,   placeholder=f"Focus keyword (default: {kw})"),
+                        ui.Input(param_name="meta_description", value=meta_desc,  placeholder="Meta description (leave empty — AI will generate)"),
+                    ],
+                ),
+            ],
+            collapsible=True,
+            collapsed=False,
+        )
+    else:
+        publish_section = ui.Section(
+            title="Step 4 — Publish to WordPress",
+            children=[
+                ui.Text(
+                    content="Publishes as draft — you can review in WP before going live.",
+                    variant="caption",
+                ),
+                ui.Stack(children=[
+                    ui.Form(action="publish_wp", submit_label="→ Save as WP Draft",
+                            children=[ui.Input(param_name="status", value="draft")]),
+                    ui.Form(action="publish_wp", submit_label="→ Publish Now",
+                            children=[ui.Input(param_name="status", value="publish")]),
+                ], direction="horizontal", gap=8),
+            ],
+        )
+
+    status_form = ui.Form(
+        action="update_status",
+        submit_label="Update status",
+        children=[
+            ui.Select(param_name="status", placeholder=f"Status: {status}", options=[
+                {"value": "idea",      "label": "Idea"},
+                {"value": "writing",   "label": "Writing"},
+                {"value": "review",    "label": "Review"},
+                {"value": "published", "label": "Published"},
+            ]),
+        ],
+    )
+
+    return ui.Stack(children=[
+        header,
+        meta,
+        ui.Divider(),
+        step1,
+        step2,
+        ui.Divider(),
+        step3,
+        ui.Divider(),
+        publish_section,
+        ui.Divider(),
+        status_form,
+    ])
 
 
 # ── Newsletter editor ─────────────────────────────────────────────────────────
 
-def _newsletter_editor(item: dict, content_id: str, mode: str) -> ui.UINode:
-    kw = item.get("keyword", "")
-    title = item.get("title", "")
-    subject = item.get("subject", "")
+def _newsletter_editor(item: dict, mode: str) -> ui.UINode:
+    kw           = item.get("keyword", "")
+    title        = item.get("title", "")
+    subject      = item.get("subject", "")
     content_html = item.get("content", "")
-    status = item.get("status", "idea")
+    status       = item.get("status", "idea")
 
     header = ui.Stack(children=[
         ui.Stack(children=[
@@ -52,37 +212,26 @@ def _newsletter_editor(item: dict, content_id: str, mode: str) -> ui.UINode:
             ui.Badge(label=status, color=STATUS_COLOR.get(status, "gray")),
             ui.Badge(label="newsletter", color="violet"),
         ], direction="horizontal", gap=8),
-        ui.Stack(children=[
-            ui.Form(
-                action="set_editor_mode",
-                submit_label="Preview" if mode == "edit" else "Edit",
-                children=[ui.Input(param_name="mode", value="preview" if mode == "edit" else "edit")],
-            ),
-        ], direction="horizontal"),
+        ui.Form(
+            action="set_editor_mode",
+            submit_label="Preview" if mode == "edit" else "Edit",
+            children=[ui.Input(param_name="mode", value="preview" if mode == "edit" else "edit")],
+        ),
     ], direction="horizontal", justify="between")
 
-    # Generate-from-news form — always visible
     generate_form = ui.Section(
-        title="Write newsletter from news",
+        title="Generate newsletter from news",
         children=[
             ui.Form(
                 action="generate_newsletter",
                 submit_label="Generate newsletter →",
                 children=[
-                    ui.Input(param_name="content_id", value=content_id),
                     ui.TextArea(
                         param_name="news_text",
-                        placeholder=(
-                            "Paste the news, update, or topic here.\n\n"
-                            "Example: 'We just launched HTTP/3 on all plans. "
-                            "Tests show 2x faster page loads on mobile connections.'"
-                        ),
+                        placeholder="Paste the news, update, or topic here...",
                         rows=5,
                     ),
-                    ui.Input(
-                        param_name="tone_note",
-                        placeholder="Tone note (optional) — e.g. 'more personal', 'focus on speed'",
-                    ),
+                    ui.Input(param_name="tone_note", placeholder="Tone note (optional)"),
                 ],
             ),
         ],
@@ -93,50 +242,29 @@ def _newsletter_editor(item: dict, content_id: str, mode: str) -> ui.UINode:
             header,
             ui.Divider(),
             generate_form,
-            ui.Alert(
-                message="Enter a news item above and click Generate — the newsletter will appear here ready to copy.",
-                type="info",
-            ),
+            ui.Alert(message="Enter a topic above and click Generate.", type="info"),
         ])
 
-    # Preview mode: email-style window + raw block for copying
     if mode == "preview":
-        outer = "background:#e8e8e8;padding:32px;border-radius:10px;min-height:500px;"
+        outer = "background:#e8e8e8;padding:32px;border-radius:10px;"
         inner = (
             "max-width:620px;margin:0 auto;background:#fff;border-radius:8px;"
             "padding:40px 44px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
-            "font-size:15px;line-height:1.75;color:#1a1a1a;box-shadow:0 2px 8px rgba(0,0,0,.10);"
+            "font-size:15px;line-height:1.75;color:#1a1a1a;"
         )
-        meta_bar = (
-            f'<div style="max-width:620px;margin:0 auto 8px;font-size:12px;color:#888;">'
-            f'<strong>Subject:</strong> {subject or "—"}'
-            f'</div>'
-        )
-        preview_html = (
-            f'<div style="{outer}">'
-            + meta_bar
-            + f'<div style="{inner}">'
-            + content_html
-            + "</div></div>"
-        )
+        meta_bar = f'<div style="max-width:620px;margin:0 auto 8px;font-size:12px;color:#888;"><strong>Subject:</strong> {subject or "—"}</div>'
         content_area = ui.Stack(children=[
-            ui.Text(content="Email preview — select and copy text from below, or copy the HTML source from Edit mode", variant="caption"),
-            ui.Html(content=preview_html),
+            ui.Text(content="Email preview — copy text or switch to Edit to get raw HTML", variant="caption"),
+            ui.Html(content=f'<div style="{outer}">{meta_bar}<div style="{inner}">{content_html}</div></div>'),
         ])
     else:
-        # Edit mode: editable RichEditor + save
         content_area = ui.Form(
             action="save_draft",
             submit_label="Save",
             children=[
-                ui.Input(param_name="content_id", value=content_id),
-                ui.Input(param_name="title", value=title, placeholder="Title"),
+                ui.Input(param_name="title",   value=title,   placeholder="Title"),
                 ui.Input(param_name="subject", value=subject, placeholder="Email subject line"),
-                ui.RichEditor(
-                    param_name="content",
-                    content=content_html,
-                    placeholder="Newsletter body will appear here after generation.",
-                ),
+                ui.RichEditor(param_name="content", content=content_html, placeholder="Newsletter body"),
             ],
         )
 
@@ -144,19 +272,13 @@ def _newsletter_editor(item: dict, content_id: str, mode: str) -> ui.UINode:
         action="update_status",
         submit_label="Update status",
         children=[
-            ui.Input(param_name="content_id", value=content_id),
             ui.Select(param_name="status", placeholder=f"Status: {status}", options=[
-                {"value": "idea", "label": "Idea"},
-                {"value": "writing", "label": "Writing"},
-                {"value": "review", "label": "Review — ready to paste into MailerLite"},
+                {"value": "idea",      "label": "Idea"},
+                {"value": "writing",   "label": "Writing"},
+                {"value": "review",    "label": "Review — ready to paste into MailerLite"},
                 {"value": "published", "label": "Published / Sent"},
             ]),
         ],
-    )
-
-    copy_note = ui.Alert(
-        message="Ready to send? Copy the text from preview, paste into MailerLite → create campaign → review → schedule.",
-        type="info",
     )
 
     return ui.Stack(children=[
@@ -166,122 +288,6 @@ def _newsletter_editor(item: dict, content_id: str, mode: str) -> ui.UINode:
         ui.Divider(),
         content_area,
         ui.Divider(),
-        copy_note,
+        ui.Alert(message="Ready? Copy from Preview → paste into MailerLite → schedule.", type="info"),
         status_form,
-    ])
-
-
-# ── Blog editor ───────────────────────────────────────────────────────────────
-
-def _blog_editor(item: dict, content_id: str, mode: str) -> ui.UINode:
-    kw = item.get("keyword", "")
-    title = item.get("title", "")
-    content_html = item.get("content", "")
-    status = item.get("status", "idea")
-    wp_id = item.get("wp_post_id")
-
-    header = ui.Stack(children=[
-        ui.Stack(children=[
-            ui.Form(action="go_plan", submit_label="← Plan", children=[]),
-            ui.Header(text=title or kw, level=3),
-            ui.Badge(label=status, color=STATUS_COLOR.get(status, "gray")),
-            ui.Badge(label="blog", color="blue"),
-        ], direction="horizontal", gap=8),
-        ui.Stack(children=[
-            ui.Form(
-                action="set_editor_mode",
-                submit_label="Preview" if mode == "edit" else "Edit",
-                children=[ui.Input(param_name="mode", value="preview" if mode == "edit" else "edit")],
-            ),
-        ], direction="horizontal"),
-    ], direction="horizontal", justify="between")
-
-    ai_bar = ui.Stack(children=[
-        ui.Form(action="ai_brief", submit_label="AI Brief", children=[
-            ui.Input(param_name="content_id", value=content_id),
-            ui.Input(param_name="extra", placeholder="Extra context (optional)"),
-        ]),
-        ui.Form(action="ai_write", submit_label="AI Write", children=[
-            ui.Input(param_name="content_id", value=content_id),
-        ]),
-        ui.Form(action="ai_write", submit_label="AI Improve", children=[
-            ui.Input(param_name="content_id", value=content_id),
-            ui.Input(param_name="section", value="improve"),
-        ]),
-    ], direction="horizontal", gap=8)
-
-    if mode == "preview":
-        outer = "background:#f5f5f5;padding:32px;border-radius:8px;min-height:480px;"
-        inner = (
-            "max-width:720px;margin:0 auto;background:#fff;border-radius:6px;"
-            "padding:48px 52px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
-            "font-size:16px;line-height:1.8;color:#1a1a1a;"
-        )
-        content_area = ui.Html(content=(
-            f'<div style="{outer}"><div style="{inner}">'
-            f'<h1 style="color:#111;margin-top:0;font-size:26px;">{title or kw}</h1>'
-            + (content_html or "<p><em>No content. Switch to Edit mode.</em></p>")
-            + "</div></div>"
-        ))
-    else:
-        content_area = ui.Form(
-            action="save_draft",
-            submit_label="Save draft",
-            children=[
-                ui.Input(param_name="content_id", value=content_id),
-                ui.Input(param_name="title", value=title, placeholder="Title (H1)"),
-                ui.RichEditor(
-                    param_name="content",
-                    content=content_html,
-                    placeholder="Start writing or use AI Brief → AI Write above...",
-                ),
-            ],
-        )
-
-    publish_bar = ui.Stack(children=[
-        ui.Form(action="publish_wp", submit_label="→ WP Draft", children=[
-            ui.Input(param_name="content_id", value=content_id),
-            ui.Input(param_name="status", value="draft"),
-        ]),
-        ui.Form(action="publish_wp", submit_label="→ Publish on WordPress", children=[
-            ui.Input(param_name="content_id", value=content_id),
-            ui.Input(param_name="status", value="publish"),
-        ]),
-        *(
-            [ui.Badge(label=f"WP #{wp_id} — {item.get('target_url', '')[:40]}", color="green")]
-            if wp_id else []
-        ),
-    ], direction="horizontal", gap=8)
-
-    meta = ui.KeyValue(items=[
-        {"key": "Keyword", "value": kw},
-        {"key": "Volume", "value": f"{item.get('volume', 0):,}/mo"},
-        {"key": "Difficulty", "value": f"{item.get('difficulty', '—')}/100"},
-    ])
-
-    status_form = ui.Form(
-        action="update_status",
-        submit_label="Update status",
-        children=[
-            ui.Input(param_name="content_id", value=content_id),
-            ui.Select(param_name="status", placeholder=f"Status: {status}", options=[
-                {"value": "idea", "label": "Idea"},
-                {"value": "writing", "label": "Writing"},
-                {"value": "review", "label": "Review"},
-                {"value": "published", "label": "Published"},
-            ]),
-        ],
-    )
-
-    return ui.Stack(children=[
-        header,
-        ui.Divider(),
-        ai_bar,
-        ui.Divider(),
-        content_area,
-        ui.Divider(),
-        meta,
-        status_form,
-        ui.Divider(),
-        publish_bar,
     ])

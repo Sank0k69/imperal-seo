@@ -14,14 +14,14 @@ class CreateContentParams(BaseModel):
 
 
 class SaveDraftParams(BaseModel):
-    content_id: str = Field(..., description="Content item ID")
+    content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
     title: str = Field("", description="Article or newsletter title")
     content: str = Field("", description="HTML content from the editor")
     subject: str = Field("", description="Email subject line (newsletter only)")
 
 
 class UpdateStatusParams(BaseModel):
-    content_id: str = Field(..., description="Content item ID")
+    content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
     status: str = Field(..., description="New status: idea|writing|review|published")
 
 
@@ -38,12 +38,12 @@ class SetEditorModeParams(BaseModel):
 
 
 class AiBriefParams(BaseModel):
-    content_id: str = Field(..., description="Content item ID")
+    content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
     extra: str = Field("", description="Additional context or instructions for the AI")
 
 
 class AiWriteParams(BaseModel):
-    content_id: str = Field(..., description="Content item ID")
+    content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
     section: str = Field("full", description="'full', 'intro', 'conclusion', or 'improve'")
 
 
@@ -62,8 +62,14 @@ class FetchGapsParams(BaseModel):
 
 
 class PublishWpParams(BaseModel):
-    content_id: str = Field(..., description="Content item ID to publish")
+    content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
     status: str = Field("draft", description="WP post status: 'draft' or 'publish'")
+
+
+class SetWpSeoParams(BaseModel):
+    content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
+    meta_description: str = Field("", description="SEO meta description (120-160 chars)")
+    focus_keyword: str = Field("", description="Yoast focus keyword — leave empty to use item's keyword")
 
 
 class EmptyParams(BaseModel):
@@ -87,7 +93,7 @@ class DeleteDocParams(BaseModel):
 
 
 class GenerateNewsletterParams(BaseModel):
-    content_id: str = Field(..., description="Newsletter content item ID")
+    content_id: str = Field("", description="Newsletter content item ID — leave empty to use currently open item")
     news_text: str = Field(..., description="The news, update, or topic to write the newsletter about")
     tone_note: str = Field("", description="Optional tone instruction, e.g. 'more urgent', 'focus on price'")
 
