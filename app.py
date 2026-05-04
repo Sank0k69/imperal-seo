@@ -143,6 +143,14 @@ async def create_content(ctx, data: dict) -> str:
 
 
 async def update_content(ctx, content_id: str, data: dict) -> None:
+    try:
+        doc = await ctx.store.get(CONTENT_COL, content_id)
+        if doc and isinstance(getattr(doc, "data", None), dict):
+            merged = {**doc.data, **data}
+            await ctx.store.update(CONTENT_COL, content_id, merged)
+            return
+    except Exception:
+        pass
     await ctx.store.update(CONTENT_COL, content_id, data)
 
 

@@ -83,7 +83,6 @@ def _blog_editor(item: dict, mode: str) -> ui.UINode:
     step1 = ui.Section(
         title=f"Step 1 — Brief {'✓' if brief_text else '(optional)'}",
         children=step1_children,
-        collapsible=True,
     )
 
     # ── Step 2: AI Write ──────────────────────────────────────────────────────
