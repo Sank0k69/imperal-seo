@@ -77,6 +77,12 @@ async def go_edit(ctx, params: EmptyParams) -> ActionResult:
     return ActionResult.success({}, summary="Edit mode")
 
 
+@chat.function("resume_editor", description="Return to the editor for the currently open content item.", action_type="read", event="seo.nav.changed")
+async def resume_editor(ctx, params: EmptyParams) -> ActionResult:
+    await save_ui_state(ctx, {"active_view": "editor"})
+    return ActionResult.success({}, summary="Returned to editor")
+
+
 @chat.function(
     "new_content",
     description="Create a new content plan item (blog post or newsletter) and open it in the editor.",

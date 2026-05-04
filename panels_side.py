@@ -39,7 +39,18 @@ async def sidebar_panel(ctx):
         ], gap=4),
     ])
 
+    selected_id = state.get("selected_id")
+    resume_btn_children = []
+    if selected_id and active != "editor":
+        # Find the keyword/title for the open item
+        open_item = next((i for i in items if i.get("id") == selected_id), None)
+        label = (open_item.get("keyword") or open_item.get("title") or "item")[:28] if open_item else "item"
+        resume_btn_children = [
+            ui.Form(action="resume_editor", submit_label=f"↩ Resume: {label}", children=[]),
+        ]
+
     nav = ui.Stack(children=[
+        *resume_btn_children,
         _nav_btn("Content Plan", "go_plan", "Layout"),
         _nav_btn("Rankings", "go_rankings", "TrendingUp"),
         _nav_btn("Keywords", "go_keywords", "Search"),
