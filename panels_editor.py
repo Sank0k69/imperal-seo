@@ -35,6 +35,7 @@ def _blog_editor(item: dict, mode: str) -> ui.UINode:
     kw           = item.get("keyword", "")
     title        = item.get("title", "")
     content_html = item.get("content", "")
+    brief_text   = item.get("brief", "")
     status       = item.get("status", "idea")
     wp_id        = item.get("wp_post_id")
     wp_url       = item.get("target_url", "")
@@ -62,18 +63,26 @@ def _blog_editor(item: dict, mode: str) -> ui.UINode:
     ])
 
     # ── Step 1: AI Brief ──────────────────────────────────────────────────────
+    step1_children = [
+        ui.Text(content="AI builds an SEO outline: title, meta description, H2/H3 structure, search intent.", variant="caption"),
+        ui.Form(
+            action="generate_brief",
+            submit_label="Generate Brief",
+            children=[
+                ui.Input(param_name="extra", placeholder="Extra context (optional) — e.g. 'focus on VPS for developers'"),
+            ],
+        ),
+    ]
+    if brief_text:
+        step1_children += [
+            ui.Divider(),
+            ui.Text(content="Brief ready - used as context when writing the article:", variant="caption"),
+            ui.Text(content=brief_text[:800] + ("..." if len(brief_text) > 800 else ""), variant="body"),
+            ui.Form(action="generate_brief", submit_label="Regenerate Brief", children=[]),
+        ]
     step1 = ui.Section(
-        title="Step 1 — Generate Brief (optional)",
-        children=[
-            ui.Text(content="AI builds an SEO outline: title, meta description, H2/H3 structure, search intent.", variant="caption"),
-            ui.Form(
-                action="ai_brief",
-                submit_label="Generate Brief",
-                children=[
-                    ui.Input(param_name="extra", placeholder="Extra context (optional) — e.g. 'focus on VPS for developers'"),
-                ],
-            ),
-        ],
+        title=f"Step 1 — Brief {'✓' if brief_text else '(optional)'}",
+        children=step1_children,
         collapsible=True,
     )
 

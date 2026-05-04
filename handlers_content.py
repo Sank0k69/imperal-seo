@@ -75,14 +75,14 @@ async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
 
 
 @chat.function(
-    "ai_brief",
-    description="Generate a content brief with outline using AI. Saves to the content item.",
+    "generate_brief",
+    description="Generate an SEO content brief: title, meta description, H2/H3 outline, search intent. Saved and shown in the editor.",
     action_type="write",
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
 )
-async def ai_brief(ctx, params: AiBriefParams) -> ActionResult:
+async def generate_brief(ctx, params: AiBriefParams) -> ActionResult:
     cid = await _resolve_id(ctx, params.content_id)
     item = await get_content(ctx, cid)
     if not item:
@@ -102,8 +102,11 @@ async def ai_brief(ctx, params: AiBriefParams) -> ActionResult:
         return ActionResult.error(error=data["error"])
 
     brief_text = data.get("brief", "")
-    await update_content(ctx, cid, {"content": f"<pre>{brief_text}</pre>", "status": "writing"})
-    return ActionResult.success({"brief": brief_text[:300]}, summary=f"Brief generated for '{kw}'")
+    await update_content(ctx, cid, {"brief": brief_text, "status": "writing"})
+    return ActionResult.success(
+        {"brief": brief_text[:300]},
+        summary=f"Brief ready for '{kw}' — visible in Step 1 of the editor.",
+    )
 
 
 @chat.function(
@@ -128,6 +131,7 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     kw           = item.get("keyword", "")
     content_type = item.get("type", "blog")
     existing     = item.get("content", "")
+    brief        = item.get("brief", "")
     title        = item.get("title", kw)
     s            = await load_settings(ctx)
     language     = s.get("language", "en")
@@ -190,6 +194,10 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
 
     # Phase 2: write via MOS content engine
     article_type = params.article_type or item.get("type", "blog")
+    # If brief exists, prepend it to ser_context so MOS uses it as outline
+    if brief:
+        ser_context = f"CONTENT BRIEF (follow this outline):\n{brief}\n\n{ser_context}".strip()
+
     data = await _mos_generate(
         ctx,
         topic=best_title or kw,
