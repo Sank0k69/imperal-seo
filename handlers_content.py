@@ -4,6 +4,7 @@ from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, get_content, update_content, delete_content, save_ui_state, load_settings, load_ui_state
 from api_client import keywords_for_article, generate_article as _mos_generate, generate_brief as _mos_brief, generate_newsletter_mos as _mos_newsletter
+from handlers_docs import build_docs_context
 from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, AiWriteParams, GenerateNewsletterParams
 
 
@@ -164,19 +165,31 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
         await update_content(ctx, cid, {"content": draft_html})
         return ActionResult.success({"length": len(draft_html)}, summary=f"Article improved for '{kw}'")
 
-    # Full write — Phase 1: enrich keywords via MOS
-    kw_data = await keywords_for_article(ctx, kw)
-    secondary = kw_data.get("secondary_keywords", []) if "error" not in kw_data else []
-    lsi       = kw_data.get("lsi_terms", [])           if "error" not in kw_data else []
-    questions = kw_data.get("questions", [])            if "error" not in kw_data else []
-    word_count = kw_data.get("word_count", 1400)        if "error" not in kw_data else 1400
-    title_opts = kw_data.get("title_options", [])       if "error" not in kw_data else []
+    # Full write — Phase 1: enrich keywords via MOS + load brand context in parallel
+    import asyncio
+    kw_data, brand_context = await asyncio.gather(
+        keywords_for_article(ctx, kw),
+        build_docs_context(ctx),
+    )
+    secondary  = kw_data.get("secondary_keywords", []) if "error" not in kw_data else []
+    lsi        = kw_data.get("lsi_terms", [])           if "error" not in kw_data else []
+    questions  = kw_data.get("questions", [])            if "error" not in kw_data else []
+    word_count = kw_data.get("word_count", 1400)         if "error" not in kw_data else 1400
+    title_opts = kw_data.get("title_options", [])        if "error" not in kw_data else []
 
     # Use first title option if item has no title yet
     best_title = title_opts[0] if title_opts and not item.get("title") else title
 
+    # SE Ranking context: current position for this keyword
+    ser_context = ""
+    current_position = item.get("difficulty")  # we store rank as difficulty? no — use volume/difficulty as SEO signals
+    if item.get("volume") or item.get("difficulty"):
+        ser_context = (
+            f"Keyword: {kw} | Volume: {item.get('volume', 0)}/mo | Difficulty: {item.get('difficulty', 0)}/100"
+        )
+
     # Phase 2: write via MOS content engine
-    article_type = item.get("type", "blog")
+    article_type = params.article_type or item.get("type", "blog")
     data = await _mos_generate(
         ctx,
         topic=best_title or kw,
@@ -187,6 +200,8 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
         secondary_keywords=secondary,
         lsi_terms=lsi,
         questions=questions,
+        brand_context=brand_context,
+        ser_context=ser_context,
     )
 
     if "error" in data:

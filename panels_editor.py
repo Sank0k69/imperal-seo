@@ -78,9 +78,28 @@ def _blog_editor(item: dict, mode: str) -> ui.UINode:
     )
 
     # ── Step 2: AI Write ──────────────────────────────────────────────────────
+    article_type = item.get("type", "blog")
+    type_options = [
+        {"value": "blog",       "label": "Blog post (informational)"},
+        {"value": "comparison", "label": "Comparison / X vs Y"},
+        {"value": "tutorial",   "label": "Tutorial / step-by-step"},
+        {"value": "pillar",     "label": "Pillar page (comprehensive)"},
+        {"value": "news",       "label": "News / announcement"},
+        {"value": "review",     "label": "Product / service review"},
+    ]
     step2_children = [
-        ui.Text(content="AI writes the full article (~1200-1800 words). Run Brief first for better results.", variant="caption"),
-        ui.Form(action="ai_write", submit_label="Write Full Article", children=[]),
+        ui.Text(content="AI writes the full article. Run Brief first for better results.", variant="caption"),
+        ui.Form(
+            action="ai_write",
+            submit_label="Write Full Article",
+            children=[
+                ui.Select(
+                    param_name="article_type",
+                    placeholder=f"Article type: {article_type}",
+                    options=type_options,
+                ),
+            ],
+        ),
     ]
     if has_content:
         step2_children.append(

@@ -44,7 +44,8 @@ class AiBriefParams(BaseModel):
 
 class AiWriteParams(BaseModel):
     content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
-    section: str = Field("full", description="'full', 'intro', 'conclusion', or 'improve'")
+    section: str = Field("full", description="'full' or 'improve'")
+    article_type: str = Field("", description="blog | comparison | tutorial | pillar | news | review — overrides item type")
 
 
 class FetchKeywordsParams(BaseModel):
