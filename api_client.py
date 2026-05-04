@@ -21,6 +21,17 @@ async def _post(ctx, endpoint: str, payload: dict, timeout: int = TIMEOUT) -> di
     return resp.json()
 
 
+async def _get(ctx, endpoint: str, timeout: int = TIMEOUT) -> dict:
+    resp = await ctx.http.get(
+        f"{SERVER_URL}{endpoint}",
+        headers={"X-API-Key": SERVER_API_KEY},
+        timeout=timeout,
+    )
+    if not resp.ok:
+        return {"error": f"Server error {resp.status_code}"}
+    return resp.json()
+
+
 async def ser_keywords(ctx, domain: str, source: str, limit: int, min_volume: int, max_difficulty: int) -> dict:
     s = await load_settings(ctx)
     key = s.get("seranking_data_key", "")
@@ -154,13 +165,11 @@ async def keywords_for_article(ctx, keyword: str) -> dict:
     }, timeout=60)
 
 
-async def generate_article(ctx, topic: str, keyword: str, article_type: str = "blog",
-                            word_count: int = 1500, language: str = "en",
-                            secondary_keywords: list = None, lsi_terms: list = None,
-                            questions: list = None,
-                            brand_context: str = "", ser_context: str = "") -> dict:
-    s = await load_settings(ctx)
-    return await _post(ctx, "/api/content/generate", {
+def _article_payload(s: dict, topic: str, keyword: str, article_type: str,
+                     word_count: int, language: str, secondary_keywords: list,
+                     lsi_terms: list, questions: list,
+                     brand_context: str, ser_context: str) -> dict:
+    return {
         "user_key":           "",
         "topic":              topic,
         "keyword":            keyword,
@@ -177,7 +186,39 @@ async def generate_article(ctx, topic: str, keyword: str, article_type: str = "b
         "blog_url":           s.get("blog_url", ""),
         "brand_context":      brand_context,
         "ser_context":        ser_context,
-    }, timeout=120)
+    }
+
+
+async def generate_article(ctx, topic: str, keyword: str, article_type: str = "blog",
+                            word_count: int = 1500, language: str = "en",
+                            secondary_keywords: list = None, lsi_terms: list = None,
+                            questions: list = None,
+                            brand_context: str = "", ser_context: str = "") -> dict:
+    s = await load_settings(ctx)
+    return await _post(ctx, "/api/content/generate",
+                       _article_payload(s, topic, keyword, article_type, word_count, language,
+                                        secondary_keywords, lsi_terms, questions,
+                                        brand_context, ser_context),
+                       timeout=120)
+
+
+async def start_generate_article(ctx, topic: str, keyword: str, article_type: str = "blog",
+                                  word_count: int = 1500, language: str = "en",
+                                  secondary_keywords: list = None, lsi_terms: list = None,
+                                  questions: list = None,
+                                  brand_context: str = "", ser_context: str = "") -> dict:
+    """Start background article generation. Returns {job_id, status: 'pending'} immediately."""
+    s = await load_settings(ctx)
+    return await _post(ctx, "/api/content/generate/start",
+                       _article_payload(s, topic, keyword, article_type, word_count, language,
+                                        secondary_keywords, lsi_terms, questions,
+                                        brand_context, ser_context),
+                       timeout=10)
+
+
+async def poll_article_job(ctx, job_id: str) -> dict:
+    """Poll job status. Returns {status: pending|done|error|not_found, result?: {...}}"""
+    return await _get(ctx, f"/api/content/jobs/{job_id}", timeout=10)
 
 
 async def wp_publish(ctx, title: str, content: str, status: str = "draft") -> dict:

@@ -97,6 +97,7 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
 
     # ── Step 2: AI Write ──────────────────────────────────────────────────────
     article_type = item.get("type", "blog")
+    generating   = item.get("generating", False)
     type_options = [
         {"value": "blog",       "label": "Blog post (informational)"},
         {"value": "comparison", "label": "Comparison / X vs Y"},
@@ -105,26 +106,37 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
         {"value": "news",       "label": "News / announcement"},
         {"value": "review",     "label": "Product / service review"},
     ]
-    step2_children = [
-        ui.Text(content="AI writes the full article. Run Brief first for better results.", variant="caption"),
-        ui.Form(
-            action="ai_write",
-            submit_label="Write Full Article",
+
+    if generating:
+        step2 = ui.Section(
+            title="Step 2 — Writing article...",
             children=[
-                ui.Select(
-                    param_name="article_type",
-                    placeholder=f"Article type: {article_type}",
-                    options=type_options,
-                ),
+                ui.Loading(),
+                ui.Text(content="Generation takes ~60-90 seconds. Click below to check.", variant="caption"),
+                ui.Form(action="check_article_job", submit_label="Check result →", children=[]),
             ],
-        ),
-    ]
-    if has_content:
-        step2_children.append(
-            ui.Form(action="ai_write", submit_label="Improve Article",
-                    children=[ui.Input(param_name="section", value="improve")])
         )
-    step2 = ui.Section(title="Step 2 — Write with AI", children=step2_children)
+    else:
+        step2_children = [
+            ui.Text(content="AI writes the full article. Run Brief first for better results.", variant="caption"),
+            ui.Form(
+                action="ai_write",
+                submit_label="Write Full Article",
+                children=[
+                    ui.Select(
+                        param_name="article_type",
+                        placeholder=f"Article type: {article_type}",
+                        options=type_options,
+                    ),
+                ],
+            ),
+        ]
+        if has_content:
+            step2_children.append(
+                ui.Form(action="ai_write", submit_label="Improve Article",
+                        children=[ui.Input(param_name="section", value="improve")])
+            )
+        step2 = ui.Section(title="Step 2 — Write with AI", children=step2_children)
 
     # ── Step 3: Editor ────────────────────────────────────────────────────────
     if mode == "preview":

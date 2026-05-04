@@ -3,7 +3,9 @@ from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, get_content, update_content, delete_content, save_ui_state, load_settings, load_ui_state
-from api_client import keywords_for_article, generate_article as _mos_generate, generate_brief as _mos_brief, generate_newsletter_mos as _mos_newsletter
+from api_client import (keywords_for_article, generate_article as _mos_generate,
+                        generate_brief as _mos_brief, generate_newsletter_mos as _mos_newsletter,
+                        start_generate_article, poll_article_job)
 from handlers_docs import build_docs_context
 from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, AiWriteParams, GenerateNewsletterParams, SaveBriefParams
 
@@ -209,13 +211,12 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
             f"Keyword: {kw} | Volume: {item.get('volume', 0)}/mo | Difficulty: {item.get('difficulty', 0)}/100"
         )
 
-    # Phase 2: write via MOS content engine
+    # Phase 2: start async article generation on MOS (returns job_id immediately)
     article_type = params.article_type or item.get("type", "blog")
-    # If brief exists, prepend it to ser_context so MOS uses it as outline
     if brief:
         ser_context = f"CONTENT BRIEF (follow this outline):\n{brief}\n\n{ser_context}".strip()
 
-    data = await _mos_generate(
+    job = await start_generate_article(
         ctx,
         topic=best_title or kw,
         keyword=kw,
@@ -229,33 +230,90 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
         ser_context=ser_context,
     )
 
-    if "error" in data:
-        return ActionResult.error(error=data["error"])
+    if "error" in job:
+        return ActionResult.error(error=job["error"])
 
-    draft_html   = data.get("content", "")
-    final_title  = data.get("title", best_title or kw)
-    meta_desc    = data.get("meta_description", "")
-    faq_schema   = data.get("faq_schema", "")
-    kw_used      = data.get("word_count", 0)
+    job_id = job.get("job_id", "")
+    await update_content(ctx, cid, {
+        "generating":         True,
+        "job_id":             job_id,
+        "secondary_keywords": secondary,
+        "title":              best_title or kw,
+    })
+    return ActionResult.success(
+        {"job_id": job_id, "status": "pending"},
+        summary=(
+            f"Article generation started for '{kw}' (job: {job_id}).\n"
+            f"Takes ~60-90 seconds. Use check_article_job to retrieve the result."
+        ),
+    )
+
+
+@chat.function(
+    "check_article_job",
+    description=(
+        "Check if background article generation has completed. "
+        "Call after ai_write to retrieve the finished article. "
+        "Returns 'pending' if still generating, saves and shows article when done."
+    ),
+    action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
+    event="seo.content.updated",
+)
+async def check_article_job(ctx, params: AiBriefParams) -> ActionResult:
+    cid = await _resolve_id(ctx, params.content_id)
+    item = await get_content(ctx, cid)
+    if not item:
+        return ActionResult.error(error="Content item not found")
+
+    job_id = item.get("job_id", "")
+    if not job_id:
+        return ActionResult.error(error="No active generation job. Run 'Write Full Article' first.")
+
+    data = await poll_article_job(ctx, job_id)
+    status = data.get("status", "not_found")
+
+    if status == "pending":
+        return ActionResult.success(
+            {"status": "pending", "job_id": job_id},
+            summary="Article is still generating. Check again in ~30 seconds.",
+        )
+
+    if status in ("not_found", "error"):
+        await update_content(ctx, cid, {"generating": False, "job_id": None})
+        err = data.get("error", "Generation failed — please try again.")
+        return ActionResult.error(error=err)
+
+    result = data.get("result", {})
+    draft_html  = result.get("content", "")
+    final_title = result.get("title", item.get("title", item.get("keyword", "")))
+    meta_desc   = result.get("meta_description", "")
+    faq_schema  = result.get("faq_schema", "")
+    kw_used     = result.get("word_count", 0)
+    secondary   = item.get("secondary_keywords", [])
 
     updates = {
-        "content":            draft_html,
-        "status":             "review",
-        "secondary_keywords": secondary,
-        "meta_description":   meta_desc,
-        "faq_schema":         faq_schema,
+        "content":          draft_html,
+        "status":           "review",
+        "meta_description": meta_desc,
+        "faq_schema":       faq_schema,
+        "generating":       False,
+        "job_id":           None,
     }
-    if final_title and final_title != kw:
+    if final_title and final_title != item.get("keyword", ""):
         updates["title"] = final_title
 
     await update_content(ctx, cid, updates)
+    await save_ui_state(ctx, {"editor_mode": "preview"})
+
+    kw = item.get("keyword", "")
     return ActionResult.success(
-        {"length": len(draft_html), "word_count": kw_used, "secondary_keywords": len(secondary)},
+        {"length": len(draft_html), "word_count": kw_used},
         summary=(
-            f"Article written for '{kw}' (~{kw_used} words).\n"
+            f"Article ready for '{kw}' (~{kw_used} words).\n"
             f"Title: {final_title}\n"
-            f"Secondary KWs: {', '.join(secondary[:3])}{'...' if len(secondary) > 3 else ''}\n"
-            f"FAQ: {'included' if questions else 'none'}"
+            f"Secondary KWs: {', '.join(secondary[:3])}{'...' if len(secondary) > 3 else ''}"
         ),
     )
 
