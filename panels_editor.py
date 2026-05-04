@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from imperal_sdk import ui
 
-from app import get_content
+from app import get_content, load_settings
 
 STATUS_COLOR = {
     "idea":      "gray",
@@ -26,12 +26,15 @@ async def editor_view(ctx, state: dict) -> ui.UINode:
 
     if item.get("type") == "newsletter":
         return _newsletter_editor(item, mode)
-    return _blog_editor(item, mode)
+
+    s = await load_settings(ctx)
+    wp_base_url = s.get("wp_url", "").rstrip("/")
+    return _blog_editor(item, mode, wp_base_url)
 
 
 # ── Blog editor ───────────────────────────────────────────────────────────────
 
-def _blog_editor(item: dict, mode: str) -> ui.UINode:
+def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
     kw           = item.get("keyword", "")
     title        = item.get("title", "")
     content_html = item.get("content", "")
@@ -150,12 +153,27 @@ def _blog_editor(item: dict, mode: str) -> ui.UINode:
         )
 
     # ── Step 4: Publish ───────────────────────────────────────────────────────
+    seo_done = bool(item.get("meta_description") or item.get("excerpt"))
+    wp_admin_link = f"{wp_base_url}/wp-admin/post.php?post={wp_id}&action=edit" if wp_base_url and wp_id else ""
+
     if wp_id:
+        link_parts = []
+        if wp_url:
+            link_parts.append(f'<a href="{wp_url}" target="_blank" style="font-size:12px;color:#0073aa;text-decoration:none;">↗ View post</a>')
+        if wp_admin_link:
+            link_parts.append(f'<a href="{wp_admin_link}" target="_blank" style="font-size:12px;color:#555;text-decoration:none;">✏ Edit in WP Admin</a>')
+
         publish_section = ui.Section(
             title=f"Step 4 — Published (WP #{wp_id})",
             children=[
-                ui.Badge(label=f"WP post #{wp_id}", color="green"),
-                *([ ui.Text(content=wp_url, variant="caption") ] if wp_url else []),
+                ui.Stack(children=[
+                    ui.Badge(label=f"WP #{wp_id}", color="green"),
+                    ui.Badge(
+                        label="Rank Math ✓" if seo_done else "Rank Math not set",
+                        color="green" if seo_done else "orange",
+                    ),
+                ], direction="horizontal", gap=8),
+                *([ ui.Html(content=f'<div style="display:flex;gap:16px;margin:4px 0;">{"  ".join(link_parts)}</div>') ] if link_parts else []),
                 ui.Stack(children=[
                     ui.Form(action="publish_wp_draft",   submit_label="Update WP Post",   children=[]),
                     ui.Form(action="publish_wp_publish", submit_label="Set as Published", children=[]),
