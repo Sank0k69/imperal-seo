@@ -7,5 +7,12 @@
   "icon": "icon.svg",
   "category": "marketing",
   "actions_explicit": true,
-  "capabilities": []
+  "capabilities": [],
+  "tools": [
+    {
+      "name": "wp-blogger",
+      "description": "WP Blogger. Keyword research, rankings, AI article writing, WordPress publishing, brand knowledge base.",
+      "action_type": "read"
+    }
+  ]
 }
