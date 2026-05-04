@@ -139,6 +139,8 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
         step2 = ui.Section(title="Step 2 — Write with AI", children=step2_children)
 
     # ── Step 3: Editor ────────────────────────────────────────────────────────
+    word_count = len(content_html.split()) if content_html else 0
+
     if mode == "preview":
         outer = "background:#f5f5f5;padding:32px;border-radius:8px;"
         inner = (
@@ -153,23 +155,27 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
             + "</div></div>"
         ))
     else:
-        step3 = ui.Section(
-            title="Step 3 — Edit & Save",
-            children=[
-                ui.Form(
-                    action="save_draft",
-                    submit_label="Save",
-                    children=[
-                        ui.Input(param_name="title", value=title, placeholder="Article title (H1)"),
-                        ui.RichEditor(
-                            param_name="content",
-                            content=content_html,
-                            placeholder="Run AI Write above, or start typing here...",
-                        ),
-                    ],
-                ),
-            ],
+        step3_title = f"Step 3 — Edit & Save{f'  ·  {word_count:,} words' if word_count else ''}"
+        step3_children = []
+        if has_content:
+            step3_children.append(
+                ui.Text(content="↑ Click Preview for the best reading experience.", variant="caption"),
+            )
+        step3_children.append(
+            ui.Form(
+                action="save_draft",
+                submit_label="Save",
+                children=[
+                    ui.Input(param_name="title", value=title, placeholder="Article title (H1)"),
+                    ui.RichEditor(
+                        param_name="content",
+                        content=content_html,
+                        placeholder="Run AI Write above, or start typing here...",
+                    ),
+                ],
+            ),
         )
+        step3 = ui.Section(title=step3_title, children=step3_children)
 
     # ── Step 4: Publish ───────────────────────────────────────────────────────
     seo_done = bool(item.get("meta_description") or item.get("excerpt"))
