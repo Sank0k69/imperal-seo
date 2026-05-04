@@ -214,16 +214,23 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
             ],
         )
 
-    status_form = ui.Form(
-        action="update_status",
-        submit_label="Update status",
+    status_section = ui.Section(
+        title=f"Status: {status}",
+        collapsible=True,
         children=[
-            ui.Select(param_name="status", placeholder=f"Status: {status}", options=[
-                {"value": "idea",      "label": "Idea"},
-                {"value": "writing",   "label": "Writing"},
-                {"value": "review",    "label": "Review"},
-                {"value": "published", "label": "Published"},
-            ]),
+            ui.Text(content="Statuses update automatically. Use only if you need to override.", variant="caption"),
+            ui.Form(
+                action="update_status",
+                submit_label="Set status",
+                children=[
+                    ui.Select(param_name="status", placeholder=f"Current: {status}", options=[
+                        {"value": "idea",      "label": "Idea"},
+                        {"value": "writing",   "label": "Writing"},
+                        {"value": "review",    "label": "Review"},
+                        {"value": "published", "label": "Published"},
+                    ]),
+                ],
+            ),
         ],
     )
 
@@ -238,7 +245,7 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
         ui.Divider(),
         publish_section,
         ui.Divider(),
-        status_form,
+        status_section,
     ])
 
 
