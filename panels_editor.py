@@ -80,7 +80,7 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
         step1_children += [
             ui.Divider(),
             ui.Text(content="Brief ready - used as context when writing the article:", variant="caption"),
-            ui.Text(content=brief_text[:800] + ("..." if len(brief_text) > 800 else ""), variant="body"),
+            ui.Markdown(content=brief_text[:1200] + ("..." if len(brief_text) > 1200 else "")),
             ui.Form(action="generate_brief", submit_label="Regenerate Brief", children=[]),
         ]
     step1 = ui.Section(
