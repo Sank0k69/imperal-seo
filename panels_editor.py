@@ -149,10 +149,8 @@ def _blog_editor(item: dict, mode: str) -> ui.UINode:
                 ui.Badge(label=f"WP post #{wp_id}", color="green"),
                 *([ ui.Text(content=wp_url, variant="caption") ] if wp_url else []),
                 ui.Stack(children=[
-                    ui.Form(action="publish_wp", submit_label="Update WP Post",
-                            children=[ui.Input(param_name="status", value="draft")]),
-                    ui.Form(action="publish_wp", submit_label="Set as Published",
-                            children=[ui.Input(param_name="status", value="publish")]),
+                    ui.Form(action="publish_wp_draft",   submit_label="Update WP Post",   children=[]),
+                    ui.Form(action="publish_wp_publish", submit_label="Set as Published", children=[]),
                 ], direction="horizontal", gap=8),
                 ui.Divider(),
                 ui.Header(text="SEO Meta (Yoast)", level=5),
@@ -177,10 +175,8 @@ def _blog_editor(item: dict, mode: str) -> ui.UINode:
                     variant="caption",
                 ),
                 ui.Stack(children=[
-                    ui.Form(action="publish_wp", submit_label="→ Save as WP Draft",
-                            children=[ui.Input(param_name="status", value="draft")]),
-                    ui.Form(action="publish_wp", submit_label="→ Publish Now",
-                            children=[ui.Input(param_name="status", value="publish")]),
+                    ui.Form(action="publish_wp_draft",   submit_label="→ Save as WP Draft", children=[]),
+                    ui.Form(action="publish_wp_publish", submit_label="→ Publish Now",      children=[]),
                 ], direction="horizontal", gap=8),
             ],
         )

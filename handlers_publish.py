@@ -71,6 +71,32 @@ async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
 
 
 @chat.function(
+    "publish_wp_draft",
+    description="Publish or update the current WordPress post as a draft.",
+    action_type="write",
+    chain_callable=True,
+    effects=["publish:post"],
+    event="seo.content.published",
+)
+async def publish_wp_draft(ctx, params: PublishWpParams) -> ActionResult:
+    params.status = "draft"
+    return await publish_wp(ctx, params)
+
+
+@chat.function(
+    "publish_wp_publish",
+    description="Publish or update the current WordPress post as published (live).",
+    action_type="write",
+    chain_callable=True,
+    effects=["publish:post"],
+    event="seo.content.published",
+)
+async def publish_wp_publish(ctx, params: PublishWpParams) -> ActionResult:
+    params.status = "publish"
+    return await publish_wp(ctx, params)
+
+
+@chat.function(
     "set_wp_seo",
     description=(
         "Set Yoast SEO fields on the WordPress post: focus keyword and meta description. "
