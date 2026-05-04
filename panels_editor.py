@@ -79,18 +79,12 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
     if brief_text:
         step1_children += [
             ui.Divider(),
-            ui.Markdown(content=brief_text[:1200] + ("..." if len(brief_text) > 1200 else "")),
-            ui.Section(
-                title="Edit brief",
-                collapsible=True,
+            ui.Text(content="Brief ready — edit below or regenerate:", variant="caption"),
+            ui.Form(
+                action="save_brief",
+                submit_label="Save brief",
                 children=[
-                    ui.Form(
-                        action="save_brief",
-                        submit_label="Save edited brief",
-                        children=[
-                            ui.TextArea(param_name="brief_text", value=brief_text, rows=12),
-                        ],
-                    ),
+                    ui.TextArea(param_name="brief_text", value=brief_text, rows=10),
                 ],
             ),
             ui.Form(action="generate_brief", submit_label="Regenerate Brief", children=[]),
@@ -146,41 +140,46 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
     # ── Step 3: Editor ────────────────────────────────────────────────────────
     word_count = len(content_html.split()) if content_html else 0
 
+    # ── Preview mode — return early with clean article view ──────────────────
     if mode == "preview":
-        article_style = (
+        art_style = (
             "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
-            "font-size:16px;line-height:1.8;color:#1a1a1a;padding:8px 0;"
+            "font-size:16px;line-height:1.8;color:#1a1a1a;"
         )
-        step3 = ui.Stack(children=[
+        return ui.Stack(children=[
+            header,
+            meta,
+            ui.Divider(),
             ui.Html(content=(
-                f'<div style="{article_style}">'
+                f'<div style="{art_style}">'
                 f'<h1 style="color:#111;margin-top:0;font-size:24px;line-height:1.3;">{title or kw}</h1>'
                 + (content_html or "<p><em>No content yet — run AI Write.</em></p>")
                 + "</div>"
             )),
         ])
-    else:
-        step3_title = f"Step 3 — Edit & Save{f'  ·  {word_count:,} words' if word_count else ''}"
-        step3_children = []
-        if has_content:
-            step3_children.append(
-                ui.Text(content="Save first, then click Preview ↑ to read the article.", variant="caption"),
-            )
+
+    # ── Edit mode continues below ─────────────────────────────────────────────
+    step3_title = f"Step 3 — Edit & Save{f'  ·  {word_count:,} words' if word_count else ''}"
+    step3_children = []
+    if has_content:
         step3_children.append(
-            ui.Form(
-                action="save_draft",
-                submit_label="Save",
-                children=[
-                    ui.Input(param_name="title", value=title, placeholder="Article title (H1)"),
-                    ui.RichEditor(
-                        param_name="content",
-                        content=content_html,
-                        placeholder="Run AI Write above, or start typing here...",
-                    ),
-                ],
-            ),
+            ui.Text(content="After saving, click Preview ↑ to read the article.", variant="caption"),
         )
-        step3 = ui.Section(title=step3_title, children=step3_children)
+    step3_children.append(
+        ui.Form(
+            action="save_draft",
+            submit_label="Save",
+            children=[
+                ui.Input(param_name="title", value=title, placeholder="Article title (H1)"),
+                ui.RichEditor(
+                    param_name="content",
+                    content=content_html,
+                    placeholder="Run AI Write above, or start typing here...",
+                ),
+            ],
+        ),
+    )
+    step3 = ui.Section(title=step3_title, children=step3_children)
 
     # ── Step 4: Publish ───────────────────────────────────────────────────────
     seo_done = bool(item.get("meta_description") or item.get("excerpt"))
