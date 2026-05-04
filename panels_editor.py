@@ -162,14 +162,14 @@ def _blog_editor(item: dict, mode: str) -> ui.UINode:
                     ui.Form(action="publish_wp_publish", submit_label="Set as Published", children=[]),
                 ], direction="horizontal", gap=8),
                 ui.Divider(),
-                ui.Header(text="SEO Meta (Yoast)", level=5),
-                ui.Text(content="Set focus keyword and meta description in WordPress.", variant="caption"),
+                ui.Header(text="SEO Meta (Rank Math)", level=5),
+                ui.Text(content="Sets focus + secondary keywords, meta description, excerpt. All auto-generated if left empty.", variant="caption"),
                 ui.Form(
                     action="set_wp_seo",
                     submit_label="Set SEO Meta",
                     children=[
                         ui.Input(param_name="focus_keyword",    value=focus_kw,   placeholder=f"Focus keyword (default: {kw})"),
-                        ui.Input(param_name="meta_description", value=meta_desc,  placeholder="Meta description (leave empty — AI will generate)"),
+                        ui.Input(param_name="meta_description", value=meta_desc,  placeholder="Meta description (leave empty — AI generates)"),
                     ],
                 ),
             ],

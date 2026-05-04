@@ -99,8 +99,8 @@ async def publish_wp_publish(ctx, params: PublishWpParams) -> ActionResult:
 @chat.function(
     "set_wp_seo",
     description=(
-        "Set Yoast SEO fields on the WordPress post: focus keyword and meta description. "
-        "Call this after publish_wp to complete SEO setup."
+        "Set Rank Math SEO on the WordPress post: focus + secondary keywords, meta description, excerpt. "
+        "Auto-generates meta description and excerpt if not provided. Call after publish_wp."
     ),
     action_type="write",
     chain_callable=True,
@@ -121,37 +121,63 @@ async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
     if not wp_post_id:
         return ActionResult.error(error="Publish to WordPress first, then set SEO.")
 
-    focus_kw   = params.focus_keyword or item.get("keyword", "")
-    meta_desc  = params.meta_description
+    focus_kw       = params.focus_keyword or item.get("focus_keyword") or item.get("keyword", "")
+    secondary_kws  = item.get("secondary_keywords", [])
+    title          = item.get("title") or item.get("keyword", "")
+    content_html   = item.get("content", "")
 
-    # If no meta description provided, generate one from title/keyword
+    # Rank Math focus keyword field: primary + up to 4 secondary (comma-separated)
+    all_kws = [focus_kw] + [k for k in secondary_kws[:4] if k.lower() != focus_kw.lower()]
+    rm_focus_kw = ", ".join(all_kws)
+
+    # Meta description: provided → stored → generate
+    meta_desc = params.meta_description or item.get("meta_description", "")
     if not meta_desc:
-        title = item.get("title") or item.get("keyword", "")
         result = await ctx.ai.complete(
-            f"Write a compelling SEO meta description for this article.\n"
-            f"Title: {title}\nKeyword: {focus_kw}\n\n"
-            "Rules: 120-160 characters, include the keyword naturally, no quotes, no trailing period."
+            f"Write an SEO meta description.\n"
+            f"Title: {title}\nFocus keyword: {focus_kw}\n\n"
+            "Rules: 120-155 characters, include the focus keyword naturally, active voice, no quotes, no trailing period."
         )
-        meta_desc = (getattr(result, "text", None) or str(result)).strip().strip('"').strip("'")[:160]
+        meta_desc = (getattr(result, "text", None) or str(result)).strip().strip('"').strip("'")[:155]
 
-    # Update Yoast meta via WP REST API
+    # Excerpt: short plain-text teaser for WordPress blog listing
+    excerpt_result = await ctx.ai.complete(
+        f"Write a WordPress post excerpt.\n"
+        f"Title: {title}\nFocus keyword: {focus_kw}\n"
+        f"Article opening (first 400 chars): {content_html[:400]}\n\n"
+        "Rules: 130-150 characters, plain text (no HTML), include the focus keyword, factual and compelling."
+    )
+    excerpt = (getattr(excerpt_result, "text", None) or str(excerpt_result)).strip().strip('"').strip("'")[:150]
+
+    # Update WP: Rank Math meta fields + native excerpt
     post = await update_post(
         ctx,
         s["wp_url"], s["wp_username"], s["wp_app_password"],
         post_id=int(wp_post_id),
+        excerpt=excerpt,
         meta={
-            "_yoast_wpseo_focuskw":   focus_kw,
-            "_yoast_wpseo_metadesc":  meta_desc,
+            "rank_math_focus_keyword": rm_focus_kw,
+            "rank_math_description":   meta_desc,
         },
     )
 
     if not post.get("id"):
-        return ActionResult.error(error=f"WP meta update failed: {post}")
+        return ActionResult.error(error=f"WP SEO update failed: {post}")
 
-    await update_content(ctx, cid, {"meta_description": meta_desc, "focus_keyword": focus_kw})
+    await update_content(ctx, cid, {
+        "meta_description": meta_desc,
+        "focus_keyword":    focus_kw,
+        "excerpt":          excerpt,
+    })
+
+    kw_count = len(all_kws)
     return ActionResult.success(
-        {"focus_keyword": focus_kw, "meta_description": meta_desc},
-        summary=f"SEO set — keyword: '{focus_kw}', meta: '{meta_desc[:60]}...'",
+        {"focus_keyword": focus_kw, "keywords_set": kw_count, "meta_description": meta_desc},
+        summary=(
+            f"Rank Math SEO set — {kw_count} keywords: {rm_focus_kw[:60]}\n"
+            f"Meta: {meta_desc[:80]}...\n"
+            f"Excerpt: {excerpt[:60]}..."
+        ),
     )
 
 

@@ -69,8 +69,8 @@ class PublishWpParams(BaseModel):
 
 class SetWpSeoParams(BaseModel):
     content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
-    meta_description: str = Field("", description="SEO meta description (120-160 chars)")
-    focus_keyword: str = Field("", description="Yoast focus keyword — leave empty to use item's keyword")
+    meta_description: str = Field("", description="SEO meta description (120-155 chars) — leave empty to auto-generate")
+    focus_keyword: str = Field("", description="Rank Math focus keyword — leave empty to use item's keyword")
 
 
 class EmptyParams(BaseModel):
