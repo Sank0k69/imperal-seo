@@ -19,6 +19,8 @@ async def _resolve_id(ctx, content_id: str) -> str:
     "save_draft",
     description="Save title and HTML content from the editor to the content store.",
     action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
     event="seo.content.updated",
 )
 async def save_draft(ctx, params: SaveDraftParams) -> ActionResult:
@@ -39,6 +41,8 @@ async def save_draft(ctx, params: SaveDraftParams) -> ActionResult:
     "update_status",
     description="Move a content item to a new status: idea, writing, review, or published.",
     action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
     event="seo.content.updated",
 )
 async def update_status(ctx, params: UpdateStatusParams) -> ActionResult:
@@ -57,6 +61,8 @@ async def update_status(ctx, params: UpdateStatusParams) -> ActionResult:
     "delete_content",
     description="Delete a content plan item permanently.",
     action_type="write",
+    chain_callable=True,
+    effects=["delete:content"],
     event="seo.content.deleted",
 )
 async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
@@ -71,6 +77,8 @@ async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
     "ai_brief",
     description="Generate a content brief with outline using AI. Saves to the content item.",
     action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
     event="seo.content.updated",
 )
 async def ai_brief(ctx, params: AiBriefParams) -> ActionResult:
@@ -106,6 +114,8 @@ async def ai_brief(ctx, params: AiBriefParams) -> ActionResult:
         "section: full | improve"
     ),
     action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
     event="seo.content.updated",
 )
 async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
@@ -214,6 +224,8 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     "generate_newsletter",
     description="Write a newsletter from a news item or topic. Uses brand voice from Settings.",
     action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
     event="seo.content.updated",
 )
 async def generate_newsletter(ctx, params: GenerateNewsletterParams) -> ActionResult:

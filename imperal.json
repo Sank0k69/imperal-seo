@@ -1,62 +1,11 @@
 {
   "app_id": "wp-blogger",
-  "name": "WP Blogger",
   "version": "1.2.5",
-  "description": "WP Blogger \u2014 AI-powered WordPress content creation: keyword research, rankings, article writing and one-click publishing",
+  "manifest_schema_version": 3,
+  "display_name": "WP Blogger",
+  "description": "AI-powered WordPress content studio: keyword research, SE Rankings tracking, AI article writing with SEO optimization, and one-click publishing to WordPress.",
+  "icon": "icon.svg",
   "category": "marketing",
-  "capabilities": [],
-  "tools": [
-    {
-      "name": "wp-blogger",
-      "description": "WP Blogger. Keyword research, rankings, AI article writing, WordPress publishing, brand knowledge base.",
-      "scopes": [
-        "ai.complete",
-        "store.read",
-        "store.write",
-        "http.request",
-        "notify.push"
-      ],
-      "parameters": {
-        "message": {
-          "type": "string",
-          "required": false
-        },
-        "kwargs": {
-          "type": "string",
-          "required": true
-        }
-      }
-    },
-    {
-      "name": "__panel__workspace",
-      "description": "Panel: SEO workspace \u2014 Content Plan, Editor, Rankings, Keywords, Settings",
-      "scopes": [],
-      "parameters": {
-        "params": {
-          "type": "string",
-          "required": false
-        }
-      }
-    },
-    {
-      "name": "__panel__sidebar",
-      "description": "Panel: SEO navigation sidebar",
-      "scopes": [],
-      "parameters": {
-        "params": {
-          "type": "string",
-          "required": false
-        }
-      }
-    }
-  ],
-  "signals": [],
-  "schedules": [],
-  "required_scopes": [
-    "ai.complete",
-    "store.read",
-    "store.write",
-    "http.request",
-    "notify.push"
-  ]
+  "actions_explicit": true,
+  "capabilities": []
 }

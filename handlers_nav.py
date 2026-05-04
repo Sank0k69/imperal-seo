@@ -69,6 +69,8 @@ async def set_editor_mode(ctx, params: SetEditorModeParams) -> ActionResult:
     "new_content",
     description="Create a new content plan item (blog post or newsletter) and open it in the editor.",
     action_type="write",
+    chain_callable=True,
+    effects=["create:content"],
     event="seo.content.created",
 )
 async def new_content(ctx, params: CreateContentParams) -> ActionResult:

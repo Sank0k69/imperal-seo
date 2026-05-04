@@ -113,6 +113,8 @@ async def list_ser_projects(ctx, params: ListProjectsParams) -> ActionResult:
         "Creates content items in the plan ready for writing."
     ),
     action_type="write",
+    chain_callable=True,
+    effects=["create:content"],
     event="seo.content.created",
 )
 async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:

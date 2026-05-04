@@ -19,6 +19,8 @@ async def _resolve_id(ctx, content_id: str) -> str:
     "publish_wp",
     description="Create or update a WordPress post from a blog content item. status: 'draft' or 'publish'.",
     action_type="write",
+    chain_callable=True,
+    effects=["publish:post"],
     event="seo.content.published",
 )
 async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
@@ -75,6 +77,8 @@ async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
         "Call this after publish_wp to complete SEO setup."
     ),
     action_type="write",
+    chain_callable=True,
+    effects=["update:post"],
     event="seo.content.updated",
 )
 async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
@@ -129,6 +133,8 @@ async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
     "save_settings",
     description="Save API keys and configuration for SE Ranking and WordPress.",
     action_type="write",
+    chain_callable=True,
+    effects=["update:settings"],
     event="seo.settings.saved",
 )
 async def save_settings_fn(ctx, params: SaveSettingsParams) -> ActionResult:

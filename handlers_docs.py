@@ -15,6 +15,8 @@ MAX_CONTEXT_CHARS = 3000  # per doc, for AI injection
     "upload_doc",
     description="Upload a documentation file (.md or .txt) to the knowledge base. Used as AI context when writing content.",
     action_type="write",
+    chain_callable=True,
+    effects=["create:doc"],
     event="seo.docs.updated",
 )
 async def upload_doc(ctx, params: UploadDocParams) -> ActionResult:
@@ -76,6 +78,8 @@ async def upload_doc(ctx, params: UploadDocParams) -> ActionResult:
     "delete_doc",
     description="Delete a documentation file from the knowledge base.",
     action_type="write",
+    chain_callable=True,
+    effects=["delete:doc"],
     event="seo.docs.updated",
 )
 async def delete_doc(ctx, params: DeleteDocParams) -> ActionResult:
