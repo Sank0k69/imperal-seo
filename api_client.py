@@ -125,7 +125,7 @@ async def generate_brief(ctx, keyword: str, content_type: str = "blog",
         "difficulty":   difficulty,
         "extra":        extra,
         "language":     language,
-    }, timeout=60)
+    }, timeout=25)
 
 
 async def generate_newsletter_mos(ctx, news_text: str, tone_note: str = "") -> dict:
