@@ -5,7 +5,7 @@ from imperal_sdk.types import ActionResult  # noqa: F811
 from app import chat, get_content, update_content, delete_content, save_ui_state, load_settings, load_ui_state
 from api_client import keywords_for_article, generate_article as _mos_generate, generate_brief as _mos_brief, generate_newsletter_mos as _mos_newsletter
 from handlers_docs import build_docs_context
-from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, AiWriteParams, GenerateNewsletterParams
+from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, AiWriteParams, GenerateNewsletterParams, SaveBriefParams
 
 
 async def _resolve_id(ctx, content_id: str) -> str:
@@ -107,6 +107,23 @@ async def generate_brief(ctx, params: AiBriefParams) -> ActionResult:
         {"brief": brief_text[:300]},
         summary=f"Brief ready for '{kw}' — visible in Step 1 of the editor.",
     )
+
+
+@chat.function(
+    "save_brief",
+    description="Save manually edited brief text.",
+    action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
+    event="seo.content.updated",
+)
+async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
+    cid = await _resolve_id(ctx, params.content_id)
+    item = await get_content(ctx, cid)
+    if not item:
+        return ActionResult.error(error="Content item not found")
+    await update_content(ctx, cid, {"brief": params.brief_text})
+    return ActionResult.success({"id": cid}, summary="Brief saved.")
 
 
 @chat.function(

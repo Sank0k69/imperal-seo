@@ -42,6 +42,11 @@ class AiBriefParams(BaseModel):
     extra: str = Field("", description="Additional context or instructions for the AI")
 
 
+class SaveBriefParams(BaseModel):
+    content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
+    brief_text: str = Field("", description="Brief content to save")
+
+
 class AiWriteParams(BaseModel):
     content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
     section: str = Field("full", description="'full' or 'improve'")
