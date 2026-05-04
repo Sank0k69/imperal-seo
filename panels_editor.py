@@ -79,13 +79,18 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
     if brief_text:
         step1_children += [
             ui.Divider(),
-            ui.Text(content="Brief ready — used as context when writing the article:", variant="caption"),
             ui.Markdown(content=brief_text[:1200] + ("..." if len(brief_text) > 1200 else "")),
-            ui.Form(
-                action="save_brief",
-                submit_label="Save edited brief",
+            ui.Section(
+                title="Edit brief",
+                collapsible=True,
                 children=[
-                    ui.TextArea(param_name="brief_text", value=brief_text, rows=12),
+                    ui.Form(
+                        action="save_brief",
+                        submit_label="Save edited brief",
+                        children=[
+                            ui.TextArea(param_name="brief_text", value=brief_text, rows=12),
+                        ],
+                    ),
                 ],
             ),
             ui.Form(action="generate_brief", submit_label="Regenerate Brief", children=[]),
@@ -142,24 +147,24 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
     word_count = len(content_html.split()) if content_html else 0
 
     if mode == "preview":
-        outer = "background:#f5f5f5;padding:32px;border-radius:8px;"
-        inner = (
-            "max-width:720px;margin:0 auto;background:#fff;border-radius:6px;"
-            "padding:48px 52px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
-            "font-size:16px;line-height:1.8;color:#1a1a1a;"
+        article_style = (
+            "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
+            "font-size:16px;line-height:1.8;color:#1a1a1a;padding:8px 0;"
         )
-        step3 = ui.Html(content=(
-            f'<div style="{outer}"><div style="{inner}">'
-            f'<h1 style="color:#111;margin-top:0;font-size:26px;">{title or kw}</h1>'
-            + (content_html or "<p><em>No content yet — run AI Write.</em></p>")
-            + "</div></div>"
-        ))
+        step3 = ui.Stack(children=[
+            ui.Html(content=(
+                f'<div style="{article_style}">'
+                f'<h1 style="color:#111;margin-top:0;font-size:24px;line-height:1.3;">{title or kw}</h1>'
+                + (content_html or "<p><em>No content yet — run AI Write.</em></p>")
+                + "</div>"
+            )),
+        ])
     else:
         step3_title = f"Step 3 — Edit & Save{f'  ·  {word_count:,} words' if word_count else ''}"
         step3_children = []
         if has_content:
             step3_children.append(
-                ui.Text(content="↑ Click Preview for the best reading experience.", variant="caption"),
+                ui.Text(content="Save first, then click Preview ↑ to read the article.", variant="caption"),
             )
         step3_children.append(
             ui.Form(
