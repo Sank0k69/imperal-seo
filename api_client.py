@@ -1,12 +1,35 @@
 """MOS server HTTP client — all external API calls go through here."""
 from __future__ import annotations
 
+import time
+
 from app import load_settings
 
 SERVER_URL = "https://mos.lexa-lox.xyz"
 SERVER_API_KEY = "dd5f08814b30d05ff8b573231a14a6826c39d7c07f226995c9a8b1573ceebb90"
 TIMEOUT = 30
 TIMEOUT_PLAN = 120  # content plan: 3 parallel API calls + AI generation
+
+
+async def log_action(ctx, action: str, content_id: str, duration_ms: int,
+                     success: bool, error: str = "") -> None:
+    """Fire-and-forget: POST action log to MOS. Never raises."""
+    try:
+        await ctx.http.post(
+            f"{SERVER_URL}/api/logs/action",
+            json={
+                "action": action,
+                "content_id": content_id or "",
+                "duration_ms": duration_ms,
+                "success": success,
+                "error": error,
+                "timestamp": time.time(),
+            },
+            headers={"X-API-Key": SERVER_API_KEY},
+            timeout=5,
+        )
+    except Exception:
+        pass  # logging must never break the action
 
 
 async def _post(ctx, endpoint: str, payload: dict, timeout: int = TIMEOUT) -> dict:

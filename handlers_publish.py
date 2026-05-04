@@ -1,9 +1,12 @@
 """Publishing handlers — WordPress publish + SEO meta setup."""
+import time
+
 from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, get_content, update_content, load_settings, load_ui_state
 from app import save_settings as _save_settings
+from api_client import log_action
 from api_wordpress import create_post, update_post
 from params import PublishWpParams, SaveSettingsParams, SetWpSeoParams
 
@@ -24,50 +27,61 @@ async def _resolve_id(ctx, content_id: str) -> str:
     event="seo.content.published",
 )
 async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
-    s = await load_settings(ctx)
-    if not s.get("wp_app_password"):
-        return ActionResult.error(error=(
-            "WordPress Application Password not configured. "
-            "Go to Settings → WordPress → Application Passwords."
-        ))
-
+    t0 = time.monotonic()
     cid = await _resolve_id(ctx, params.content_id)
-    item = await get_content(ctx, cid)
-    if not item:
-        return ActionResult.error(error="Content item not found")
+    action_name = f"publish_wp_{params.status}"
+    try:
+        s = await load_settings(ctx)
+        if not s.get("wp_app_password"):
+            await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), False, "WP not configured")
+            return ActionResult.error(error=(
+                "WordPress Application Password not configured. "
+                "Go to Settings → WordPress → Application Passwords."
+            ))
 
-    title   = item.get("title") or item.get("keyword", "Untitled")
-    content = item.get("content", "")
-    if not content:
-        return ActionResult.error(error="Content is empty — run AI Write first.")
+        item = await get_content(ctx, cid)
+        if not item:
+            await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), False, "Content item not found")
+            return ActionResult.error(error="Content item not found")
 
-    wp_post_id = item.get("wp_post_id")
-    wp_url     = s["wp_url"]
-    username   = s["wp_username"]
-    app_pw     = s["wp_app_password"]
-    author_id  = int(s.get("wp_author_id", 3))
+        title   = item.get("title") or item.get("keyword", "Untitled")
+        content = item.get("content", "")
+        if not content:
+            await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), False, "Content is empty")
+            return ActionResult.error(error="Content is empty — run AI Write first.")
 
-    if wp_post_id:
-        post = await update_post(ctx, wp_url, username, app_pw, post_id=int(wp_post_id), title=title, content=content, status=params.status)
-        action = "updated"
-    else:
-        post = await create_post(ctx, wp_url, username, app_pw, title=title, content=content, status=params.status, author_id=author_id)
-        action = "created"
+        wp_post_id = item.get("wp_post_id")
+        wp_url     = s["wp_url"]
+        username   = s["wp_username"]
+        app_pw     = s["wp_app_password"]
+        author_id  = int(s.get("wp_author_id", 3))
 
-    if not post.get("id"):
-        return ActionResult.error(error=f"WordPress error: {post}")
+        if wp_post_id:
+            post = await update_post(ctx, wp_url, username, app_pw, post_id=int(wp_post_id), title=title, content=content, status=params.status)
+            wp_action = "updated"
+        else:
+            post = await create_post(ctx, wp_url, username, app_pw, title=title, content=content, status=params.status, author_id=author_id)
+            wp_action = "created"
 
-    new_status = "published" if params.status == "publish" else item.get("status", "review")
-    await update_content(ctx, cid, {
-        "wp_post_id": post["id"],
-        "target_url": post.get("link", ""),
-        "status": new_status,
-    })
+        if not post.get("id"):
+            await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), False, f"WordPress error: {str(post)[:200]}")
+            return ActionResult.error(error=f"WordPress error: {post}")
 
-    return ActionResult.success(
-        {"wp_id": post["id"], "link": post.get("link", ""), "wp_status": params.status},
-        summary=f"Post {action} on WordPress (ID {post['id']}, status: {params.status}). {post.get('link', '')}",
-    )
+        new_status = "published" if params.status == "publish" else item.get("status", "review")
+        await update_content(ctx, cid, {
+            "wp_post_id": post["id"],
+            "target_url": post.get("link", ""),
+            "status": new_status,
+        })
+
+        await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), True)
+        return ActionResult.success(
+            {"wp_id": post["id"], "link": post.get("link", ""), "wp_status": params.status},
+            summary=f"Post {wp_action} on WordPress (ID {post['id']}, status: {params.status}). {post.get('link', '')}",
+        )
+    except Exception as e:
+        await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), False, str(e))
+        return ActionResult.error(error=str(e))
 
 
 @chat.function(
@@ -108,77 +122,87 @@ async def publish_wp_publish(ctx, params: PublishWpParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
-    s = await load_settings(ctx)
-    if not s.get("wp_app_password"):
-        return ActionResult.error(error="WordPress not configured. Go to Settings.")
-
+    t0 = time.monotonic()
     cid = await _resolve_id(ctx, params.content_id)
-    item = await get_content(ctx, cid)
-    if not item:
-        return ActionResult.error(error="Content item not found")
+    try:
+        s = await load_settings(ctx)
+        if not s.get("wp_app_password"):
+            await log_action(ctx, "set_wp_seo", cid, int((time.monotonic() - t0) * 1000), False, "WordPress not configured")
+            return ActionResult.error(error="WordPress not configured. Go to Settings.")
 
-    wp_post_id = item.get("wp_post_id")
-    if not wp_post_id:
-        return ActionResult.error(error="Publish to WordPress first, then set SEO.")
+        item = await get_content(ctx, cid)
+        if not item:
+            await log_action(ctx, "set_wp_seo", cid, int((time.monotonic() - t0) * 1000), False, "Content item not found")
+            return ActionResult.error(error="Content item not found")
 
-    focus_kw       = params.focus_keyword or item.get("focus_keyword") or item.get("keyword", "")
-    secondary_kws  = item.get("secondary_keywords", [])
-    title          = item.get("title") or item.get("keyword", "")
-    content_html   = item.get("content", "")
+        wp_post_id = item.get("wp_post_id")
+        if not wp_post_id:
+            await log_action(ctx, "set_wp_seo", cid, int((time.monotonic() - t0) * 1000), False, "No wp_post_id")
+            return ActionResult.error(error="Publish to WordPress first, then set SEO.")
 
-    # Rank Math focus keyword field: primary + up to 4 secondary (comma-separated)
-    all_kws = [focus_kw] + [k for k in secondary_kws[:4] if k.lower() != focus_kw.lower()]
-    rm_focus_kw = ", ".join(all_kws)
+        focus_kw       = params.focus_keyword or item.get("focus_keyword") or item.get("keyword", "")
+        secondary_kws  = item.get("secondary_keywords", [])
+        title          = item.get("title") or item.get("keyword", "")
+        content_html   = item.get("content", "")
 
-    # Meta description: provided → stored → generate
-    meta_desc = params.meta_description or item.get("meta_description", "")
-    if not meta_desc:
-        result = await ctx.ai.complete(
-            f"Write an SEO meta description.\n"
-            f"Title: {title}\nFocus keyword: {focus_kw}\n\n"
-            "Rules: 120-155 characters, include the focus keyword naturally, active voice, no quotes, no trailing period."
+        # Rank Math focus keyword field: primary + up to 4 secondary (comma-separated)
+        all_kws = [focus_kw] + [k for k in secondary_kws[:4] if k.lower() != focus_kw.lower()]
+        rm_focus_kw = ", ".join(all_kws)
+
+        # Meta description: provided → stored → generate
+        meta_desc = params.meta_description or item.get("meta_description", "")
+        if not meta_desc:
+            result = await ctx.ai.complete(
+                f"Write an SEO meta description.\n"
+                f"Title: {title}\nFocus keyword: {focus_kw}\n\n"
+                "Rules: 120-155 characters, include the focus keyword naturally, active voice, no quotes, no trailing period."
+            )
+            meta_desc = (getattr(result, "text", None) or str(result)).strip().strip('"').strip("'")[:155]
+
+        # Excerpt: short plain-text teaser for WordPress blog listing
+        excerpt_result = await ctx.ai.complete(
+            f"Write a WordPress post excerpt.\n"
+            f"Title: {title}\nFocus keyword: {focus_kw}\n"
+            f"Article opening (first 400 chars): {content_html[:400]}\n\n"
+            "Rules: 130-150 characters, plain text (no HTML), include the focus keyword, factual and compelling."
         )
-        meta_desc = (getattr(result, "text", None) or str(result)).strip().strip('"').strip("'")[:155]
+        excerpt = (getattr(excerpt_result, "text", None) or str(excerpt_result)).strip().strip('"').strip("'")[:150]
 
-    # Excerpt: short plain-text teaser for WordPress blog listing
-    excerpt_result = await ctx.ai.complete(
-        f"Write a WordPress post excerpt.\n"
-        f"Title: {title}\nFocus keyword: {focus_kw}\n"
-        f"Article opening (first 400 chars): {content_html[:400]}\n\n"
-        "Rules: 130-150 characters, plain text (no HTML), include the focus keyword, factual and compelling."
-    )
-    excerpt = (getattr(excerpt_result, "text", None) or str(excerpt_result)).strip().strip('"').strip("'")[:150]
+        # Update WP: Rank Math meta fields + native excerpt
+        post = await update_post(
+            ctx,
+            s["wp_url"], s["wp_username"], s["wp_app_password"],
+            post_id=int(wp_post_id),
+            excerpt=excerpt,
+            meta={
+                "rank_math_focus_keyword": rm_focus_kw,
+                "rank_math_description":   meta_desc,
+            },
+        )
 
-    # Update WP: Rank Math meta fields + native excerpt
-    post = await update_post(
-        ctx,
-        s["wp_url"], s["wp_username"], s["wp_app_password"],
-        post_id=int(wp_post_id),
-        excerpt=excerpt,
-        meta={
-            "rank_math_focus_keyword": rm_focus_kw,
-            "rank_math_description":   meta_desc,
-        },
-    )
+        if not post.get("id"):
+            await log_action(ctx, "set_wp_seo", cid, int((time.monotonic() - t0) * 1000), False, f"WP SEO update failed: {str(post)[:200]}")
+            return ActionResult.error(error=f"WP SEO update failed: {post}")
 
-    if not post.get("id"):
-        return ActionResult.error(error=f"WP SEO update failed: {post}")
+        await update_content(ctx, cid, {
+            "meta_description": meta_desc,
+            "focus_keyword":    focus_kw,
+            "excerpt":          excerpt,
+        })
 
-    await update_content(ctx, cid, {
-        "meta_description": meta_desc,
-        "focus_keyword":    focus_kw,
-        "excerpt":          excerpt,
-    })
-
-    kw_count = len(all_kws)
-    return ActionResult.success(
-        {"focus_keyword": focus_kw, "keywords_set": kw_count, "meta_description": meta_desc},
-        summary=(
-            f"Rank Math SEO set — {kw_count} keywords: {rm_focus_kw[:60]}\n"
-            f"Meta: {meta_desc[:80]}...\n"
-            f"Excerpt: {excerpt[:60]}..."
-        ),
-    )
+        kw_count = len(all_kws)
+        await log_action(ctx, "set_wp_seo", cid, int((time.monotonic() - t0) * 1000), True)
+        return ActionResult.success(
+            {"focus_keyword": focus_kw, "keywords_set": kw_count, "meta_description": meta_desc},
+            summary=(
+                f"Rank Math SEO set — {kw_count} keywords: {rm_focus_kw[:60]}\n"
+                f"Meta: {meta_desc[:80]}...\n"
+                f"Excerpt: {excerpt[:60]}..."
+            ),
+        )
+    except Exception as e:
+        await log_action(ctx, "set_wp_seo", cid, int((time.monotonic() - t0) * 1000), False, str(e))
+        return ActionResult.error(error=str(e))
 
 
 @chat.function(
