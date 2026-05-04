@@ -76,8 +76,26 @@ async def ser_projects(ctx) -> dict:
 
 async def content_plan(ctx, competitor: str = "", language: str = "en") -> dict:
     s = await load_settings(ctx)
+
+    # Try imperal-analytics IPC first; fall back to own Matomo credentials
+    growing_pages = []
+    matomo_url = matomo_token = ""
+    matomo_site_id = 1
+    try:
+        result = await ctx.extensions.call("analytics", "growing_pages", limit=20)
+        if result and not getattr(result, "error", None):
+            data = getattr(result, "data", {}) or {}
+            growing_pages = data.get("pages", [])
+    except Exception:
+        pass
+
+    if not growing_pages:
+        matomo_url    = s.get("matomo_url", "")
+        matomo_token  = s.get("matomo_token", "")
+        matomo_site_id = s.get("matomo_site_id", 1)
+
     return await _post(ctx, "/api/content/plan", {
-        "user_key":     "",
+        "user_key":      "",
         "seranking_key": s.get("seranking_data_key", ""),
         "domain":        s.get("seranking_domain", ""),
         "source":        s.get("seranking_source", "us"),
@@ -87,10 +105,12 @@ async def content_plan(ctx, competitor: str = "", language: str = "en") -> dict:
         "wp_url":        s.get("wp_url", ""),
         "wp_user":       s.get("wp_username", ""),
         "wp_password":   s.get("wp_app_password", ""),
-        # Matomo — blog growth data
-        "matomo_url":      s.get("matomo_url", ""),
-        "matomo_token":    s.get("matomo_token", ""),
-        "matomo_site_id":  s.get("matomo_site_id", 1),
+        # Matomo — used only if analytics extension not installed
+        "matomo_url":    matomo_url,
+        "matomo_token":  matomo_token,
+        "matomo_site_id": matomo_site_id,
+        # Pre-fetched from analytics IPC (skips Matomo fetch on server)
+        "growing_pages": growing_pages,
     }, timeout=TIMEOUT_PLAN)
 
 
