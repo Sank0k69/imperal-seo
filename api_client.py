@@ -138,6 +138,7 @@ async def generate_article(ctx, topic: str, keyword: str, article_type: str = "b
                             word_count: int = 1500, language: str = "en",
                             secondary_keywords: list = None, lsi_terms: list = None,
                             questions: list = None) -> dict:
+    s = await load_settings(ctx)
     return await _post(ctx, "/api/content/generate", {
         "user_key":           "",
         "topic":              topic,
@@ -148,6 +149,11 @@ async def generate_article(ctx, topic: str, keyword: str, article_type: str = "b
         "secondary_keywords": secondary_keywords or [],
         "lsi_terms":          lsi_terms or [],
         "questions":          questions or [],
+        "brand_voice":        s.get("brand_voice", ""),
+        "company_name":       s.get("company_name", ""),
+        "brand_description":  s.get("brand_description", ""),
+        "site_url":           s.get("site_url", ""),
+        "blog_url":           s.get("blog_url", ""),
     }, timeout=120)
 
 

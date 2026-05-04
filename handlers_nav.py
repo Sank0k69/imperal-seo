@@ -65,6 +65,18 @@ async def set_editor_mode(ctx, params: SetEditorModeParams) -> ActionResult:
     return ActionResult.success({}, summary=f"Editor mode: {params.mode}")
 
 
+@chat.function("go_preview", description="Switch editor to preview mode.", action_type="read", event="seo.nav.changed")
+async def go_preview(ctx, params: EmptyParams) -> ActionResult:
+    await save_ui_state(ctx, {"editor_mode": "preview"})
+    return ActionResult.success({}, summary="Preview mode")
+
+
+@chat.function("go_edit", description="Switch editor to edit mode.", action_type="read", event="seo.nav.changed")
+async def go_edit(ctx, params: EmptyParams) -> ActionResult:
+    await save_ui_state(ctx, {"editor_mode": "edit"})
+    return ActionResult.success({}, summary="Edit mode")
+
+
 @chat.function(
     "new_content",
     description="Create a new content plan item (blog post or newsletter) and open it in the editor.",

@@ -44,17 +44,17 @@ def _blog_editor(item: dict, mode: str) -> ui.UINode:
     has_content = bool(content_html and len(content_html.strip()) > 100)
 
     # ── Header ────────────────────────────────────────────────────────────────
+    toggle_btn = ui.Form(action="go_preview", submit_label="Preview", children=[]) \
+        if mode == "edit" else \
+        ui.Form(action="go_edit", submit_label="← Edit", children=[])
+
     header = ui.Stack(children=[
         ui.Stack(children=[
             ui.Form(action="go_plan", submit_label="← Plan", children=[]),
             ui.Header(text=title or kw, level=3),
             ui.Badge(label=status, color=STATUS_COLOR.get(status, "gray")),
         ], direction="horizontal", gap=8),
-        ui.Form(
-            action="set_editor_mode",
-            submit_label="Preview" if mode == "edit" else "Edit",
-            children=[ui.Input(param_name="mode", value="preview" if mode == "edit" else "edit")],
-        ),
+        toggle_btn,
     ], direction="horizontal", justify="between")
 
     meta = ui.Stack(children=[
@@ -203,6 +203,10 @@ def _newsletter_editor(item: dict, mode: str) -> ui.UINode:
     content_html = item.get("content", "")
     status       = item.get("status", "idea")
 
+    nl_toggle = ui.Form(action="go_preview", submit_label="Preview", children=[]) \
+        if mode == "edit" else \
+        ui.Form(action="go_edit", submit_label="← Edit", children=[])
+
     header = ui.Stack(children=[
         ui.Stack(children=[
             ui.Form(action="go_plan", submit_label="← Plan", children=[]),
@@ -210,11 +214,7 @@ def _newsletter_editor(item: dict, mode: str) -> ui.UINode:
             ui.Badge(label=status, color=STATUS_COLOR.get(status, "gray")),
             ui.Badge(label="newsletter", color="violet"),
         ], direction="horizontal", gap=8),
-        ui.Form(
-            action="set_editor_mode",
-            submit_label="Preview" if mode == "edit" else "Edit",
-            children=[ui.Input(param_name="mode", value="preview" if mode == "edit" else "edit")],
-        ),
+        nl_toggle,
     ], direction="horizontal", justify="between")
 
     generate_form = ui.Section(
