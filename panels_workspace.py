@@ -30,13 +30,20 @@ async def workspace_panel(ctx):
         return await _settings_view(ctx)
     if view == "docs":
         return await _docs_view(ctx, await _load_docs(ctx))
-    return await _plan_view(ctx)
+    return await _plan_view(ctx, state)
 
 
 # ── Plan view ─────────────────────────────────────────────────────────────────
 
-async def _plan_view(ctx) -> ui.UINode:
+async def _plan_view(ctx, state: dict) -> ui.UINode:
     items = await list_content(ctx)
+    plan_filter = state.get("plan_filter") or "all"
+    filtered = [i for i in items if i.get("status") == plan_filter] if plan_filter not in ("all", "") else items
+
+    _filter_label = {
+        "idea": "Ideas", "writing": "Writing", "review": "Review", "published": "Done",
+    }
+    title = f"Content Plan — {_filter_label.get(plan_filter, 'All')}" if plan_filter not in ("all", "") else "Content Plan"
 
     rows = [
         {
@@ -49,9 +56,14 @@ async def _plan_view(ctx) -> ui.UINode:
             "difficulty": str(item.get("difficulty", "—")),
             "id":         item.get("id", ""),
         }
-        for item in items
+        for item in filtered
     ]
 
+    empty_msg = (
+        f"No items with status '{plan_filter}' yet."
+        if plan_filter not in ("all", "")
+        else "No content yet. Click 'Build Content Plan (AI)' to generate one."
+    )
     table = ui.DataTable(
         columns=[
             ui.DataColumn(key="keyword",    label="Keyword / Topic",  width="28%"),
@@ -64,7 +76,16 @@ async def _plan_view(ctx) -> ui.UINode:
             ui.DataColumn(key="id",         label="ID",               width="10%"),
         ],
         rows=rows,
-    ) if rows else ui.Empty(message="No content yet. Click 'Build Content Plan (AI)' to generate one.")
+    ) if rows else ui.Empty(message=empty_msg)
+
+    header_row_children = [
+        ui.Header(text=title, level=3),
+        ui.Form(action="go_keywords", submit_label="+ Find keywords", children=[]),
+    ]
+    if plan_filter not in ("all", ""):
+        header_row_children.append(
+            ui.Form(action="go_plan", submit_label="× All", children=[]),
+        )
 
     build_plan_form = ui.Form(
         action="build_content_plan",
@@ -72,6 +93,7 @@ async def _plan_view(ctx) -> ui.UINode:
         children=[],
     )
 
+    open_items = filtered if filtered else items
     open_form = ui.Form(
         action="open_editor",
         submit_label="Open in editor →",
@@ -84,17 +106,14 @@ async def _plan_view(ctx) -> ui.UINode:
                         "value": i.get("id", ""),
                         "label": f"{i.get('keyword','')} ({i.get('type','')} · {i.get('status','')})",
                     }
-                    for i in items
+                    for i in open_items
                 ],
             ),
         ],
     ) if items else ui.Alert(message="Create your first content item using the panel on the left.", type="info")
 
     return ui.Stack(children=[
-        ui.Stack(children=[
-            ui.Header(text="Content Plan", level=3),
-            ui.Form(action="go_keywords", submit_label="+ Find keywords", children=[]),
-        ], direction="horizontal", justify="between"),
+        ui.Stack(children=header_row_children, direction="horizontal", justify="between"),
         build_plan_form,
         table,
         ui.Divider(),

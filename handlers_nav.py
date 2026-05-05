@@ -8,8 +8,32 @@ from params import OpenEditorParams, CreateContentParams, SetEditorModeParams, E
 
 @chat.function("go_plan", description="Switch main panel to Content Plan view.", action_type="read", event="seo.nav.changed")
 async def go_plan(ctx, params: EmptyParams) -> ActionResult:
-    await save_ui_state(ctx, {"active_view": "plan"})
+    await save_ui_state(ctx, {"active_view": "plan", "plan_filter": "all"})
     return ActionResult.success({}, summary="Switched to Content Plan")
+
+
+@chat.function("go_plan_ideas", description="Switch to Content Plan showing only Idea status items.", action_type="read", event="seo.nav.changed")
+async def go_plan_ideas(ctx, params: EmptyParams) -> ActionResult:
+    await save_ui_state(ctx, {"active_view": "plan", "plan_filter": "idea"})
+    return ActionResult.success({}, summary="Plan: Ideas")
+
+
+@chat.function("go_plan_writing", description="Switch to Content Plan showing only Writing status items.", action_type="read", event="seo.nav.changed")
+async def go_plan_writing(ctx, params: EmptyParams) -> ActionResult:
+    await save_ui_state(ctx, {"active_view": "plan", "plan_filter": "writing"})
+    return ActionResult.success({}, summary="Plan: Writing")
+
+
+@chat.function("go_plan_review", description="Switch to Content Plan showing only Review status items.", action_type="read", event="seo.nav.changed")
+async def go_plan_review(ctx, params: EmptyParams) -> ActionResult:
+    await save_ui_state(ctx, {"active_view": "plan", "plan_filter": "review"})
+    return ActionResult.success({}, summary="Plan: Review")
+
+
+@chat.function("go_plan_done", description="Switch to Content Plan showing only Published/Done items.", action_type="read", event="seo.nav.changed")
+async def go_plan_done(ctx, params: EmptyParams) -> ActionResult:
+    await save_ui_state(ctx, {"active_view": "plan", "plan_filter": "published"})
+    return ActionResult.success({}, summary="Plan: Done")
 
 
 @chat.function("go_rankings", description="Switch main panel to Rankings view.", action_type="read", event="seo.nav.changed")

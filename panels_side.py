@@ -60,12 +60,12 @@ async def sidebar_panel(ctx):
 
     pipeline = ui.Stack(children=[
         ui.Header(text="Pipeline", level=6),
-        ui.Stats(children=[
-            ui.Stat(label="Ideas", value=str(counts["idea"]), color="gray"),
-            ui.Stat(label="Writing", value=str(counts["writing"]), color="blue"),
-            ui.Stat(label="Review", value=str(counts["review"]), color="yellow"),
-            ui.Stat(label="Done", value=str(counts["published"]), color="green"),
-        ]),
+        ui.Stack(children=[
+            ui.Form(action="go_plan_ideas",   submit_label=f"Ideas · {counts['idea']}",     children=[]),
+            ui.Form(action="go_plan_writing", submit_label=f"Writing · {counts['writing']}", children=[]),
+            ui.Form(action="go_plan_review",  submit_label=f"Review · {counts['review']}",   children=[]),
+            ui.Form(action="go_plan_done",    submit_label=f"Done · {counts['published']}",  children=[]),
+        ], direction="horizontal", gap=4, wrap=True),
     ])
 
     new_btn = ui.Form(
@@ -84,6 +84,39 @@ async def sidebar_panel(ctx):
         ],
     )
 
+    # Recent articles — status priority: review → writing → published → idea
+    _status_order = {"review": 0, "writing": 1, "published": 2, "idea": 3}
+    recent = sorted(items, key=lambda x: _status_order.get(x.get("status", "idea"), 3))[:6]
+
+    recent_section_children = []
+    if recent:
+        total_words = sum(len((i.get("content") or "").split()) for i in items)
+        published_count = counts["published"]
+        recent_section_children = [
+            ui.Header(text="Recent Articles", level=6),
+            ui.Text(
+                content=f"{len(items)} articles · {total_words:,} words · {published_count} published",
+                variant="caption",
+            ),
+            ui.Form(
+                action="open_editor",
+                submit_label="Open →",
+                children=[
+                    ui.Select(
+                        param_name="content_id",
+                        placeholder="Quick open article...",
+                        options=[
+                            {
+                                "value": i["id"],
+                                "label": f"[{i.get('status','?')[:3].upper()}] {(i.get('keyword') or i.get('title') or 'untitled')[:28]}",
+                            }
+                            for i in recent
+                        ],
+                    ),
+                ],
+            ),
+        ]
+
     return ui.Stack(children=[
         ui.Header(text="SEO & Content", level=4),
         status_badges,
@@ -93,4 +126,5 @@ async def sidebar_panel(ctx):
         pipeline,
         ui.Divider(),
         new_btn,
+        *([ui.Divider()] + recent_section_children if recent_section_children else []),
     ])
