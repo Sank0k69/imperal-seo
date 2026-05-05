@@ -27,6 +27,7 @@ async def _resolve_id(ctx, content_id: str) -> str:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
+    id_projection="content_id",
 )
 async def save_draft(ctx, params: SaveDraftParams) -> ActionResult:
     t0 = time.monotonic()
@@ -56,6 +57,7 @@ async def save_draft(ctx, params: SaveDraftParams) -> ActionResult:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
+    id_projection="content_id",
 )
 async def update_status(ctx, params: UpdateStatusParams) -> ActionResult:
     valid = {"idea", "writing", "review", "published"}
@@ -76,6 +78,7 @@ async def update_status(ctx, params: UpdateStatusParams) -> ActionResult:
     chain_callable=True,
     effects=["delete:content"],
     event="seo.content.deleted",
+    id_projection="content_id",
 )
 async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
     item = await get_content(ctx, params.content_id)
@@ -92,6 +95,7 @@ async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
+    id_projection="content_id",
 )
 async def generate_brief(ctx, params: AiBriefParams) -> ActionResult:
     t0 = time.monotonic()
@@ -135,6 +139,7 @@ async def generate_brief(ctx, params: AiBriefParams) -> ActionResult:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
+    id_projection="content_id",
 )
 async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
     cid = await _resolve_id(ctx, params.content_id)
@@ -157,6 +162,7 @@ async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
+    id_projection="content_id",
 )
 async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     t0 = time.monotonic()
@@ -289,6 +295,7 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
+    id_projection="content_id",
 )
 async def check_article_job(ctx, params: AiBriefParams) -> ActionResult:
     t0 = time.monotonic()

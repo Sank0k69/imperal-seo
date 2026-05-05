@@ -25,6 +25,7 @@ async def _resolve_id(ctx, content_id: str) -> str:
     chain_callable=True,
     effects=["publish:post"],
     event="seo.content.published",
+    id_projection="content_id",
 )
 async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
     t0 = time.monotonic()
@@ -91,6 +92,7 @@ async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
     chain_callable=True,
     effects=["publish:post"],
     event="seo.content.published",
+    id_projection="content_id",
 )
 async def publish_wp_draft(ctx, params: PublishWpParams) -> ActionResult:
     params.status = "draft"
@@ -104,6 +106,7 @@ async def publish_wp_draft(ctx, params: PublishWpParams) -> ActionResult:
     chain_callable=True,
     effects=["publish:post"],
     event="seo.content.published",
+    id_projection="content_id",
 )
 async def publish_wp_publish(ctx, params: PublishWpParams) -> ActionResult:
     params.status = "publish"
@@ -120,6 +123,7 @@ async def publish_wp_publish(ctx, params: PublishWpParams) -> ActionResult:
     chain_callable=True,
     effects=["update:post"],
     event="seo.content.updated",
+    id_projection="content_id",
 )
 async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
     t0 = time.monotonic()
