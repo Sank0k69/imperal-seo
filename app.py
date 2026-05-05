@@ -109,21 +109,23 @@ async def load_ui_state(ctx) -> dict:
     return dict(DEFAULT_UI_STATE)
 
 
-async def save_ui_state(ctx, values: dict) -> dict:
+async def save_ui_state(ctx, values: dict, persist: bool = False) -> dict:
     current = await load_ui_state(ctx)
     merged = {**current, **{k: v for k, v in values.items() if v is not None}}
+    wrote_cache = False
     if getattr(ctx, "_cache", None) is not None:
         try:
             await ctx.cache.set("ui_state", _UIStateCache(**merged), ttl_seconds=300)
-            return merged
+            wrote_cache = True
         except Exception:
             pass
-    page = await ctx.store.query(UI_STATE_COL, limit=1)
-    docs = getattr(page, "data", None) or []
-    if docs:
-        await ctx.store.update(UI_STATE_COL, docs[0].id, merged)
-    else:
-        await ctx.store.create(UI_STATE_COL, merged)
+    if persist or not wrote_cache:
+        page = await ctx.store.query(UI_STATE_COL, limit=1)
+        docs = getattr(page, "data", None) or []
+        if docs:
+            await ctx.store.update(UI_STATE_COL, docs[0].id, merged)
+        else:
+            await ctx.store.create(UI_STATE_COL, merged)
     return merged
 
 

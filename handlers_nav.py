@@ -39,18 +39,23 @@ async def go_docs(ctx, params: EmptyParams) -> ActionResult:
 @chat.function(
     "open_editor",
     description="Open a specific content item in the editor.",
-    action_type="read",
+    action_type="write",
+    chain_callable=True,
+    effects=["navigate:editor"],
     event="seo.nav.changed",
 )
 async def open_editor(ctx, params: OpenEditorParams) -> ActionResult:
+    from app import get_content as _get_content
+    item = await _get_content(ctx, params.content_id)
+    kw = (item.get("keyword") or item.get("title") or params.content_id) if item else params.content_id
     await save_ui_state(ctx, {
         "active_view": "editor",
         "selected_id": params.content_id,
         "editor_mode": "edit",
-    })
+    }, persist=True)
     return ActionResult.success(
         {"content_id": params.content_id},
-        summary=f"Opened item {params.content_id} in editor",
+        summary=f"Opened '{kw}' in editor",
     )
 
 
@@ -86,9 +91,16 @@ async def toggle_editor(ctx, params: EmptyParams) -> ActionResult:
     return ActionResult.success({}, summary="Editor " + ("shown" if not current else "hidden"))
 
 
-@chat.function("resume_editor", description="Return to the editor for the currently open content item.", action_type="read", event="seo.nav.changed")
+@chat.function(
+    "resume_editor",
+    description="Return to the editor for the currently open content item.",
+    action_type="write",
+    chain_callable=True,
+    effects=["navigate:editor"],
+    event="seo.nav.changed",
+)
 async def resume_editor(ctx, params: EmptyParams) -> ActionResult:
-    await save_ui_state(ctx, {"active_view": "editor"})
+    await save_ui_state(ctx, {"active_view": "editor"}, persist=True)
     return ActionResult.success({}, summary="Returned to editor")
 
 
