@@ -285,17 +285,8 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
     step3_title = f"Step 3 — Edit & Save{f'  ·  {word_count:,} words' if word_count else ''}"
     show_editor = state.get("show_editor", False)
     step3_children = []
-    if has_content:
-        step3_children.append(
-            ui.Html(
-                content=_article_html(title or kw, content_html),
-                theme="light",
-                max_height=500,
-            ),
-        )
     if show_editor:
         step3_children += [
-            ui.Divider(),
             ui.Form(
                 action="save_draft",
                 submit_label="Save",
@@ -311,6 +302,10 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
             ui.Form(action="toggle_editor", submit_label="Hide editor", children=[]),
         ]
     else:
+        if has_content:
+            step3_children.append(
+                ui.Text(content=f"{word_count:,} words ready. Click Preview ↑ to read.", variant="caption"),
+            )
         step3_children.append(
             ui.Form(action="toggle_editor", submit_label="✏ Edit article", children=[]),
         )
