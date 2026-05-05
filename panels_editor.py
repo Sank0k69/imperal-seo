@@ -154,12 +154,12 @@ async def editor_view(ctx, state: dict) -> ui.UINode:
 
     s = await load_settings(ctx)
     wp_base_url = s.get("wp_url", "").rstrip("/")
-    return _blog_editor(item, mode, wp_base_url)
+    return _blog_editor(item, mode, wp_base_url, show_editor=state.get("show_editor", False))
 
 
 # ── Blog editor ───────────────────────────────────────────────────────────────
 
-def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
+def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool = False) -> ui.UINode:
     kw           = item.get("keyword", "")
     title        = item.get("title", "")
     content_html = item.get("content", "")
@@ -283,7 +283,6 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
 
     # ── Edit mode continues below ─────────────────────────────────────────────
     step3_title = f"Step 3 — Edit & Save{f'  ·  {word_count:,} words' if word_count else ''}"
-    show_editor = state.get("show_editor", False)
     step3_children = []
     if show_editor:
         step3_children += [
