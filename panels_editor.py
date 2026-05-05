@@ -1,9 +1,42 @@
 """Editor view — clean step-by-step UX. All handlers read content_id from UI state."""
 from __future__ import annotations
 
+import markdown as _md
 from imperal_sdk import ui
 
 from app import get_content, load_settings
+
+
+_BRIEF_CSS = """
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         font-size: 14px; line-height: 1.6; color: #e2e8f0;
+         background: transparent; margin: 0; padding: 8px 12px; }
+  h1 { font-size: 18px; font-weight: 700; color: #f8fafc; margin: 16px 0 8px; }
+  h2 { font-size: 15px; font-weight: 600; color: #cbd5e1; margin: 14px 0 6px; border-bottom: 1px solid #334155; padding-bottom: 4px; }
+  h3 { font-size: 13px; font-weight: 600; color: #94a3b8; margin: 10px 0 4px; }
+  p  { margin: 6px 0; }
+  ul, ol { margin: 6px 0; padding-left: 20px; }
+  li { margin: 3px 0; }
+  strong { color: #f1f5f9; }
+  em { color: #a5b4fc; }
+  hr { border: none; border-top: 1px solid #334155; margin: 12px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
+  th { background: #1e293b; color: #94a3b8; font-weight: 600;
+       padding: 6px 10px; text-align: left; border: 1px solid #334155; }
+  td { padding: 5px 10px; border: 1px solid #1e293b; color: #cbd5e1; }
+  tr:nth-child(even) td { background: #0f172a20; }
+  code { background: #1e293b; color: #7dd3fc; padding: 1px 5px;
+         border-radius: 3px; font-size: 12px; }
+  blockquote { border-left: 3px solid #334155; margin: 8px 0;
+               padding: 4px 12px; color: #94a3b8; font-style: italic; }
+</style>
+"""
+
+
+def _brief_html(md_text: str) -> str:
+    body = _md.markdown(md_text, extensions=["tables", "nl2br"])
+    return f"<!DOCTYPE html><html><head>{_BRIEF_CSS}</head><body>{body}</body></html>"
 
 STATUS_COLOR = {
     "idea":      "gray",
@@ -79,7 +112,7 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
     if brief_text:
         step1_children += [
             ui.Divider(),
-            ui.Markdown(content=brief_text),
+            ui.Html(content=_brief_html(brief_text), sandbox=True),
             ui.Divider(),
             ui.Text(content="Edit brief below if needed, then Save:", variant="caption"),
             ui.Form(

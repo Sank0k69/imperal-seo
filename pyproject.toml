@@ -3,7 +3,7 @@ name = "wp-blogger"
 version = "1.3.0"
 description = "WP Blogger — AI-powered WordPress content creation: keyword research, rankings, article writing and one-click publishing"
 requires-python = ">=3.10"
-dependencies = ["imperal-sdk>=4.1.2"]
+dependencies = ["imperal-sdk>=4.1.2", "markdown>=3.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
