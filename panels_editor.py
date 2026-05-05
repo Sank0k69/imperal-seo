@@ -298,7 +298,7 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool
                     ),
                 ],
             ),
-            ui.Form(action="toggle_editor", submit_label="Hide editor", children=[]),
+            ui.Form(action="hide_editor_panel", submit_label="Hide editor", children=[]),
         ]
     else:
         if has_content:
@@ -306,7 +306,7 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool
                 ui.Text(content=f"{word_count:,} words ready. Click Preview ↑ to read.", variant="caption"),
             )
         step3_children.append(
-            ui.Form(action="toggle_editor", submit_label="✏ Edit article", children=[]),
+            ui.Form(action="show_editor_panel", submit_label="✏ Edit article", children=[]),
         )
     step3 = ui.Section(title=step3_title, children=step3_children)
 

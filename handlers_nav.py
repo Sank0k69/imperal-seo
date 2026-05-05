@@ -2,7 +2,7 @@
 from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from app import chat, save_ui_state, load_ui_state, create_content as _create, get_content as _get_content
+from app import chat, save_ui_state, create_content as _create, get_content as _get_content
 from params import OpenEditorParams, CreateContentParams, SetEditorModeParams, EmptyParams
 
 
@@ -79,12 +79,16 @@ async def go_edit(ctx, params: EmptyParams) -> ActionResult:
     return ActionResult.success({}, summary="Edit mode")
 
 
-@chat.function("toggle_editor", description="Show or hide the article text editor in Step 3.", action_type="read", event="seo.nav.changed")
-async def toggle_editor(ctx, params: EmptyParams) -> ActionResult:
-    state = await load_ui_state(ctx)
-    current = state.get("show_editor", False)
-    await save_ui_state(ctx, {"show_editor": not current})
-    return ActionResult.success({}, summary="Editor " + ("shown" if not current else "hidden"))
+@chat.function("show_editor_panel", description="Show the article text editor in Step 3.", action_type="read", event="seo.nav.changed")
+async def show_editor_panel(ctx, params: EmptyParams) -> ActionResult:
+    await save_ui_state(ctx, {"show_editor": True})
+    return ActionResult.success({}, summary="Editor shown")
+
+
+@chat.function("hide_editor_panel", description="Hide the article text editor in Step 3.", action_type="read", event="seo.nav.changed")
+async def hide_editor_panel(ctx, params: EmptyParams) -> ActionResult:
+    await save_ui_state(ctx, {"show_editor": False})
+    return ActionResult.success({}, summary="Editor hidden")
 
 
 @chat.function(
