@@ -64,6 +64,7 @@ async def _resolve_id(ctx, content_id: str) -> str:
     event="seo.content.published",
 )
 async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
+    """Create or update a WordPress post as draft or published."""
     t0 = time.monotonic()
     cid = await _resolve_id(ctx, params.content_id)
     action_name = f"publish_wp_{params.status}"
@@ -147,6 +148,7 @@ async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
     event="seo.content.published",
 )
 async def publish_wp_draft(ctx, params: PublishWpParams) -> ActionResult:
+    """Publish or update the current post as a WordPress draft."""
     params.status = "draft"
     return await publish_wp(ctx, params)
 
@@ -160,6 +162,7 @@ async def publish_wp_draft(ctx, params: PublishWpParams) -> ActionResult:
     event="seo.content.published",
 )
 async def publish_wp_publish(ctx, params: PublishWpParams) -> ActionResult:
+    """Publish or update the current post as live on WordPress."""
     params.status = "publish"
     return await publish_wp(ctx, params)
 
@@ -176,6 +179,7 @@ async def publish_wp_publish(ctx, params: PublishWpParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
+    """Set Rank Math SEO fields on the WordPress post."""
     t0 = time.monotonic()
     cid = await _resolve_id(ctx, params.content_id)
     try:
@@ -269,6 +273,7 @@ async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
     event="seo.settings.saved",
 )
 async def save_settings_fn(ctx, params: SaveSettingsParams) -> ActionResult:
+    """Save extension settings (API keys, WP credentials)."""
     updated = await _save_settings(ctx, params.model_dump(exclude_none=True))
     keys_set = [k for k, v in updated.items() if v and (k.endswith("_key") or k.endswith("_password"))]
     return ActionResult.success(

@@ -29,6 +29,7 @@ async def _resolve_id(ctx, content_id: str) -> str:
     event="seo.content.updated",
 )
 async def save_draft(ctx, params: SaveDraftParams) -> ActionResult:
+    """Save title and HTML content from the editor."""
     t0 = time.monotonic()
     cid = await _resolve_id(ctx, params.content_id)
     try:
@@ -58,6 +59,7 @@ async def save_draft(ctx, params: SaveDraftParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def update_status(ctx, params: UpdateStatusParams) -> ActionResult:
+    """Update the status of a content item."""
     valid = {"idea", "writing", "review", "published"}
     if params.status not in valid:
         return ActionResult.error(error=f"Invalid status '{params.status}'. Use: {', '.join(valid)}")
@@ -78,6 +80,7 @@ async def update_status(ctx, params: UpdateStatusParams) -> ActionResult:
     event="seo.content.deleted",
 )
 async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
+    """Permanently delete a content item."""
     item = await get_content(ctx, params.content_id)
     if not item:
         return ActionResult.error(error="Content item not found")
@@ -94,6 +97,7 @@ async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def generate_brief(ctx, params: AiBriefParams) -> ActionResult:
+    """Generate an SEO content brief via MOS AI."""
     t0 = time.monotonic()
     cid = await _resolve_id(ctx, params.content_id)
     try:
@@ -137,6 +141,7 @@ async def generate_brief(ctx, params: AiBriefParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
+    """Save edited brief text."""
     cid = await _resolve_id(ctx, params.content_id)
     item = await get_content(ctx, cid)
     if not item:
@@ -159,6 +164,7 @@ async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
+    """Start AI article generation (async job via MOS)."""
     t0 = time.monotonic()
     cid = await _resolve_id(ctx, params.content_id)
     try:
@@ -291,6 +297,7 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def check_article_job(ctx, params: AiBriefParams) -> ActionResult:
+    """Poll for a completed article generation job."""
     t0 = time.monotonic()
     cid = await _resolve_id(ctx, params.content_id)
     try:
@@ -371,6 +378,7 @@ async def check_article_job(ctx, params: AiBriefParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def improve_article(ctx, params: ImproveArticleParams) -> ActionResult:
+    """Start async article improvement via MOS refine endpoint."""
     t0 = time.monotonic()
     cid = await _resolve_id(ctx, params.content_id)
     try:
@@ -420,6 +428,7 @@ async def improve_article(ctx, params: ImproveArticleParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def generate_newsletter(ctx, params: GenerateNewsletterParams) -> ActionResult:
+    """Write a newsletter from a topic or news text."""
     t0 = time.monotonic()
     cid = await _resolve_id(ctx, params.content_id)
     try:

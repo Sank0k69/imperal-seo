@@ -173,13 +173,13 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool
     has_content = bool(content_html and len(content_html.strip()) > 100)
 
     # ── Header ────────────────────────────────────────────────────────────────
-    toggle_btn = ui.Form(action="go_preview", submit_label="Preview", children=[]) \
+    toggle_btn = ui.Button(label="Preview", on_click=ui.Call("go_preview")) \
         if mode == "edit" else \
-        ui.Form(action="go_edit", submit_label="← Edit", children=[])
+        ui.Button(label="← Edit", on_click=ui.Call("go_edit"))
 
     header = ui.Stack(children=[
         ui.Stack(children=[
-            ui.Form(action="go_plan", submit_label="← Plan", children=[]),
+            ui.Button(label="← Plan", on_click=ui.Call("go_plan")),
             ui.Header(text=title or kw, level=3),
             ui.Badge(label=status, color=STATUS_COLOR.get(status, "gray")),
         ], direction="horizontal", gap=8),
@@ -298,7 +298,7 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool
                     ),
                 ],
             ),
-            ui.Form(action="hide_editor_panel", submit_label="Hide editor", children=[]),
+            ui.Button(label="Hide editor", on_click=ui.Call("hide_editor_panel")),
         ]
     else:
         if has_content:
@@ -306,7 +306,7 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool
                 ui.Text(content=f"{word_count:,} words ready. Click Preview ↑ to read.", variant="caption"),
             )
         step3_children.append(
-            ui.Form(action="show_editor_panel", submit_label="✏ Edit article", children=[]),
+            ui.Button(label="✏ Edit article", on_click=ui.Call("show_editor_panel")),
         )
     step3 = ui.Section(title=step3_title, children=step3_children)
 
@@ -409,13 +409,13 @@ def _newsletter_editor(item: dict, mode: str) -> ui.UINode:
     content_html = item.get("content", "")
     status       = item.get("status", "idea")
 
-    nl_toggle = ui.Form(action="go_preview", submit_label="Preview", children=[]) \
+    nl_toggle = ui.Button(label="Preview", on_click=ui.Call("go_preview")) \
         if mode == "edit" else \
-        ui.Form(action="go_edit", submit_label="← Edit", children=[])
+        ui.Button(label="← Edit", on_click=ui.Call("go_edit"))
 
     header = ui.Stack(children=[
         ui.Stack(children=[
-            ui.Form(action="go_plan", submit_label="← Plan", children=[]),
+            ui.Button(label="← Plan", on_click=ui.Call("go_plan")),
             ui.Header(text=title or subject or kw, level=3),
             ui.Badge(label=status, color=STATUS_COLOR.get(status, "gray")),
             ui.Badge(label="newsletter", color="violet"),

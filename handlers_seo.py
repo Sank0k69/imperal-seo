@@ -14,6 +14,7 @@ from params import FetchKeywordsParams, FetchGapsParams, FetchRankingsParams, Li
     event="seo.nav.changed",
 )
 async def fetch_keywords(ctx, params: FetchKeywordsParams) -> ActionResult:
+    """Fetch organic keywords for the domain from SE Ranking."""
     s = await load_settings(ctx)
     domain = params.domain or s.get("seranking_domain", "")
     source = params.source or s.get("seranking_source", "us")
@@ -42,6 +43,7 @@ async def fetch_keywords(ctx, params: FetchKeywordsParams) -> ActionResult:
     event="seo.nav.changed",
 )
 async def fetch_gaps(ctx, params: FetchGapsParams) -> ActionResult:
+    """Fetch keyword gaps vs a competitor domain."""
     s = await load_settings(ctx)
     if not s.get("seranking_data_key"):
         return ActionResult.error(error="SE Ranking Data API key not configured. Go to Settings.")
@@ -72,6 +74,7 @@ async def fetch_gaps(ctx, params: FetchGapsParams) -> ActionResult:
     event="seo.nav.changed",
 )
 async def fetch_rankings(ctx, params: FetchRankingsParams) -> ActionResult:
+    """Fetch tracked keyword rankings from SE Ranking."""
     data = await ser_rankings(ctx)
     if "error" in data:
         return ActionResult.error(error=data["error"])
@@ -93,6 +96,7 @@ async def fetch_rankings(ctx, params: FetchRankingsParams) -> ActionResult:
     action_type="read",
 )
 async def list_ser_projects(ctx, params: ListProjectsParams) -> ActionResult:
+    """List all SE Ranking projects to find the project ID."""
     data = await ser_projects(ctx)
     if "error" in data:
         return ActionResult.error(error=data["error"])
@@ -118,6 +122,7 @@ async def list_ser_projects(ctx, params: ListProjectsParams) -> ActionResult:
     event="seo.content.created",
 )
 async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
+    """AI-generate a 5-article content plan from SE Ranking data."""
     s = await load_settings(ctx)
     if not s.get("seranking_data_key"):
         return ActionResult.error(error="SE Ranking Data API key not configured. Go to Settings.")

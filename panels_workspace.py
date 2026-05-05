@@ -80,11 +80,11 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
 
     header_row_children = [
         ui.Header(text=title, level=3),
-        ui.Form(action="go_keywords", submit_label="+ Find keywords", children=[]),
+        ui.Button(label="+ Find keywords", on_click=ui.Call("go_keywords")),
     ]
     if plan_filter not in ("all", ""):
         header_row_children.append(
-            ui.Form(action="go_plan", submit_label="× All", children=[]),
+            ui.Button(label="× All", on_click=ui.Call("go_plan")),
         )
 
     build_plan_form = ui.Form(
@@ -125,7 +125,7 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
 
 async def _rankings_view(ctx, state: dict) -> ui.UINode:
     rankings = state.get("rankings_results") or []
-    refresh_form = ui.Form(action="fetch_rankings", submit_label="Refresh rankings", children=[])
+    refresh_form = ui.Button(label="Refresh rankings", on_click=ui.Call("fetch_rankings"))
 
     if not rankings:
         return ui.Stack(children=[
@@ -338,7 +338,7 @@ async def _settings_view(ctx) -> ui.UINode:
     return ui.Stack(children=[
         ui.Stack(children=[
             ui.Header(text="Settings", level=3),
-            ui.Form(action="go_plan", submit_label="← Back", children=[]),
+            ui.Button(label="← Back", on_click=ui.Call("go_plan")),
         ], direction="horizontal", justify="between"),
         ui.Alert(message="API keys stored encrypted per user.", type="info"),
         form,

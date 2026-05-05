@@ -1,8 +1,4 @@
-"""Left navigation sidebar + settings panel (right slot).
-
-ui.Tabs is broken — use Forms for navigation (confirmed from analytics ext).
-ui.Send is broken — all buttons via ui.Form(action=...).
-"""
+"""Left navigation sidebar."""
 from __future__ import annotations
 
 from imperal_sdk import ui
@@ -11,7 +7,7 @@ from app import ext, load_settings, load_ui_state, list_content, ser_ready, wp_r
 
 
 def _nav_btn(label: str, action: str, icon: str = "") -> ui.UINode:
-    return ui.Form(action=action, submit_label=label, children=[])
+    return ui.Button(label=label, on_click=ui.Call(action))
 
 
 @ext.panel("sidebar", slot="left", title="SEO & Content", icon="FileText",
@@ -46,7 +42,7 @@ async def sidebar_panel(ctx):
         open_item = next((i for i in items if i.get("id") == selected_id), None)
         label = (open_item.get("keyword") or open_item.get("title") or "item")[:28] if open_item else "item"
         resume_btn_children = [
-            ui.Form(action="resume_editor", submit_label=f"↩ Resume: {label}", children=[]),
+            ui.Button(label=f"↩ Resume: {label}", on_click=ui.Call("resume_editor")),
         ]
 
     nav = ui.Stack(children=[
@@ -61,10 +57,10 @@ async def sidebar_panel(ctx):
     pipeline = ui.Stack(children=[
         ui.Header(text="Pipeline", level=6),
         ui.Stack(children=[
-            ui.Form(action="go_plan_ideas",   submit_label=f"Ideas · {counts['idea']}",     children=[]),
-            ui.Form(action="go_plan_writing", submit_label=f"Writing · {counts['writing']}", children=[]),
-            ui.Form(action="go_plan_review",  submit_label=f"Review · {counts['review']}",   children=[]),
-            ui.Form(action="go_plan_done",    submit_label=f"Done · {counts['published']}",  children=[]),
+            ui.Button(label=f"Ideas · {counts['idea']}",     on_click=ui.Call("go_plan_ideas")),
+            ui.Button(label=f"Writing · {counts['writing']}", on_click=ui.Call("go_plan_writing")),
+            ui.Button(label=f"Review · {counts['review']}",   on_click=ui.Call("go_plan_review")),
+            ui.Button(label=f"Done · {counts['published']}",  on_click=ui.Call("go_plan_done")),
         ], direction="horizontal", gap=4, wrap=True),
     ])
 
