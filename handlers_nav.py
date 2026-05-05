@@ -2,7 +2,7 @@
 from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from app import chat, save_ui_state, create_content as _create
+from app import chat, save_ui_state, load_ui_state, create_content as _create, get_content as _get_content
 from params import OpenEditorParams, CreateContentParams, SetEditorModeParams, EmptyParams
 
 
@@ -43,7 +43,6 @@ async def go_docs(ctx, params: EmptyParams) -> ActionResult:
     event="seo.nav.changed",
 )
 async def open_editor(ctx, params: OpenEditorParams) -> ActionResult:
-    from app import get_content as _get_content
     item = await _get_content(ctx, params.content_id)
     kw = (item.get("keyword") or item.get("title") or params.content_id) if item else params.content_id
     await save_ui_state(ctx, {
@@ -82,7 +81,6 @@ async def go_edit(ctx, params: EmptyParams) -> ActionResult:
 
 @chat.function("toggle_editor", description="Show or hide the article text editor in Step 3.", action_type="read", event="seo.nav.changed")
 async def toggle_editor(ctx, params: EmptyParams) -> ActionResult:
-    from app import load_ui_state
     state = await load_ui_state(ctx)
     current = state.get("show_editor", False)
     await save_ui_state(ctx, {"show_editor": not current})
