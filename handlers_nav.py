@@ -39,9 +39,7 @@ async def go_docs(ctx, params: EmptyParams) -> ActionResult:
 @chat.function(
     "open_editor",
     description="Open a specific content item in the editor.",
-    action_type="write",
-    chain_callable=True,
-    effects=["navigate:editor"],
+    action_type="read",
     event="seo.nav.changed",
 )
 async def open_editor(ctx, params: OpenEditorParams) -> ActionResult:
@@ -52,7 +50,7 @@ async def open_editor(ctx, params: OpenEditorParams) -> ActionResult:
         "active_view": "editor",
         "selected_id": params.content_id,
         "editor_mode": "edit",
-    }, persist=True)
+    })
     return ActionResult.success(
         {"content_id": params.content_id},
         summary=f"Opened '{kw}' in editor",
@@ -94,13 +92,11 @@ async def toggle_editor(ctx, params: EmptyParams) -> ActionResult:
 @chat.function(
     "resume_editor",
     description="Return to the editor for the currently open content item.",
-    action_type="write",
-    chain_callable=True,
-    effects=["navigate:editor"],
+    action_type="read",
     event="seo.nav.changed",
 )
 async def resume_editor(ctx, params: EmptyParams) -> ActionResult:
-    await save_ui_state(ctx, {"active_view": "editor"}, persist=True)
+    await save_ui_state(ctx, {"active_view": "editor"})
     return ActionResult.success({}, summary="Returned to editor")
 
 

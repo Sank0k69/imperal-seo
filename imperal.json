@@ -106,9 +106,9 @@
     {
       "name": "open_editor",
       "description": "Open a specific content item in the editor.",
-      "action_type": "write",
-      "chain_callable": true,
-      "effects": ["navigate:editor"],
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
       "params_schema": {
         "properties": {
           "content_id": {
@@ -188,9 +188,9 @@
     {
       "name": "resume_editor",
       "description": "Return to the editor for the currently open content item.",
-      "action_type": "write",
-      "chain_callable": true,
-      "effects": ["navigate:editor"],
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
       "params_schema": {
         "properties": {},
         "title": "EmptyParams",
