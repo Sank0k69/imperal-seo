@@ -14,7 +14,7 @@ ext = Extension(
 
 chat = ChatExtension(
     ext,
-    tool_name="wp-blogger",
+    tool_name="wp_blogger",
     description=(
         "WP Blogger. Keyword research, rankings tracking, "
         "content plan, AI article writing, publish to WordPress."

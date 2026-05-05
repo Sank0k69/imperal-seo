@@ -53,6 +53,11 @@ class AiWriteParams(BaseModel):
     article_type: str = Field("", description="blog | comparison | tutorial | pillar | news | review — overrides item type")
 
 
+class ImproveArticleParams(BaseModel):
+    content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
+    instruction: str = Field("", description="Optional specific improvement instruction")
+
+
 class FetchKeywordsParams(BaseModel):
     domain: str = Field("", description="Domain to analyse — leave empty to use domain from Settings")
     source: str = Field("", description="Regional database code, e.g. 'us', 'gb' — empty = use Settings")

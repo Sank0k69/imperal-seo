@@ -244,6 +244,16 @@ async def poll_article_job(ctx, job_id: str) -> dict:
     return await _get(ctx, f"/api/content/jobs/{job_id}", timeout=10)
 
 
+async def start_refine_article(ctx, content: str, keyword: str, instruction: str = "") -> dict:
+    """Start background article improvement. Returns {job_id, status: 'pending'} immediately."""
+    return await _post(ctx, "/api/content/refine/start", {
+        "user_key":    "",
+        "content":     content,
+        "keyword":     keyword,
+        "instruction": instruction,
+    }, timeout=10)
+
+
 async def wp_publish(ctx, title: str, content: str, status: str = "draft") -> dict:
     s = await load_settings(ctx)
     return await _post(ctx, "/api/wordpress/publish", {

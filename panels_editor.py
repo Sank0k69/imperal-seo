@@ -79,12 +79,14 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
     if brief_text:
         step1_children += [
             ui.Divider(),
-            ui.Text(content="Brief ready — edit below or regenerate:", variant="caption"),
+            ui.Markdown(content=brief_text),
+            ui.Divider(),
+            ui.Text(content="Edit brief below if needed, then Save:", variant="caption"),
             ui.Form(
                 action="save_brief",
                 submit_label="Save brief",
                 children=[
-                    ui.TextArea(param_name="brief_text", value=brief_text, rows=10),
+                    ui.TextArea(param_name="brief_text", value=brief_text, rows=8),
                 ],
             ),
             ui.Form(action="generate_brief", submit_label="Regenerate Brief", children=[]),
@@ -132,8 +134,7 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
         ]
         if has_content:
             step2_children.append(
-                ui.Form(action="ai_write", submit_label="Improve Article",
-                        children=[ui.Input(param_name="section", value="improve")])
+                ui.Form(action="improve_article", submit_label="Improve Article", children=[])
             )
         step2 = ui.Section(title="Step 2 — Write with AI", children=step2_children)
 

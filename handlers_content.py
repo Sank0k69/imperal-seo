@@ -7,9 +7,9 @@ from imperal_sdk.types import ActionResult  # noqa: F811
 from app import chat, get_content, update_content, delete_content, save_ui_state, load_settings, load_ui_state
 from api_client import (keywords_for_article, generate_article as _mos_generate,
                         generate_brief as _mos_brief, generate_newsletter_mos as _mos_newsletter,
-                        start_generate_article, poll_article_job, log_action)
+                        start_generate_article, start_refine_article, poll_article_job, log_action)
 from handlers_docs import build_docs_context
-from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, AiWriteParams, GenerateNewsletterParams, SaveBriefParams
+from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, AiWriteParams, ImproveArticleParams, GenerateNewsletterParams, SaveBriefParams
 
 
 async def _resolve_id(ctx, content_id: str) -> str:
@@ -27,7 +27,6 @@ async def _resolve_id(ctx, content_id: str) -> str:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
-    id_projection="content_id",
 )
 async def save_draft(ctx, params: SaveDraftParams) -> ActionResult:
     t0 = time.monotonic()
@@ -57,7 +56,6 @@ async def save_draft(ctx, params: SaveDraftParams) -> ActionResult:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
-    id_projection="content_id",
 )
 async def update_status(ctx, params: UpdateStatusParams) -> ActionResult:
     valid = {"idea", "writing", "review", "published"}
@@ -78,7 +76,6 @@ async def update_status(ctx, params: UpdateStatusParams) -> ActionResult:
     chain_callable=True,
     effects=["delete:content"],
     event="seo.content.deleted",
-    id_projection="content_id",
 )
 async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
     item = await get_content(ctx, params.content_id)
@@ -95,7 +92,6 @@ async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
-    id_projection="content_id",
 )
 async def generate_brief(ctx, params: AiBriefParams) -> ActionResult:
     t0 = time.monotonic()
@@ -139,7 +135,6 @@ async def generate_brief(ctx, params: AiBriefParams) -> ActionResult:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
-    id_projection="content_id",
 )
 async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
     cid = await _resolve_id(ctx, params.content_id)
@@ -162,7 +157,6 @@ async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
-    id_projection="content_id",
 )
 async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     t0 = time.monotonic()
@@ -295,7 +289,6 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
-    id_projection="content_id",
 )
 async def check_article_job(ctx, params: AiBriefParams) -> ActionResult:
     t0 = time.monotonic()
@@ -327,20 +320,23 @@ async def check_article_job(ctx, params: AiBriefParams) -> ActionResult:
 
         result = data.get("result", {})
         draft_html  = result.get("content", "")
-        final_title = result.get("title", item.get("title", item.get("keyword", "")))
+        final_title = result.get("title", "")
         meta_desc   = result.get("meta_description", "")
         faq_schema  = result.get("faq_schema", "")
         kw_used     = result.get("word_count", 0)
         secondary   = item.get("secondary_keywords", [])
 
         updates = {
-            "content":          draft_html,
-            "status":           "review",
-            "meta_description": meta_desc,
-            "faq_schema":       faq_schema,
-            "generating":       False,
-            "job_id":           None,
+            "content":    draft_html,
+            "status":     "review",
+            "generating": False,
+            "job_id":     None,
         }
+        # Only overwrite if the job produced new values (refine jobs leave these empty)
+        if meta_desc:
+            updates["meta_description"] = meta_desc
+        if faq_schema:
+            updates["faq_schema"] = faq_schema
         if final_title and final_title != item.get("keyword", ""):
             updates["title"] = final_title
 
@@ -359,6 +355,59 @@ async def check_article_job(ctx, params: AiBriefParams) -> ActionResult:
         )
     except Exception as e:
         await log_action(ctx, "check_article_job", cid, int((time.monotonic() - t0) * 1000), False, str(e))
+        return ActionResult.error(error=str(e))
+
+
+@chat.function(
+    "improve_article",
+    description=(
+        "Improve an existing article for SEO and AI-search visibility. "
+        "Adds FAQ section if missing, sharpens H2 structure, makes answers more direct, "
+        "adds comparison tables where helpful. Uses async job — check with check_article_job."
+    ),
+    action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
+    event="seo.content.updated",
+)
+async def improve_article(ctx, params: ImproveArticleParams) -> ActionResult:
+    t0 = time.monotonic()
+    cid = await _resolve_id(ctx, params.content_id)
+    try:
+        item = await get_content(ctx, cid)
+        if not item:
+            return ActionResult.error(error="Content item not found")
+
+        existing = item.get("content", "")
+        if not existing:
+            return ActionResult.error(error="No content to improve. Run AI Write first.")
+
+        kw = item.get("keyword", "")
+        instruction = params.instruction or (
+            f"Improve this article about '{kw}' for SEO and GEO (AI-search visibility). "
+            "Add FAQ section if missing. Sharpen H2 structure — each H2 must answer one specific question. "
+            "Make answers more direct and quotable. Add comparison table if the topic calls for it. "
+            "Ensure every factual claim includes a specific number or example."
+        )
+
+        job = await start_refine_article(ctx, content=existing, keyword=kw, instruction=instruction)
+
+        if "error" in job:
+            await log_action(ctx, "improve_article", cid, int((time.monotonic() - t0) * 1000), False, job["error"])
+            return ActionResult.error(error=job["error"])
+
+        job_id = job.get("job_id", "")
+        await update_content(ctx, cid, {"generating": True, "job_id": job_id})
+        await log_action(ctx, "improve_article", cid, int((time.monotonic() - t0) * 1000), True)
+        return ActionResult.success(
+            {"job_id": job_id, "status": "pending"},
+            summary=(
+                f"Article improvement started for '{kw}' (job: {job_id}).\n"
+                "Takes ~60 seconds. Use check_article_job to retrieve the result."
+            ),
+        )
+    except Exception as e:
+        await log_action(ctx, "improve_article", cid, int((time.monotonic() - t0) * 1000), False, str(e))
         return ActionResult.error(error=str(e))
 
 

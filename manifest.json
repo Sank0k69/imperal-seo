@@ -1195,6 +1195,5 @@
     "health_check": {
       "interval_sec": 60
     }
-  },
-  "category": "marketing"
+  }
 }
