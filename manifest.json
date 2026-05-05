@@ -8,7 +8,8 @@
   "actions_explicit": true,
   "panels": [
     {"id": "sidebar",       "slot": "left",   "title": "SEO & Content", "icon": "FileText"},
-    {"id": "seo_workspace", "slot": "center", "title": "SEO & Content", "icon": "FileText"}
+    {"id": "seo_workspace", "slot": "center", "title": "SEO & Content", "icon": "FileText"},
+    {"id": "article_info",  "slot": "right",  "title": "Article Info",  "icon": "Info"}
   ],
   "capabilities": [],
   "tools": [
