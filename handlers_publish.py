@@ -1,4 +1,5 @@
 """Publishing handlers — WordPress publish + SEO meta setup."""
+import re
 import time
 
 from imperal_sdk import ActionResult
@@ -9,6 +10,42 @@ from app import save_settings as _save_settings
 from api_client import log_action
 from api_wordpress import create_post, update_post
 from params import PublishWpParams, SaveSettingsParams, SetWpSeoParams
+
+# ── Category IDs (blog.webhostmost.com) ───────────────────────────────────────
+_KW_CATEGORIES = {
+    "wordpress": 46,
+    "webhostmost": 47,
+    "wpanel": 47,
+    "webbee": 47,
+    "imperal": 47,
+}
+_TYPE_CATEGORIES = {
+    "comparison": 21,
+    "review": 21,
+    "news": 51,
+    "tutorial": 45,
+    "blog": 45,
+    "pillar": 48,
+}
+
+
+def _pick_category(keyword: str, article_type: str) -> int:
+    kw_lower = keyword.lower()
+    for kw, cat_id in _KW_CATEGORIES.items():
+        if kw in kw_lower:
+            return cat_id
+    return _TYPE_CATEGORIES.get(article_type, 45)
+
+
+def _prepare_content(content: str, faq_schema: str, blog_url: str) -> str:
+    """Append FAQ JSON-LD and resolve [INTERNAL] link placeholders."""
+    if blog_url:
+        content = re.sub(r'href="\[INTERNAL\]"', f'href="{blog_url.rstrip("/")}"', content)
+    else:
+        content = re.sub(r'href="\[INTERNAL\]"', 'href="#"', content)
+    if faq_schema:
+        content = content + "\n" + faq_schema
+    return content
 
 
 async def _resolve_id(ctx, content_id: str) -> str:
@@ -44,23 +81,38 @@ async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
             await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), False, "Content item not found")
             return ActionResult.error(error="Content item not found")
 
-        title   = item.get("title") or item.get("keyword", "Untitled")
-        content = item.get("content", "")
-        if not content:
+        title      = item.get("title") or item.get("keyword", "Untitled")
+        raw_content = item.get("content", "")
+        if not raw_content:
             await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), False, "Content is empty")
             return ActionResult.error(error="Content is empty — run AI Write first.")
 
-        wp_post_id = item.get("wp_post_id")
-        wp_url     = s["wp_url"]
-        username   = s["wp_username"]
-        app_pw     = s["wp_app_password"]
-        author_id  = int(s.get("wp_author_id", 3))
+        wp_post_id   = item.get("wp_post_id")
+        wp_url       = s["wp_url"]
+        username     = s["wp_username"]
+        app_pw       = s["wp_app_password"]
+        author_id    = int(s.get("wp_author_id", 3))
+        blog_url     = s.get("blog_url", "")
+        faq_schema   = item.get("faq_schema", "")
+        article_type = item.get("type", "blog")
+        keyword      = item.get("keyword", "")
+        category_id  = _pick_category(keyword, article_type)
+        content      = _prepare_content(raw_content, faq_schema, blog_url)
 
         if wp_post_id:
-            post = await update_post(ctx, wp_url, username, app_pw, post_id=int(wp_post_id), title=title, content=content, status=params.status)
+            post = await update_post(
+                ctx, wp_url, username, app_pw,
+                post_id=int(wp_post_id),
+                title=title, content=content, status=params.status,
+                categories=[category_id],
+            )
             wp_action = "updated"
         else:
-            post = await create_post(ctx, wp_url, username, app_pw, title=title, content=content, status=params.status, author_id=author_id)
+            post = await create_post(
+                ctx, wp_url, username, app_pw,
+                title=title, content=content, status=params.status,
+                author_id=author_id, categories=[category_id],
+            )
             wp_action = "created"
 
         if not post.get("id"):
@@ -69,9 +121,10 @@ async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
 
         new_status = "published" if params.status == "publish" else item.get("status", "review")
         await update_content(ctx, cid, {
-            "wp_post_id": post["id"],
-            "target_url": post.get("link", ""),
-            "status": new_status,
+            "wp_post_id":  post["id"],
+            "target_url":  post.get("link", ""),
+            "status":      new_status,
+            "wp_category": category_id,
         })
 
         await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), True)
