@@ -233,29 +233,32 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
     step3_title = f"Step 3 — Edit & Save{f'  ·  {word_count:,} words' if word_count else ''}"
     step3_children = []
     if has_content:
-        step3_children += [
+        step3_children.append(
             ui.Html(
                 content=_article_html(title or kw, content_html),
                 theme="light",
                 max_height=500,
             ),
-            ui.Divider(),
-            ui.Text(content="Edit below, then Save:", variant="caption"),
-        ]
-    step3_children.append(
-        ui.Form(
-            action="save_draft",
-            submit_label="Save",
-            children=[
-                ui.Input(param_name="title", value=title, placeholder="Article title (H1)"),
-                ui.RichEditor(
-                    param_name="content",
-                    content=content_html,
-                    placeholder="Run AI Write above, or start typing here...",
-                ),
-            ],
-        ),
+        )
+    editor_section = ui.Section(
+        title="Edit article",
+        collapsible=True,
+        children=[
+            ui.Form(
+                action="save_draft",
+                submit_label="Save",
+                children=[
+                    ui.Input(param_name="title", value=title, placeholder="Article title (H1)"),
+                    ui.RichEditor(
+                        param_name="content",
+                        content=content_html,
+                        placeholder="Run AI Write above, or start typing here...",
+                    ),
+                ],
+            ),
+        ],
     )
+    step3_children.append(editor_section)
     step3 = ui.Section(title=step3_title, children=step3_children)
 
     # ── Step 4: Publish ───────────────────────────────────────────────────────
