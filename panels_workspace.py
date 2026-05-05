@@ -14,7 +14,7 @@ REFRESH = (
 )
 
 
-@ext.panel("workspace", slot="center", title="SEO & Content", icon="FileText",
+@ext.panel("seo_workspace", slot="center", title="SEO & Content", icon="FileText",
            default_width=860, refresh=REFRESH)
 async def workspace_panel(ctx):
     state = await load_ui_state(ctx)
