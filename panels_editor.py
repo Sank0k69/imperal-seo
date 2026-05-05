@@ -1,10 +1,62 @@
 """Editor view — clean step-by-step UX. All handlers read content_id from UI state."""
 from __future__ import annotations
 
-import markdown as _md
+import re
 from imperal_sdk import ui
 
 from app import get_content, load_settings
+
+
+def _md_to_html(text: str) -> str:
+    """Minimal markdown→HTML using only stdlib re. Handles brief content."""
+    lines = text.split('\n')
+    out = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        # Headings
+        m = re.match(r'^(#{1,4})\s+(.*)', line)
+        if m:
+            lvl = len(m.group(1))
+            content = _inline(m.group(2))
+            out.append(f'<h{lvl}>{content}</h{lvl}>')
+            i += 1; continue
+        # HR
+        if re.match(r'^-{3,}$', line.strip()):
+            out.append('<hr>')
+            i += 1; continue
+        # Table
+        if '|' in line and i + 1 < len(lines) and re.match(r'^\|[-| :]+\|', lines[i + 1]):
+            cells = [c.strip() for c in line.strip('|').split('|')]
+            out.append('<table><tr>' + ''.join(f'<th>{_inline(c)}</th>' for c in cells) + '</tr>')
+            i += 2  # skip separator row
+            while i < len(lines) and '|' in lines[i]:
+                cells = [c.strip() for c in lines[i].strip('|').split('|')]
+                out.append('<tr>' + ''.join(f'<td>{_inline(c)}</td>' for c in cells) + '</tr>')
+                i += 1
+            out.append('</table>')
+            continue
+        # List item
+        m = re.match(r'^[-*]\s+(.*)', line)
+        if m:
+            out.append(f'<li>{_inline(m.group(1))}</li>')
+            i += 1; continue
+        # Empty line → paragraph break
+        if line.strip() == '':
+            out.append('')
+            i += 1; continue
+        # Plain paragraph line
+        out.append(f'<p>{_inline(line)}</p>')
+        i += 1
+    return '\n'.join(out)
+
+
+def _inline(text: str) -> str:
+    text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+    text = re.sub(r'\*(.+?)\*', r'<em>\1</em>', text)
+    text = re.sub(r'_(.+?)_', r'<em>\1</em>', text)
+    text = re.sub(r'`(.+?)`', r'<code>\1</code>', text)
+    return text
 
 
 _BRIEF_CSS = """
@@ -70,7 +122,7 @@ _ARTICLE_CSS = """
 
 
 def _brief_html(md_text: str) -> str:
-    body = _md.markdown(md_text, extensions=["tables", "nl2br"])
+    body = _md_to_html(md_text)
     return f"<!DOCTYPE html><html><head>{_BRIEF_CSS}</head><body>{body}</body></html>"
 
 
