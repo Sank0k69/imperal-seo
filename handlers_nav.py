@@ -67,6 +67,8 @@ async def go_docs(ctx, params: EmptyParams) -> ActionResult:
     event="seo.nav.changed",
 )
 async def open_editor(ctx, params: OpenEditorParams) -> ActionResult:
+    if not params.content_id:
+        return ActionResult.error(error="Select an item from the dropdown first.")
     item = await _get_content(ctx, params.content_id)
     kw = (item.get("keyword") or item.get("title") or params.content_id) if item else params.content_id
     await save_ui_state(ctx, {
