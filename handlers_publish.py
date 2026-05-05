@@ -116,8 +116,9 @@ async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
             wp_action = "created"
 
         if not post.get("id"):
-            await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), False, f"WordPress error: {str(post)[:200]}")
-            return ActionResult.error(error=f"WordPress error: {post}")
+            wp_msg = post.get("_wp_error") or str(post)
+            await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), False, f"WordPress error: {wp_msg[:200]}")
+            return ActionResult.error(error=f"WordPress error: {wp_msg}")
 
         new_status = "published" if params.status == "publish" else item.get("status", "review")
         await update_content(ctx, cid, {
@@ -234,8 +235,9 @@ async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
         )
 
         if not post.get("id"):
-            await log_action(ctx, "set_wp_seo", cid, int((time.monotonic() - t0) * 1000), False, f"WP SEO update failed: {str(post)[:200]}")
-            return ActionResult.error(error=f"WP SEO update failed: {post}")
+            wp_msg = post.get("_wp_error") or str(post)
+            await log_action(ctx, "set_wp_seo", cid, int((time.monotonic() - t0) * 1000), False, f"WP SEO update failed: {wp_msg[:200]}")
+            return ActionResult.error(error=f"WP SEO update failed: {wp_msg}")
 
         await update_content(ctx, cid, {
             "meta_description": meta_desc,

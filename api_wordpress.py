@@ -21,6 +21,16 @@ def _base(wp_url: str) -> str:
     return wp_url.rstrip("/") + "/wp-json/wp/v2"
 
 
+def _unwrap(resp):
+    """ctx.http returns HTTP response objects in some SDK versions. Unwrap to JSON."""
+    if hasattr(resp, "json"):
+        try:
+            return resp.json() if callable(resp.json) else resp.json
+        except Exception:
+            return {}
+    return resp
+
+
 # ── Posts ─────────────────────────────────────────────────────────────────────
 
 async def create_post(
@@ -52,7 +62,7 @@ async def create_post(
         headers=_headers(username, app_password),
         json=payload,
     )
-    return _parse_post(resp)
+    return _parse_post(_unwrap(resp))
 
 
 async def update_post(
@@ -69,7 +79,7 @@ async def update_post(
         headers=_headers(username, app_password),
         json={k: v for k, v in fields.items() if v is not None},
     )
-    return _parse_post(resp)
+    return _parse_post(_unwrap(resp))
 
 
 async def list_posts(
@@ -86,8 +96,9 @@ async def list_posts(
         headers=_headers(username, app_password),
         params={"per_page": per_page, "status": status, "orderby": "date", "order": "desc"},
     )
-    if isinstance(resp, list):
-        return [_parse_post(p) for p in resp]
+    data = _unwrap(resp)
+    if isinstance(data, list):
+        return [_parse_post(p) for p in data]
     return []
 
 
@@ -103,7 +114,8 @@ async def verify_connection(
             f"{_base(wp_url)}/users/me",
             headers=_headers(username, app_password),
         )
-        return isinstance(resp, dict) and bool(resp.get("id"))
+        data = _unwrap(resp)
+        return isinstance(data, dict) and bool(data.get("id"))
     except Exception:
         return False
 
@@ -113,6 +125,9 @@ async def verify_connection(
 def _parse_post(resp) -> dict:
     if not isinstance(resp, dict):
         return {}
+    # WP REST API returns error dicts with "code" key (no "id")
+    if resp.get("code") and not resp.get("id"):
+        return {"_wp_error": resp.get("message", str(resp))}
     title = resp.get("title", {})
     content = resp.get("content", {})
     return {
