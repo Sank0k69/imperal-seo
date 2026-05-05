@@ -34,9 +34,49 @@ _BRIEF_CSS = """
 """
 
 
+_ARTICLE_CSS = """
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         font-size: 16px; line-height: 1.8; color: #1e293b;
+         background: #fff; margin: 0; padding: 16px 20px; }
+  h1 { font-size: 26px; font-weight: 800; color: #0f172a; margin: 0 0 16px; line-height: 1.25; }
+  h2 { font-size: 20px; font-weight: 700; color: #0f172a; margin: 28px 0 10px;
+       border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 20px 0 6px; }
+  h4 { font-size: 15px; font-weight: 600; color: #334155; margin: 14px 0 4px; }
+  p  { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 24px; }
+  li { margin: 4px 0; }
+  strong { color: #0f172a; }
+  em { color: #475569; }
+  a  { color: #2563eb; text-decoration: none; }
+  hr { border: none; border-top: 2px solid #e2e8f0; margin: 24px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px; }
+  th { background: #f1f5f9; color: #334155; font-weight: 700;
+       padding: 8px 12px; text-align: left; border: 1px solid #cbd5e1; }
+  td { padding: 7px 12px; border: 1px solid #e2e8f0; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  code { background: #f1f5f9; color: #0f172a; padding: 2px 6px;
+         border-radius: 4px; font-size: 13px; font-family: monospace; }
+  pre  { background: #f1f5f9; padding: 14px; border-radius: 8px; overflow-x: auto; }
+  blockquote { border-left: 4px solid #2563eb; margin: 16px 0;
+               padding: 8px 16px; color: #475569; font-style: italic;
+               background: #f8fafc; border-radius: 0 6px 6px 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; }
+  .schema-faq-section { background: #f8fafc; border: 1px solid #e2e8f0;
+                        border-radius: 8px; padding: 16px; margin: 20px 0; }
+</style>
+"""
+
+
 def _brief_html(md_text: str) -> str:
     body = _md.markdown(md_text, extensions=["tables", "nl2br"])
     return f"<!DOCTYPE html><html><head>{_BRIEF_CSS}</head><body>{body}</body></html>"
+
+
+def _article_html(title: str, html_body: str) -> str:
+    h1 = f'<h1>{title}</h1>' if title else ''
+    return f"<!DOCTYPE html><html><head>{_ARTICLE_CSS}</head><body>{h1}{html_body}</body></html>"
 
 STATUS_COLOR = {
     "idea":      "gray",
@@ -176,29 +216,32 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
 
     # ── Preview mode — return early with clean article view ──────────────────
     if mode == "preview":
-        art_style = (
-            "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
-            "font-size:16px;line-height:1.8;color:#1a1a1a;"
-        )
         return ui.Stack(children=[
             header,
             meta,
             ui.Divider(),
-            ui.Html(content=(
-                f'<div style="{art_style}">'
-                f'<h1 style="color:#111;margin-top:0;font-size:24px;line-height:1.3;">{title or kw}</h1>'
-                + (content_html or "<p><em>No content yet — run AI Write.</em></p>")
-                + "</div>"
-            )),
+            ui.Html(
+                content=_article_html(
+                    title or kw,
+                    content_html or "<p><em>No content yet — run AI Write.</em></p>",
+                ),
+                theme="light",
+            ),
         ])
 
     # ── Edit mode continues below ─────────────────────────────────────────────
     step3_title = f"Step 3 — Edit & Save{f'  ·  {word_count:,} words' if word_count else ''}"
     step3_children = []
     if has_content:
-        step3_children.append(
-            ui.Text(content="After saving, click Preview ↑ to read the article.", variant="caption"),
-        )
+        step3_children += [
+            ui.Html(
+                content=_article_html(title or kw, content_html),
+                theme="light",
+                max_height=500,
+            ),
+            ui.Divider(),
+            ui.Text(content="Edit below, then Save:", variant="caption"),
+        ]
     step3_children.append(
         ui.Form(
             action="save_draft",
