@@ -231,6 +231,7 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
 
     # ── Edit mode continues below ─────────────────────────────────────────────
     step3_title = f"Step 3 — Edit & Save{f'  ·  {word_count:,} words' if word_count else ''}"
+    show_editor = state.get("show_editor", False)
     step3_children = []
     if has_content:
         step3_children.append(
@@ -240,10 +241,9 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
                 max_height=500,
             ),
         )
-    editor_section = ui.Section(
-        title="Edit article",
-        collapsible=True,
-        children=[
+    if show_editor:
+        step3_children += [
+            ui.Divider(),
             ui.Form(
                 action="save_draft",
                 submit_label="Save",
@@ -256,9 +256,12 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "") -> ui.UINode:
                     ),
                 ],
             ),
-        ],
-    )
-    step3_children.append(editor_section)
+            ui.Form(action="toggle_editor", submit_label="Hide editor", children=[]),
+        ]
+    else:
+        step3_children.append(
+            ui.Form(action="toggle_editor", submit_label="✏ Edit article", children=[]),
+        )
     step3 = ui.Section(title=step3_title, children=step3_children)
 
     # ── Step 4: Publish ───────────────────────────────────────────────────────

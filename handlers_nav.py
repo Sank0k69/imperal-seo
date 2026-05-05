@@ -77,6 +77,15 @@ async def go_edit(ctx, params: EmptyParams) -> ActionResult:
     return ActionResult.success({}, summary="Edit mode")
 
 
+@chat.function("toggle_editor", description="Show or hide the article text editor in Step 3.", action_type="read", event="seo.nav.changed")
+async def toggle_editor(ctx, params: EmptyParams) -> ActionResult:
+    from app import load_ui_state
+    state = await load_ui_state(ctx)
+    current = state.get("show_editor", False)
+    await save_ui_state(ctx, {"show_editor": not current})
+    return ActionResult.success({}, summary="Editor " + ("shown" if not current else "hidden"))
+
+
 @chat.function("resume_editor", description="Return to the editor for the currently open content item.", action_type="read", event="seo.nav.changed")
 async def resume_editor(ctx, params: EmptyParams) -> ActionResult:
     await save_ui_state(ctx, {"active_view": "editor"})
