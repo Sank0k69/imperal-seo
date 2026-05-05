@@ -114,6 +114,15 @@ class BuildPlanParams(BaseModel):
     language: str = Field("en", description="Content language: 'en' or 'ru'")
 
 
+class UIStateModel(BaseModel):
+    active_view: str = "plan"
+    selected_id: Optional[str] = None
+    editor_mode: str = "edit"
+    kw_results: list = Field(default_factory=list)
+    rankings_results: list = Field(default_factory=list)
+    show_editor: bool = False
+
+
 class SaveSettingsParams(BaseModel):
     # SE Ranking
     seranking_data_key: Optional[str] = None

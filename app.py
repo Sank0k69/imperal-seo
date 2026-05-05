@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from imperal_sdk import Extension, ChatExtension
+from params import UIStateModel
 
 ext = Extension(
     "wp-blogger",
@@ -21,6 +22,11 @@ chat = ChatExtension(
     ),
     max_rounds=10,
 )
+
+
+@ext.cache_model("ui_state")
+class _UIStateCache(UIStateModel):
+    pass
 
 SETTINGS_COL = "seo_settings"
 CONTENT_COL = "seo_content"
@@ -86,19 +92,32 @@ async def save_settings(ctx, values: dict) -> dict:
 # ── UI state ──────────────────────────────────────────────────────────────────
 
 async def load_ui_state(ctx) -> dict:
+    if getattr(ctx, "_cache", None) is not None:
+        try:
+            cached = await ctx.cache.get("ui_state", _UIStateCache)
+            if cached is not None:
+                return cached.model_dump()
+        except Exception:
+            pass
     try:
         page = await ctx.store.query(UI_STATE_COL, limit=1)
+        docs = getattr(page, "data", None) or []
+        if docs and isinstance(getattr(docs[0], "data", None), dict):
+            return {**DEFAULT_UI_STATE, **docs[0].data}
     except Exception:
-        return dict(DEFAULT_UI_STATE)
-    docs = getattr(page, "data", None) or []
-    if docs and isinstance(getattr(docs[0], "data", None), dict):
-        return {**DEFAULT_UI_STATE, **docs[0].data}
+        pass
     return dict(DEFAULT_UI_STATE)
 
 
 async def save_ui_state(ctx, values: dict) -> dict:
     current = await load_ui_state(ctx)
     merged = {**current, **{k: v for k, v in values.items() if v is not None}}
+    if getattr(ctx, "_cache", None) is not None:
+        try:
+            await ctx.cache.set("ui_state", _UIStateCache(**merged), ttl_seconds=300)
+            return merged
+        except Exception:
+            pass
     page = await ctx.store.query(UI_STATE_COL, limit=1)
     docs = getattr(page, "data", None) or []
     if docs:
