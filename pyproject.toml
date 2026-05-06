@@ -13,7 +13,7 @@ py-modules = [
     "main", "app", "params",
     "api_seranking", "api_wordpress",
     "handlers_nav", "handlers_content", "handlers_seo", "handlers_publish", "handlers_docs",
-    "panels_side", "panels_workspace", "panels_editor", "panels_docs", "panels_right",
+    "panels_side", "panels_workspace", "panels_editor", "panels_docs",
 ]
 
 [tool.pytest.ini_options]
