@@ -6,8 +6,8 @@ from imperal_sdk import ui
 from app import ext, load_settings, load_ui_state, list_content, ser_ready, wp_ready
 
 
-def _nav_btn(label: str, view: str) -> ui.UINode:
-    return ui.Button(label=label, on_click=ui.Call("__panel__seo_workspace", active_view=view))
+def _nav_btn(label: str, action: str) -> ui.UINode:
+    return ui.Button(label=label, on_click=ui.Call(action))
 
 
 @ext.panel("sidebar", slot="left", title="SEO & Content", icon="FileText",
@@ -41,26 +41,25 @@ async def sidebar_panel(ctx):
         open_item = next((i for i in items if i.get("id") == selected_id), None)
         label = (open_item.get("keyword") or open_item.get("title") or "item")[:28] if open_item else "item"
         resume_btn_children = [
-            ui.Button(label=f"↩ Resume: {label}",
-                      on_click=ui.Call("__panel__seo_workspace", active_view="editor")),
+            ui.Button(label=f"↩ Resume: {label}", on_click=ui.Call("resume_editor")),
         ]
 
     nav = ui.Stack(children=[
         *resume_btn_children,
-        _nav_btn("Content Plan", "plan"),
-        _nav_btn("Rankings",     "rankings"),
-        _nav_btn("Keywords",     "keywords"),
-        _nav_btn("Knowledge Base", "docs"),
-        _nav_btn("Settings",     "settings"),
+        _nav_btn("Content Plan",   "go_plan"),
+        _nav_btn("Rankings",       "go_rankings"),
+        _nav_btn("Keywords",       "go_keywords"),
+        _nav_btn("Knowledge Base", "go_docs"),
+        _nav_btn("Settings",       "go_settings"),
     ], gap=4)
 
     pipeline = ui.Stack(children=[
         ui.Header(text="Pipeline", level=6),
         ui.Stack(children=[
-            ui.Button(label=f"Ideas · {counts['idea']}",      on_click=ui.Call("__panel__seo_workspace", active_view="plan", plan_filter="idea")),
-            ui.Button(label=f"Writing · {counts['writing']}", on_click=ui.Call("__panel__seo_workspace", active_view="plan", plan_filter="writing")),
-            ui.Button(label=f"Review · {counts['review']}",   on_click=ui.Call("__panel__seo_workspace", active_view="plan", plan_filter="review")),
-            ui.Button(label=f"Done · {counts['published']}",  on_click=ui.Call("__panel__seo_workspace", active_view="plan", plan_filter="published")),
+            ui.Button(label=f"Ideas · {counts['idea']}",      on_click=ui.Call("go_plan_ideas")),
+            ui.Button(label=f"Writing · {counts['writing']}", on_click=ui.Call("go_plan_writing")),
+            ui.Button(label=f"Review · {counts['review']}",   on_click=ui.Call("go_plan_review")),
+            ui.Button(label=f"Done · {counts['published']}",  on_click=ui.Call("go_plan_done")),
         ], direction="horizontal", gap=4, wrap=True),
     ])
 
