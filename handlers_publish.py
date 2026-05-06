@@ -38,11 +38,13 @@ def _pick_category(keyword: str, article_type: str) -> int:
 
 
 def _prepare_content(content: str, faq_schema: str, blog_url: str) -> str:
-    """Append FAQ JSON-LD and resolve [INTERNAL] link placeholders."""
+    """Resolve [INTERNAL] placeholders, strip em/en dashes, append FAQ JSON-LD."""
     if blog_url:
         content = re.sub(r'href="\[INTERNAL\]"', f'href="{blog_url.rstrip("/")}"', content)
     else:
         content = re.sub(r'href="\[INTERNAL\]"', 'href="#"', content)
+    # Brand rule: no em dash (—) or en dash (–) — replace with space-hyphen-space
+    content = re.sub(r'\s*[—–]\s*', ' - ', content)
     if faq_schema:
         content = content + "\n" + faq_schema
     return content
