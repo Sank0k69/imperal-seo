@@ -113,14 +113,17 @@ async def sidebar_panel(ctx):
             ),
         ]
 
-    return ui.Stack(children=[
-        ui.Header(text="SEO & Content", level=4),
-        status_badges,
-        ui.Divider(),
-        nav,
-        ui.Divider(),
-        pipeline,
-        ui.Divider(),
-        new_btn,
-        *([ui.Divider()] + recent_section_children if recent_section_children else []),
-    ])
+    return ui.Stack(
+        auto_action=ui.Call("__panel__seo_workspace", active_view="plan"),
+        children=[
+            ui.Header(text="SEO & Content", level=4),
+            status_badges,
+            ui.Divider(),
+            nav,
+            ui.Divider(),
+            pipeline,
+            ui.Divider(),
+            new_btn,
+            *([ui.Divider()] + recent_section_children if recent_section_children else []),
+        ],
+    )
