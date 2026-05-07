@@ -132,7 +132,11 @@ async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
     language = params.language or "en"
     competitor = params.competitor or s.get("seranking_competitor", "")
 
-    data = await content_plan(ctx, competitor=competitor, language=language)
+    from app import list_content
+    existing_items = await list_content(ctx)
+    existing_kws = [i.get("keyword") or i.get("title") or "" for i in existing_items if i.get("keyword") or i.get("title")]
+
+    data = await content_plan(ctx, competitor=competitor, language=language, existing_keywords=existing_kws)
     if "error" in data:
         return ActionResult.error(error=f"Content plan failed: {data['error']}")
 
@@ -153,7 +157,14 @@ async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
             "difficulty": a.get("difficulty", 0),
             "intent":     a.get("intent", ""),
             "priority":   a.get("priority", ""),
-            "angle":      a.get("angle", ""),
+            "angle":               a.get("angle", ""),
+            "writing_brief":       a.get("writing_brief", ""),
+            "content_outline":     a.get("content_outline", []),
+            "ai_visibility_hook":  a.get("ai_visibility_hook", ""),
+            "target_reader":       a.get("target_reader", ""),
+            "competitor_weakness": a.get("competitor_weakness", ""),
+            "growth_reason":       a.get("growth_reason", ""),
+            "secondary_keywords":  a.get("secondary_keywords", []),
             "wp_post_id": None,
             "ml_campaign_id": None,
         })

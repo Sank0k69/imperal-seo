@@ -108,7 +108,8 @@ async def ser_projects(ctx) -> dict:
     })
 
 
-async def content_plan(ctx, competitor: str = "", language: str = "en") -> dict:
+async def content_plan(ctx, competitor: str = "", language: str = "en",
+                       existing_keywords: list = None) -> dict:
     s = await load_settings(ctx)
 
     # Try imperal-analytics IPC first; fall back to own Matomo credentials
@@ -135,7 +136,7 @@ async def content_plan(ctx, competitor: str = "", language: str = "en") -> dict:
         "source":        s.get("seranking_source", "us"),
         "competitor":    competitor or s.get("seranking_competitor", ""),
         "language":      language,
-        "profile_name":  "",
+        "profile_name":  s.get("active_profile", ""),
         "wp_url":        s.get("wp_url", ""),
         "wp_user":       s.get("wp_username", ""),
         "wp_password":   s.get("wp_app_password", ""),
@@ -145,6 +146,8 @@ async def content_plan(ctx, competitor: str = "", language: str = "en") -> dict:
         "matomo_site_id": matomo_site_id,
         # Pre-fetched from analytics IPC (skips Matomo fetch on server)
         "growing_pages": growing_pages,
+        # Existing keywords from extension store (avoid duplicates in plan + WP)
+        "existing_plan_keywords": existing_keywords or [],
     }, timeout=TIMEOUT_PLAN)
 
 
