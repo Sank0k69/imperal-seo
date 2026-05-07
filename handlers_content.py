@@ -5,7 +5,7 @@ from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, get_content, update_content, delete_content, load_settings, load_ui_state
-from api_client import generate_brief as _mos_brief, log_action
+from api_client import generate_brief as _mos_brief, log_action, _post
 from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, SaveBriefParams, PatchArticleParams
 
 
@@ -162,7 +162,6 @@ async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
 )
 async def patch_article(ctx, params: PatchArticleParams) -> ActionResult:
     """Apply a specific edit to the article content via AI on MOS server."""
-    from api_client import generate_brief as _mos_brief, log_action, _post
     cid = await _resolve_id(ctx, params.content_id)
     item = await get_content(ctx, cid)
     if not item:
@@ -204,7 +203,6 @@ async def patch_article(ctx, params: PatchArticleParams) -> ActionResult:
 )
 async def check_article_quality(ctx, params: AiBriefParams) -> ActionResult:
     """Script-only quality check using regex + HTML parsing on MOS server."""
-    from api_client import _post
     from imperal_sdk import ui
     cid = await _resolve_id(ctx, params.content_id)
     item = await get_content(ctx, cid)
