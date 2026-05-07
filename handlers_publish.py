@@ -5,11 +5,39 @@ import time
 from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from app import chat, get_content, update_content, load_settings, load_ui_state
+from app import chat, get_content, update_content, load_settings, load_ui_state, list_content
 from app import save_settings as _save_settings
 from api_client import log_action, _post
 from api_wordpress import create_post, update_post
 from params import PublishWpParams, SaveSettingsParams, SetWpSeoParams
+
+
+async def _resolve_id(ctx, content_id: str, keyword_hint: str = "") -> str:
+    """Resolve content_id: explicit → UI state selected_id → search by keyword → most recent.
+
+    All logic on the server — Webbee just passes what the user said.
+    """
+    if content_id:
+        return content_id
+    state = await load_ui_state(ctx)
+    if state.get("selected_id"):
+        return state["selected_id"]
+    if keyword_hint:
+        items = await list_content(ctx)
+        q = keyword_hint.lower()
+        for item in items:
+            kw    = (item.get("keyword") or "").lower()
+            title = (item.get("title") or "").lower()
+            if q in kw or q in title:
+                return item["id"]
+        # partial word match
+        for word in q.split():
+            for item in items:
+                kw    = (item.get("keyword") or "").lower()
+                title = (item.get("title") or "").lower()
+                if word in kw or word in title:
+                    return item["id"]
+    return ""
 
 
 async def _auto_seo(ctx, cid: str, wp_post_id: int, item: dict, s: dict) -> None:
@@ -95,13 +123,6 @@ def _prepare_content(content: str, faq_schema: str, blog_url: str) -> str:
     return content
 
 
-async def _resolve_id(ctx, content_id: str) -> str:
-    if content_id:
-        return content_id
-    state = await load_ui_state(ctx)
-    return state.get("selected_id", "")
-
-
 @chat.function(
     "publish_wp",
     description="Create or update a WordPress post from a blog content item. status: 'draft' or 'publish'.",
@@ -113,7 +134,7 @@ async def _resolve_id(ctx, content_id: str) -> str:
 async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
     """Create or update a WordPress post as draft or published."""
     t0 = time.monotonic()
-    cid = await _resolve_id(ctx, params.content_id)
+    cid = await _resolve_id(ctx, params.content_id, params.keyword_hint)
     action_name = f"publish_wp_{params.status}"
     try:
         s = await load_settings(ctx)
@@ -231,7 +252,7 @@ async def publish_wp_publish(ctx, params: PublishWpParams) -> ActionResult:
 async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
     """Set Rank Math SEO fields on the WordPress post."""
     t0 = time.monotonic()
-    cid = await _resolve_id(ctx, params.content_id)
+    cid = await _resolve_id(ctx, params.content_id, params.keyword_hint)
     try:
         s = await load_settings(ctx)
         if not s.get("wp_app_password"):

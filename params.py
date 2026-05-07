@@ -74,11 +74,13 @@ class FetchGapsParams(BaseModel):
 
 class PublishWpParams(BaseModel):
     content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
+    keyword_hint: str = Field("", description="Keyword or title of the article — server resolves ID automatically")
     status: str = Field("draft", description="WP post status: 'draft' or 'publish'")
 
 
 class SetWpSeoParams(BaseModel):
     content_id: str = Field("", description="Content item ID — leave empty to use currently open item")
+    keyword_hint: str = Field("", description="Keyword or title of the article to update — server resolves ID automatically")
     meta_description: str = Field("", description="SEO meta description (120-155 chars) — leave empty to auto-generate")
     focus_keyword: str = Field("", description="Rank Math focus keyword — leave empty to use item's keyword")
 
