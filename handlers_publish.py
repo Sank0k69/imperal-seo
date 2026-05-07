@@ -74,12 +74,13 @@ async def _auto_seo(ctx, cid: str, wp_post_id: int, item: dict, s: dict) -> None
             excerpt=excerpt,
         )
 
-        # Set Rank Math fields via MOS server (httpx on VPS — avoids ctx.http meta issues)
+        # Set Rank Math fields + slug + seo_title via MOS server
         await _post(ctx, "/api/wordpress/update", {
             "wp_url":          s["wp_url"],
             "wp_user":         s["wp_username"],
             "wp_password":     s["wp_app_password"],
             "post_id":         wp_post_id,
+            "title":           title,
             "focus_keyword":   rm_focus,
             "meta_description": meta_desc,
         })
@@ -318,6 +319,7 @@ async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
             "wp_user":         s["wp_username"],
             "wp_password":     s["wp_app_password"],
             "post_id":         int(wp_post_id),
+            "title":           title,
             "focus_keyword":   rm_focus_kw,
             "meta_description": meta_desc,
         })
