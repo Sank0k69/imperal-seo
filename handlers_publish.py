@@ -7,9 +7,54 @@ from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, get_content, update_content, load_settings, load_ui_state
 from app import save_settings as _save_settings
-from api_client import log_action
+from api_client import log_action, call_mos
 from api_wordpress import create_post, update_post
 from params import PublishWpParams, SaveSettingsParams, SetWpSeoParams
+
+
+async def _auto_seo(ctx, cid: str, wp_post_id: int, item: dict, s: dict) -> None:
+    """Auto-generate and set Rank Math SEO fields after publish. Runs on MOS VPS."""
+    try:
+        title   = item.get("title") or item.get("keyword", "")
+        keyword = item.get("focus_keyword") or item.get("keyword", "")
+        content = item.get("content", "")
+        language = s.get("language", "en")
+
+        # Use stored meta if available, else generate via MOS
+        meta_desc = item.get("meta_description", "")
+        excerpt   = item.get("excerpt", "")
+        if not meta_desc or not excerpt:
+            seo = await call_mos(ctx, "/api/content/seo_meta", {
+                "title":            title,
+                "keyword":          keyword,
+                "content_snippet":  content[:500],
+                "language":         language,
+            })
+            if "error" not in seo:
+                meta_desc = meta_desc or seo.get("meta_description", "")
+                excerpt   = excerpt   or seo.get("excerpt", "")
+
+        # Rank Math focus keyword: primary + up to 4 secondary
+        secondary  = item.get("secondary_keywords", [])
+        all_kws    = [keyword] + [k for k in secondary[:4] if k.lower() != keyword.lower()]
+        rm_focus   = ", ".join(filter(None, all_kws))
+
+        await update_post(
+            ctx, s["wp_url"], s["wp_username"], s["wp_app_password"],
+            post_id=wp_post_id,
+            excerpt=excerpt,
+            meta={
+                "rank_math_focus_keyword": rm_focus,
+                "rank_math_description":   meta_desc,
+            },
+        )
+        await update_content(ctx, cid, {
+            "meta_description": meta_desc,
+            "focus_keyword":    keyword,
+            "excerpt":          excerpt,
+        })
+    except Exception:
+        pass  # SEO update is best-effort, never block publish
 
 # ── Category IDs (blog.webhostmost.com) ───────────────────────────────────────
 _KW_CATEGORIES = {
@@ -131,10 +176,13 @@ async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
             "wp_category": category_id,
         })
 
+        # Auto-set Rank Math SEO fields (meta description, focus keyword, excerpt)
+        await _auto_seo(ctx, cid, int(post["id"]), item, s)
+
         await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), True)
         return ActionResult.success(
             {"wp_id": post["id"], "link": post.get("link", ""), "wp_status": params.status},
-            summary=f"Post {wp_action} on WordPress (ID {post['id']}, status: {params.status}). {post.get('link', '')}",
+            summary=f"Post {wp_action} on WordPress (ID {post['id']}, status: {params.status}). Rank Math SEO set. {post.get('link', '')}",
         )
     except Exception as e:
         await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), False, str(e))
