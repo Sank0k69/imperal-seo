@@ -7,7 +7,7 @@ from app import ext, load_settings, load_ui_state, list_content, ser_ready, wp_r
 
 
 def _nav_btn(label: str, view: str) -> ui.UINode:
-    return ui.Button(label=label, on_click=ui.Call("__panel__editor", active_view=view))
+    return ui.Button(label=label, on_click=ui.Call("__panel__editor", active_view=view, note_id="board"))
 
 
 @ext.panel("sidebar", slot="left", title="SEO & Content", icon="FileText",
@@ -42,7 +42,7 @@ async def sidebar_panel(ctx):
         label = (open_item.get("keyword") or open_item.get("title") or "item")[:28] if open_item else "item"
         resume_btn_children = [
             ui.Button(label=f"↩ Resume: {label}",
-                      on_click=ui.Call("__panel__editor", active_view="editor")),
+                      on_click=ui.Call("__panel__editor", active_view="editor", note_id="board")),
         ]
 
     nav = ui.Stack(children=[
@@ -57,10 +57,10 @@ async def sidebar_panel(ctx):
     pipeline = ui.Stack(children=[
         ui.Header(text="Pipeline", level=6),
         ui.Stack(children=[
-            ui.Button(label=f"Ideas · {counts['idea']}",      on_click=ui.Call("__panel__editor", active_view="plan", plan_filter="idea")),
-            ui.Button(label=f"Writing · {counts['writing']}", on_click=ui.Call("__panel__editor", active_view="plan", plan_filter="writing")),
-            ui.Button(label=f"Review · {counts['review']}",   on_click=ui.Call("__panel__editor", active_view="plan", plan_filter="review")),
-            ui.Button(label=f"Done · {counts['published']}",  on_click=ui.Call("__panel__editor", active_view="plan", plan_filter="published")),
+            ui.Button(label=f"Ideas · {counts['idea']}",      on_click=ui.Call("__panel__editor", active_view="plan", plan_filter="idea",      note_id="board")),
+            ui.Button(label=f"Writing · {counts['writing']}", on_click=ui.Call("__panel__editor", active_view="plan", plan_filter="writing",  note_id="board")),
+            ui.Button(label=f"Review · {counts['review']}",   on_click=ui.Call("__panel__editor", active_view="plan", plan_filter="review",   note_id="board")),
+            ui.Button(label=f"Done · {counts['published']}",  on_click=ui.Call("__panel__editor", active_view="plan", plan_filter="published", note_id="board")),
         ], direction="horizontal", gap=4, wrap=True),
     ])
 
@@ -102,7 +102,7 @@ async def sidebar_panel(ctx):
                     title=(i.get("keyword") or i.get("title") or "untitled")[:40],
                     subtitle=i.get("status", "idea"),
                     badge=ui.Badge(i.get("status", "idea"), color=STATUS_COLOR.get(i.get("status", "idea"), "gray")),
-                    on_click=ui.Call("__panel__editor", content_id=i["id"]),
+                    on_click=ui.Call("__panel__editor", content_id=i["id"], note_id=i["id"]),
                 )
                 for i in recent
             ]),
