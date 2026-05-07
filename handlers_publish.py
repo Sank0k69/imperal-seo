@@ -7,7 +7,7 @@ from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, get_content, update_content, load_settings, load_ui_state
 from app import save_settings as _save_settings
-from api_client import log_action, call_mos
+from api_client import log_action, _post
 from api_wordpress import create_post, update_post
 from params import PublishWpParams, SaveSettingsParams, SetWpSeoParams
 
@@ -24,7 +24,7 @@ async def _auto_seo(ctx, cid: str, wp_post_id: int, item: dict, s: dict) -> None
         meta_desc = item.get("meta_description", "")
         excerpt   = item.get("excerpt", "")
         if not meta_desc or not excerpt:
-            seo = await call_mos(ctx, "/api/content/seo_meta", {
+            seo = await _post(ctx, "/api/content/seo_meta", {
                 "title":            title,
                 "keyword":          keyword,
                 "content_snippet":  content[:500],
