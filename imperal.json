@@ -40,6 +40,70 @@
       "owner_chat_tool": "wp_blogger"
     },
     {
+      "name": "go_plan_ideas",
+      "description": "Switch to Content Plan showing only Idea status items.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_plan_writing",
+      "description": "Switch to Content Plan showing only Writing status items.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_plan_review",
+      "description": "Switch to Content Plan showing only Review status items.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_plan_done",
+      "description": "Switch to Content Plan showing only Published/Done items.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
       "name": "go_rankings",
       "description": "Switch main panel to Rankings view.",
       "action_type": "read",
@@ -186,6 +250,38 @@
       "owner_chat_tool": "wp_blogger"
     },
     {
+      "name": "show_editor_panel",
+      "description": "Show the article text editor in Step 3.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "hide_editor_panel",
+      "description": "Hide the article text editor in Step 3.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
       "name": "resume_editor",
       "description": "Return to the editor for the currently open content item.",
       "action_type": "read",
@@ -249,82 +345,6 @@
       },
       "return_schema": {},
       "event": "seo.content.created",
-      "scopes": [],
-      "owner_chat_tool": "wp_blogger"
-    },
-    {
-      "name": "upload_doc",
-      "description": "Upload a documentation file (.md or .txt) to the knowledge base. Used as AI context when writing content.",
-      "action_type": "write",
-      "chain_callable": true,
-      "effects": [
-        "create:doc"
-      ],
-      "params_schema": {
-        "properties": {
-          "files": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "description": "Base64-encoded files from FileUpload component",
-            "title": "Files"
-          }
-        },
-        "title": "UploadDocParams",
-        "type": "object"
-      },
-      "return_schema": {},
-      "event": "seo.docs.updated",
-      "scopes": [],
-      "owner_chat_tool": "wp_blogger"
-    },
-    {
-      "name": "delete_doc",
-      "description": "Delete a documentation file from the knowledge base.",
-      "action_type": "write",
-      "chain_callable": true,
-      "effects": [
-        "delete:doc"
-      ],
-      "params_schema": {
-        "properties": {
-          "doc_id": {
-            "description": "Store ID of the doc to delete",
-            "title": "Doc Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "doc_id"
-        ],
-        "title": "DeleteDocParams",
-        "type": "object"
-      },
-      "return_schema": {},
-      "event": "seo.docs.updated",
-      "scopes": [],
-      "owner_chat_tool": "wp_blogger"
-    },
-    {
-      "name": "list_docs",
-      "description": "List all uploaded documentation files in the knowledge base.",
-      "action_type": "read",
-      "chain_callable": false,
-      "effects": [],
-      "params_schema": {
-        "properties": {},
-        "title": "EmptyParams",
-        "type": "object"
-      },
-      "return_schema": {},
-      "event": "",
       "scopes": [],
       "owner_chat_tool": "wp_blogger"
     },
@@ -490,6 +510,82 @@
       },
       "return_schema": {},
       "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "upload_doc",
+      "description": "Upload a documentation file (.md or .txt) to the knowledge base. Used as AI context when writing content.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "create:doc"
+      ],
+      "params_schema": {
+        "properties": {
+          "files": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Base64-encoded files from FileUpload component",
+            "title": "Files"
+          }
+        },
+        "title": "UploadDocParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.docs.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "delete_doc",
+      "description": "Delete a documentation file from the knowledge base.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "delete:doc"
+      ],
+      "params_schema": {
+        "properties": {
+          "doc_id": {
+            "description": "Store ID of the doc to delete",
+            "title": "Doc Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_id"
+        ],
+        "title": "DeleteDocParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.docs.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "list_docs",
+      "description": "List all uploaded documentation files in the knowledge base.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
       "scopes": [],
       "owner_chat_tool": "wp_blogger"
     },
