@@ -338,11 +338,20 @@ async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
         kw_count = len(all_kws)
         await log_action(ctx, "set_wp_seo", cid, int((time.monotonic() - t0) * 1000), True)
         return ActionResult.success(
-            {"focus_keyword": focus_kw, "keywords_set": kw_count, "meta_description": meta_desc},
+            {
+                "wp_post_id": wp_post_id,
+                "focus_keyword": focus_kw,
+                "all_keywords": all_kws,
+                "meta_description": meta_desc,
+                "excerpt": excerpt,
+            },
             summary=(
-                f"Rank Math SEO set — {kw_count} keywords: {rm_focus_kw[:60]}\n"
-                f"Meta: {meta_desc[:80]}...\n"
-                f"Excerpt: {excerpt[:60]}..."
+                f"✅ Rank Math updated on WP post #{wp_post_id} ({title[:50]})\n"
+                f"Focus keyword: {focus_kw}\n"
+                f"Secondary keywords ({kw_count - 1}): {', '.join(all_kws[1:4])}\n"
+                f"Meta ({len(meta_desc)} chars): {meta_desc}\n"
+                f"Excerpt: {excerpt[:80]}\n"
+                f"Slug updated to short keyword-based URL"
             ),
         )
     except Exception as e:
