@@ -108,7 +108,7 @@ async def sidebar_panel(ctx):
             ]),
         ]
 
-    return ui.Stack(children=[
+    root = ui.Stack(children=[
         ui.Header(text="SEO & Content", level=4),
         status_badges,
         ui.Divider(),
@@ -119,3 +119,7 @@ async def sidebar_panel(ctx):
         new_btn,
         *([ui.Divider()] + recent_section_children if recent_section_children else []),
     ])
+    # Claim center slot on first load (Vikunja/Notes auto_action pattern).
+    # Without this, ui.Call("__panel__editor", ...) from sidebar opens in right instead of center.
+    root.props["auto_action"] = ui.Call("__panel__editor", active_view="plan").to_dict()
+    return root
