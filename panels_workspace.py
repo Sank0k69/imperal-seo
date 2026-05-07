@@ -15,7 +15,7 @@ REFRESH = (
 )
 
 
-@ext.panel("seo_workspace", slot="center", title="SEO & Content", icon="FileText",
+@ext.panel("editor", slot="center", title="SEO & Content", icon="FileText",
            refresh=REFRESH)
 async def workspace_panel(ctx, active_view: str = "", plan_filter: str = "", content_id: str = "", **_kw):
     # No explicit trigger → return None so platform doesn't pre-load into right slot.
