@@ -149,3 +149,7 @@ class SaveSettingsParams(BaseModel):
     blog_url: Optional[str] = None
     tg_url: Optional[str] = None
     community_url: Optional[str] = None
+
+
+class SetupBlogStyleParams(BaseModel):
+    blog_url: Optional[str] = None

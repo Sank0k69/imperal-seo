@@ -96,11 +96,46 @@ async def _settings_view(ctx) -> ui.UINode:
         ],
     )
 
+    # Blog style setup
+    blog_url = s.get("blog_url", "")
+    active_profile = s.get("active_profile", "")
+    blog_style_section = ui.Section(
+        title="Blog Writing Style",
+        children=[
+            ui.Text(
+                content=(
+                    "Analyze your existing blog to automatically configure the AI writer to match your style. "
+                    "The AI will crawl your RSS feed, read 5 recent posts, and create a custom writing profile."
+                ),
+                variant="caption",
+            ),
+            ui.Form(
+                action="setup_blog_style",
+                submit_label="Analyze my blog & set style",
+                children=[
+                    ui.Input(
+                        param_name="blog_url",
+                        value=blog_url,
+                        placeholder="https://blog.yourdomain.com",
+                    ),
+                ],
+            ),
+            *([] if not active_profile else [
+                ui.Alert(
+                    message=f"Active writing profile: {active_profile}",
+                    type="info",
+                ),
+            ]),
+        ],
+    )
+
     return ui.Stack(children=[
         ui.Stack(children=[
             ui.Header(text="Settings", level=3),
             ui.Button(label="← Back", on_click=ui.Call("go_plan")),
         ], direction="horizontal", justify="between"),
         ui.Alert(message="API keys stored encrypted per user.", type="info"),
+        blog_style_section,
+        ui.Divider(),
         form,
     ])

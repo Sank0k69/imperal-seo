@@ -4,7 +4,7 @@ from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, load_settings, save_ui_state, create_content
 from api_client import ser_keywords, ser_gaps, ser_rankings, ser_projects, content_plan
-from params import FetchKeywordsParams, FetchGapsParams, FetchRankingsParams, ListProjectsParams, BuildPlanParams
+from params import FetchKeywordsParams, FetchGapsParams, FetchRankingsParams, ListProjectsParams, BuildPlanParams, SetupBlogStyleParams
 
 
 @chat.function(
@@ -168,4 +168,65 @@ async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
             f"Based on {kw_used} keywords{f' + {gaps_used} gap keywords' if gaps_used else ''}.\n"
             "Open Content Plan to see them."
         ),
+    )
+
+
+@chat.function(
+    "setup_blog_style",
+    description=(
+        "Analyze a blog URL and create a writing style profile for that blog. "
+        "Use when user provides their blog URL and wants articles written in their style. "
+        "Crawls RSS feed, analyzes recent posts, generates writing instructions."
+    ),
+    action_type="write",
+    chain_callable=True,
+    effects=["update:settings"],
+    event="seo.settings.saved",
+)
+async def setup_blog_style(ctx, params: SetupBlogStyleParams) -> ActionResult:
+    """Analyze blog writing style and save as active brand profile."""
+    from app import save_settings
+    from api_client import _post
+    from handlers_docs import _load_docs
+    from imperal_sdk import ui
+
+    s = await load_settings(ctx)
+    blog_url = params.blog_url or s.get("blog_url", "")
+    if not blog_url:
+        return ActionResult.error(error="Provide your blog URL. Example: setup_blog_style with blog_url=https://blog.yourdomain.com")
+
+    data = await _post(ctx, "/api/content/analyze_blog_style", {
+        "blog_url":          blog_url,
+        "language":          s.get("language", "en"),
+        "posts_to_analyze":  5,
+    }, timeout=90)
+
+    if "error" in data:
+        return ActionResult.error(error=data["error"])
+
+    profile_text = data.get("profile", "")
+    posts_count  = data.get("posts_analyzed", 0)
+
+    # Save as MOS brand profile named "blog_style"
+    save_result = await _post(ctx, "/api/profiles/save", {
+        "name":    "blog_style",
+        "content": profile_text,
+    })
+    if "error" not in save_result:
+        await save_settings(ctx, {"active_profile": "blog_style"})
+
+    return ActionResult.success(
+        {"profile_name": "blog_style", "posts_analyzed": posts_count},
+        summary=(
+            f"Blog style analyzed from {posts_count} posts at {blog_url}.\n"
+            "Profile 'blog_style' created and set as active — all new articles will follow this style."
+        ),
+        ui=ui.Stack(children=[
+            ui.Alert(
+                message=f"Writing style set from {blog_url} ({posts_count} posts analyzed). "
+                        "Profile 'blog_style' is now active.",
+                type="success",
+            ),
+            ui.Text(content=profile_text[:600] + "...", variant="caption"),
+        ]),
     )
