@@ -155,3 +155,8 @@ class SaveSettingsParams(BaseModel):
 
 class SetupBlogStyleParams(BaseModel):
     blog_url: Optional[str] = None
+
+
+class PatchArticleParams(BaseModel):
+    instruction: str
+    content_id: str = Field('', description='Content item ID — leave empty to use currently open item')

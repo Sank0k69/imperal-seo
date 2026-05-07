@@ -6,7 +6,7 @@ from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, get_content, update_content, delete_content, load_settings, load_ui_state
 from api_client import generate_brief as _mos_brief, log_action
-from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, SaveBriefParams
+from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, SaveBriefParams, PatchArticleParams
 
 
 async def _resolve_id(ctx, content_id: str) -> str:
@@ -145,3 +145,47 @@ async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
         return ActionResult.error(error="Content item not found")
     await update_content(ctx, cid, {"brief": params.brief_text})
     return ActionResult.success({"id": cid}, summary="Brief saved.")
+
+
+@chat.function(
+    "patch_article",
+    description=(
+        "Edit the current article content based on an instruction. "
+        "Examples: 'add hello world at the beginning', 'replace intro with X', "
+        "'add outbound link to Y in section Z', 'shorten the conclusion'. "
+        "Use for direct content edits — NOT for full rewrites (use improve_article for that)."
+    ),
+    action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
+    event="seo.content.updated",
+)
+async def patch_article(ctx, params: PatchArticleParams) -> ActionResult:
+    """Apply a specific edit to the article content via AI on MOS server."""
+    from api_client import generate_brief as _mos_brief, log_action, _post
+    cid = await _resolve_id(ctx, params.content_id)
+    item = await get_content(ctx, cid)
+    if not item:
+        return ActionResult.error(error="No article open. Open an article from the Content Plan first.")
+
+    content = item.get("content", "")
+    if not content:
+        return ActionResult.error(error="Article has no content yet. Generate it first with ai_write.")
+
+    data = await _post(ctx, "/api/content/refine", {
+        "user_key":    "",
+        "content":     content,
+        "instruction": params.instruction,
+        "keyword":     item.get("keyword", ""),
+    }, timeout=60)
+
+    if "error" in data:
+        return ActionResult.error(error=data["error"])
+
+    new_content = data.get("content", content)
+    await update_content(ctx, cid, {"content": new_content})
+
+    return ActionResult.success(
+        {"changed": new_content != content},
+        summary=f"Article updated: '{params.instruction[:60]}'. Saved to draft.",
+    )
