@@ -18,8 +18,12 @@ REFRESH = (
 @ext.panel("editor", slot="center", title="SEO & Content", icon="FileText",
            refresh=REFRESH, center_overlay=True)
 async def workspace_panel(ctx, active_view: str = "", plan_filter: str = "", content_id: str = "", **_kw):
+    # note_id="board" → undeclared kwarg (Vikunja/Notes pattern for claiming center slot)
+    note_id = _kw.get("note_id", "")
+    if note_id == "board" and not active_view and not content_id:
+        active_view = "plan"
+
     # No explicit trigger → return None so platform doesn't pre-load into right slot.
-    # Center overlay activates only when called via ui.Call with content_id or active_view.
     if not content_id and not active_view:
         return None
 

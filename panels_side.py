@@ -121,5 +121,5 @@ async def sidebar_panel(ctx):
     ])
     # Claim center slot on first load (Vikunja/Notes auto_action pattern).
     # Without this, ui.Call("__panel__editor", ...) from sidebar opens in right instead of center.
-    root.props["auto_action"] = ui.Call("__panel__editor", active_view="plan").to_dict()
+    root.props["auto_action"] = ui.Call("__panel__editor", note_id="board").to_dict()
     return root
