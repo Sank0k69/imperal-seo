@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from imperal_sdk import ui
 
-from app import ext, load_settings, load_ui_state, list_content, ser_ready, wp_ready
+from app import ext, load_settings, load_ui_state, save_ui_state, list_content, ser_ready, wp_ready
 from panels_editor import editor_view
 from panels_docs import _docs_view
 from handlers_docs import _load_docs
