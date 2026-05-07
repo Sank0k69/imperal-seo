@@ -67,15 +67,22 @@ async def _auto_seo(ctx, cid: str, wp_post_id: int, item: dict, s: dict) -> None
         all_kws    = [keyword] + [k for k in secondary[:4] if k.lower() != keyword.lower()]
         rm_focus   = ", ".join(filter(None, all_kws))
 
+        # Set excerpt via direct WP REST API (ctx.http works for native fields)
         await update_post(
             ctx, s["wp_url"], s["wp_username"], s["wp_app_password"],
             post_id=wp_post_id,
             excerpt=excerpt,
-            meta={
-                "rank_math_focus_keyword": rm_focus,
-                "rank_math_description":   meta_desc,
-            },
         )
+
+        # Set Rank Math fields via MOS server (httpx on VPS — avoids ctx.http meta issues)
+        await _post(ctx, "/api/wordpress/update", {
+            "wp_url":          s["wp_url"],
+            "wp_user":         s["wp_username"],
+            "wp_password":     s["wp_app_password"],
+            "post_id":         wp_post_id,
+            "focus_keyword":   rm_focus,
+            "meta_description": meta_desc,
+        })
         await update_content(ctx, cid, {
             "meta_description": meta_desc,
             "focus_keyword":    keyword,
@@ -297,17 +304,23 @@ async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
         )
         excerpt = (getattr(excerpt_result, "text", None) or str(excerpt_result)).strip().strip('"').strip("'")[:150]
 
-        # Update WP: Rank Math meta fields + native excerpt
+        # Excerpt via direct WP REST API
         post = await update_post(
             ctx,
             s["wp_url"], s["wp_username"], s["wp_app_password"],
             post_id=int(wp_post_id),
             excerpt=excerpt,
-            meta={
-                "rank_math_focus_keyword": rm_focus_kw,
-                "rank_math_description":   meta_desc,
-            },
         )
+
+        # Rank Math fields via MOS (httpx on VPS, avoids ctx.http meta field issues)
+        await _post(ctx, "/api/wordpress/update", {
+            "wp_url":          s["wp_url"],
+            "wp_user":         s["wp_username"],
+            "wp_password":     s["wp_app_password"],
+            "post_id":         int(wp_post_id),
+            "focus_keyword":   rm_focus_kw,
+            "meta_description": meta_desc,
+        })
 
         if not post.get("id"):
             wp_msg = post.get("_wp_error") or str(post)
