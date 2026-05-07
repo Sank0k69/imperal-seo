@@ -189,3 +189,62 @@ async def patch_article(ctx, params: PatchArticleParams) -> ActionResult:
         {"changed": new_content != content},
         summary=f"Article updated: '{params.instruction[:60]}'. Saved to draft.",
     )
+
+
+@chat.function(
+    "check_article_quality",
+    description=(
+        "Script-based article quality audit — zero AI tokens. "
+        "Checks: word count, H2/H3 structure, comparison table, FAQ, outbound links, "
+        "keyword density, em dashes, placeholders, bold text, lists. "
+        "Returns score 0-100 and specific issues to fix."
+    ),
+    action_type="read",
+    event="",
+)
+async def check_article_quality(ctx, params: AiBriefParams) -> ActionResult:
+    """Script-only quality check using regex + HTML parsing on MOS server."""
+    from api_client import _post
+    from imperal_sdk import ui
+    cid = await _resolve_id(ctx, params.content_id)
+    item = await get_content(ctx, cid)
+    if not item:
+        return ActionResult.error(error="No article open.")
+
+    content = item.get("content", "")
+    if not content:
+        return ActionResult.error(error="Article has no content. Run ai_write first.")
+
+    data = await _post(ctx, "/api/content/quality_check", {
+        "content":  content,
+        "keyword":  item.get("keyword", ""),
+        "title":    item.get("title", ""),
+        "language": "en",
+    }, timeout=10)
+
+    if "error" in data:
+        return ActionResult.error(error=data["error"])
+
+    score  = data.get("score", 0)
+    grade  = data.get("grade", "?")
+    stats  = data.get("stats", {})
+    issues = data.get("issues", [])
+
+    fails  = [i for i in issues if i["level"] == "fail"]
+    warns  = [i for i in issues if i["level"] == "warn"]
+
+    summary_lines = [
+        f"Quality score: {score}/100 (Grade {grade})",
+        f"Words: {stats.get('word_count',0)} | H2: {stats.get('h2_count',0)} | Tables: {stats.get('table_count',0)} | Outbound links: {stats.get('outbound_links',0)}",
+        f"Keyword density: {stats.get('kw_density',0)}% | FAQ: {'✓' if stats.get('faq') else '✗'} | Em dash: {'✗ FOUND' if stats.get('has_em_dash') else '✓ clean'}",
+    ]
+    if fails:
+        summary_lines.append(f"\n🔴 {len(fails)} critical issues:")
+        summary_lines.extend(f"  • {i['message']}" for i in fails)
+    if warns:
+        summary_lines.append(f"\n🟡 {len(warns)} warnings:")
+        summary_lines.extend(f"  • {i['message']}" for i in warns)
+    if not issues:
+        summary_lines.append("✅ No issues found!")
+
+    return ActionResult.success(data=data, summary="\n".join(summary_lines))
