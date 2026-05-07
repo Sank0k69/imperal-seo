@@ -10,7 +10,6 @@ ext = Extension(
     display_name="WP Blogger",
     description="AI-powered WordPress content studio: keyword research, SE Rankings tracking, AI article writing with SEO optimization, and one-click publishing to WordPress.",
     icon="icon.svg",
-    actions_explicit=True,
 )
 
 chat = ChatExtension(
