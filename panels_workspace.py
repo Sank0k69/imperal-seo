@@ -18,6 +18,11 @@ REFRESH = (
 @ext.panel("seo_workspace", slot="center", title="SEO & Content", icon="FileText",
            default_width=860, refresh=REFRESH)
 async def workspace_panel(ctx, active_view: str = "", plan_filter: str = "", content_id: str = "", **_kw):
+    # No explicit trigger → return None so platform doesn't pre-load into right slot.
+    # Center overlay activates only when called via ui.Call with content_id or active_view.
+    if not content_id and not active_view:
+        return None
+
     state = await load_ui_state(ctx)
     if content_id:
         await save_ui_state(ctx, {"active_view": "editor", "selected_id": content_id})

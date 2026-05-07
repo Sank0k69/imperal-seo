@@ -84,36 +84,31 @@ async def sidebar_panel(ctx):
     _status_order = {"review": 0, "writing": 1, "published": 2, "idea": 3}
     recent = sorted(items, key=lambda x: _status_order.get(x.get("status", "idea"), 3))[:6]
 
+    STATUS_COLOR = {"idea": "gray", "writing": "blue", "review": "yellow", "published": "green"}
+
     recent_section_children = []
     if recent:
         total_words = sum(len((i.get("content") or "").split()) for i in items)
         published_count = counts["published"]
         recent_section_children = [
-            ui.Header(text="Recent Articles", level=6),
+            ui.Header(text="Articles", level=6),
             ui.Text(
-                content=f"{len(items)} articles · {total_words:,} words · {published_count} published",
+                content=f"{len(items)} total · {total_words:,} words · {published_count} published",
                 variant="caption",
             ),
-            ui.Form(
-                action="open_editor",
-                submit_label="Open →",
-                children=[
-                    ui.Select(
-                        param_name="content_id",
-                        placeholder="Quick open article...",
-                        options=[
-                            {
-                                "value": i["id"],
-                                "label": f"[{i.get('status','?')[:3].upper()}] {(i.get('keyword') or i.get('title') or 'untitled')[:28]}",
-                            }
-                            for i in recent
-                        ],
-                    ),
-                ],
-            ),
+            ui.List(items=[
+                ui.ListItem(
+                    id=i["id"],
+                    title=(i.get("keyword") or i.get("title") or "untitled")[:40],
+                    subtitle=i.get("status", "idea"),
+                    badge=ui.Badge(i.get("status", "idea"), color=STATUS_COLOR.get(i.get("status", "idea"), "gray")),
+                    on_click=ui.Call("__panel__seo_workspace", content_id=i["id"]),
+                )
+                for i in recent
+            ]),
         ]
 
-    root = ui.Stack(children=[
+    return ui.Stack(children=[
         ui.Header(text="SEO & Content", level=4),
         status_badges,
         ui.Divider(),
@@ -124,5 +119,3 @@ async def sidebar_panel(ctx):
         new_btn,
         *([ui.Divider()] + recent_section_children if recent_section_children else []),
     ])
-    root.props["auto_action"] = ui.Call("__panel__seo_workspace", active_view="plan").to_dict()
-    return root
