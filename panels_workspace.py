@@ -60,90 +60,155 @@ async def workspace_panel(ctx, active_view: str = "", plan_filter: str = "", con
 
 # ── Plan view ─────────────────────────────────────────────────────────────────
 
+_STATUS_COLOR = {"idea": "gray", "writing": "blue", "review": "yellow", "published": "green"}
+_STATUS_ICON  = {"idea": "Lightbulb", "writing": "PenLine", "review": "Eye", "published": "CheckCircle"}
+
 async def _plan_view(ctx, state: dict) -> ui.UINode:
     items = await list_content(ctx)
     plan_filter = state.get("plan_filter") or "all"
     filtered = [i for i in items if i.get("status") == plan_filter] if plan_filter not in ("all", "") else items
 
-    _filter_label = {
-        "idea": "Ideas", "writing": "Writing", "review": "Review", "published": "Done",
-    }
-    title = f"Content Plan — {_filter_label.get(plan_filter, 'All')}" if plan_filter not in ("all", "") else "Content Plan"
+    # ── Metrics ───────────────────────────────────────────────────────────────
+    counts = {s: sum(1 for i in items if i.get("status") == s)
+              for s in ("idea", "writing", "review", "published")}
+    total_words  = sum(len((i.get("content") or "").split()) for i in items)
+    in_wp        = sum(1 for i in items if i.get("wp_post_id"))
+    total_volume = sum(i.get("volume") or 0 for i in items)
+
+    # ── Stats row ─────────────────────────────────────────────────────────────
+    stats = ui.Stats(children=[
+        ui.Stat(label="Total articles", value=str(len(items)),    icon="FileText"),
+        ui.Stat(label="Ideas",          value=str(counts["idea"]),       color="gray",   icon="Lightbulb"),
+        ui.Stat(label="Writing",        value=str(counts["writing"]),    color="blue",   icon="PenLine"),
+        ui.Stat(label="In review",      value=str(counts["review"]),     color="yellow", icon="Eye"),
+        ui.Stat(label="Published",      value=str(counts["published"]),  color="green",  icon="CheckCircle"),
+        ui.Stat(label="Words written",  value=f"{total_words:,}",        icon="Hash"),
+        ui.Stat(label="In WordPress",   value=str(in_wp),                icon="Globe"),
+        ui.Stat(label="Total volume",   value=f"{total_vol_str(total_volume)}", icon="TrendingUp"),
+    ]) if items else ui.Empty(message="No content yet.")
+
+    # ── Pipeline funnel chart ─────────────────────────────────────────────────
+    funnel_data = [
+        {"label": "Ideas",     "value": counts["idea"]},
+        {"label": "Writing",   "value": counts["writing"]},
+        {"label": "Review",    "value": counts["review"]},
+        {"label": "Published", "value": counts["published"]},
+    ]
+    pipeline_chart = ui.Section(title="Content Pipeline", collapsible=False, children=[
+        ui.Chart(
+            type="bar",
+            data=[f for f in funnel_data if f["value"] > 0 or True],
+            x_key="label",
+            y_keys=["value"],
+            colors={"value": "#6366f1"},
+            height=120,
+        ),
+    ]) if items else ui.Empty(message="")
+
+    # ── Filter buttons ────────────────────────────────────────────────────────
+    def _filter_btn(label: str, status: str, count: int) -> ui.UINode:
+        active = plan_filter == status
+        return ui.Button(
+            label=f"{label} · {count}",
+            on_click=ui.Call("__panel__editor", active_view="plan", plan_filter=status, note_id="board"),
+            variant="secondary" if active else "ghost",
+            size="sm",
+        )
+
+    filter_row = ui.Stack(direction="horizontal", gap=2, children=[
+        ui.Button(label="All", size="sm",
+                  variant="secondary" if plan_filter in ("all", "") else "ghost",
+                  on_click=ui.Call("__panel__editor", active_view="plan", note_id="board")),
+        _filter_btn("Ideas",     "idea",      counts["idea"]),
+        _filter_btn("Writing",   "writing",   counts["writing"]),
+        _filter_btn("Review",    "review",    counts["review"]),
+        _filter_btn("Published", "published", counts["published"]),
+    ])
+
+    # ── Table ─────────────────────────────────────────────────────────────────
+    _filter_label = {"idea": "Ideas", "writing": "Writing", "review": "Review", "published": "Published"}
+    title = f"Content — {_filter_label.get(plan_filter, 'All')}" if plan_filter not in ("all", "") else f"All Content ({len(items)})"
 
     rows = [
         {
-            "keyword":    item.get("keyword", "—"),
-            "type":       item.get("type", "blog"),
-            "intent":     item.get("intent", "—"),
-            "priority":   item.get("priority", "—"),
-            "status":     item.get("status", "idea"),
-            "volume":     f"{item.get('volume', 0):,}" if item.get("volume") else "—",
-            "difficulty": str(item.get("difficulty", "—")),
-            "id":         item.get("id", ""),
+            "keyword":  item.get("keyword", "—"),
+            "type":     item.get("type", "blog"),
+            "status":   item.get("status", "idea"),
+            "priority": item.get("priority", "—"),
+            "volume":   f"{item.get('volume', 0):,}" if item.get("volume") else "—",
+            "diff":     str(item.get("difficulty", "—")),
+            "wp":       "✓" if item.get("wp_post_id") else "—",
+            "words":    str(len((item.get("content") or "").split())) if item.get("content") else "—",
+            "id":       item.get("id", ""),
         }
         for item in filtered
     ]
 
-    empty_msg = (
-        f"No items with status '{plan_filter}' yet."
-        if plan_filter not in ("all", "")
-        else "No content yet. Click 'Build Content Plan (AI)' to generate one."
-    )
     table = ui.DataTable(
         columns=[
-            ui.DataColumn(key="keyword",    label="Keyword / Topic",  width="28%"),
-            ui.DataColumn(key="type",       label="Type",             width="10%"),
-            ui.DataColumn(key="intent",     label="Intent",           width="12%"),
-            ui.DataColumn(key="priority",   label="Priority",         width="12%"),
-            ui.DataColumn(key="status",     label="Status",           width="10%"),
-            ui.DataColumn(key="volume",     label="Vol",              width="10%"),
-            ui.DataColumn(key="difficulty", label="Diff",             width="8%"),
-            ui.DataColumn(key="id",         label="ID",               width="10%"),
+            ui.DataColumn(key="keyword",  label="Keyword / Topic",  width="26%"),
+            ui.DataColumn(key="type",     label="Type",             width="9%"),
+            ui.DataColumn(key="status",   label="Status",           width="10%"),
+            ui.DataColumn(key="priority", label="Priority",         width="11%"),
+            ui.DataColumn(key="volume",   label="Vol",              width="9%"),
+            ui.DataColumn(key="diff",     label="Diff",             width="7%"),
+            ui.DataColumn(key="words",    label="Words",            width="8%"),
+            ui.DataColumn(key="wp",       label="WP",               width="5%"),
+            ui.DataColumn(key="id",       label="ID",               width="15%"),
         ],
         rows=rows,
-    ) if rows else ui.Empty(message=empty_msg)
-
-    header_row_children = [
-        ui.Header(text=title, level=3),
-        ui.Button(label="+ Find keywords", on_click=ui.Call("__panel__editor", active_view="keywords", note_id="board")),
-    ]
-    if plan_filter not in ("all", ""):
-        header_row_children.append(
-            ui.Button(label="× All", on_click=ui.Call("__panel__editor", active_view="plan", note_id="board")),
-        )
-
-    build_plan_form = ui.Form(
-        action="build_content_plan",
-        submit_label="Build Content Plan (AI)",
-        children=[],
+    ) if rows else ui.Empty(
+        message=f"No {_filter_label.get(plan_filter,'').lower()} items." if plan_filter not in ("all","") else "No content yet — build a plan or add items."
     )
 
-    open_items = filtered if filtered else items
+    # ── Actions ───────────────────────────────────────────────────────────────
     open_form = ui.Form(
         action="open_editor",
         submit_label="Open in editor →",
         children=[
             ui.Select(
                 param_name="content_id",
-                placeholder="Select item to edit",
+                placeholder="Select item to edit...",
                 options=[
-                    {
-                        "value": i.get("id", ""),
-                        "label": f"{i.get('keyword','')} ({i.get('type','')} · {i.get('status','')})",
-                    }
-                    for i in open_items
+                    {"value": i.get("id",""), "label": f"{i.get('keyword','')[:40]} · {i.get('status','')}"}
+                    for i in (filtered if filtered else items)
                 ],
             ),
         ],
-    ) if items else ui.Alert(message="Create your first content item using the panel on the left.", type="info")
+    ) if items else ui.Empty(message="")
 
     return ui.Stack(children=[
-        ui.Stack(children=header_row_children, direction="horizontal", justify="between"),
-        build_plan_form,
+        # Header
+        ui.Stack(direction="horizontal", justify="between", align="center", children=[
+            ui.Header(text=title, level=3),
+            ui.Stack(direction="horizontal", gap=2, children=[
+                ui.Button(label="🔍 Keywords",  size="sm", variant="ghost",
+                          on_click=ui.Call("__panel__editor", active_view="keywords", note_id="board")),
+                ui.Button(label="📊 Rankings",  size="sm", variant="ghost",
+                          on_click=ui.Call("__panel__editor", active_view="rankings", note_id="board")),
+            ]),
+        ]),
+        # Stats
+        stats,
+        # Pipeline chart
+        pipeline_chart if items else ui.Empty(message=""),
+        # Build plan action
+        ui.Form(action="build_content_plan", submit_label="✨ Build Content Plan (AI)", children=[]),
+        ui.Divider(),
+        # Filters
+        filter_row,
+        # Table
         table,
+        # Open editor
         ui.Divider(),
         open_form,
     ])
+
+
+def total_vol_str(v: int) -> str:
+    if v >= 1_000_000: return f"{v/1_000_000:.1f}M"
+    if v >= 1_000: return f"{v/1_000:.0f}K"
+    return str(v)
 
 
 # ── Rankings view ─────────────────────────────────────────────────────────────
