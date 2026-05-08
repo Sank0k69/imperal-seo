@@ -26,13 +26,25 @@ async def sidebar_panel(ctx):
         "published": sum(1 for i in items if i.get("status") == "published"),
     }
 
+    # Show setup warning if not configured
+    not_configured = not ser_ready(s) or not wp_ready(s)
+    missing = []
+    if not ser_ready(s): missing.append("SE Ranking")
+    if not wp_ready(s):  missing.append("WordPress")
+
     status_badges = ui.Stack(children=[
         ui.Stack(children=[
-            ui.Badge(label=f"SE Ranking: {'✓' if ser_ready(s) else '✗'}",
-                     color="green" if ser_ready(s) else "red"),
-            ui.Badge(label=f"WordPress: {'✓' if wp_ready(s) else '✗'}",
-                     color="green" if wp_ready(s) else "red"),
+            ui.Badge(label=f"SE Ranking {'✓' if ser_ready(s) else '— add key in Settings'}",
+                     color="green" if ser_ready(s) else "orange"),
+            ui.Badge(label=f"WordPress {'✓' if wp_ready(s) else '— add URL+password in Settings'}",
+                     color="green" if wp_ready(s) else "orange"),
         ], gap=4),
+        *([] if not not_configured else [
+            ui.Alert(
+                message=f"Setup needed: {', '.join(missing)}. Open ⚙️ Settings to connect.",
+                type="warning",
+            )
+        ]),
     ])
 
     selected_id = state.get("selected_id")
@@ -45,17 +57,28 @@ async def sidebar_panel(ctx):
                       on_click=ui.Call("__panel__editor", active_view="editor", note_id="board")),
         ]
 
+    def _nav_row(label: str, view: str, tip: str) -> ui.UINode:
+        return ui.Stack(direction="h", gap=2, align="center", children=[
+            ui.Button(label=label, on_click=ui.Call("__panel__editor", active_view=view, note_id="board")),
+            ui.Tooltip(content=tip, children=[ui.Icon(name="Info", size=14)]),
+        ])
+
     nav = ui.Stack(children=[
         *resume_btn_children,
-        _nav_btn("Content Plan",   "plan"),
-        _nav_btn("Rankings",       "rankings"),
-        _nav_btn("Keywords",       "keywords"),
-        _nav_btn("Knowledge Base", "docs"),
-        _nav_btn("Settings",       "settings"),
+        _nav_row("📋 Content Plan",     "plan",
+                 "AI-generated article queue based on SE Ranking data. Articles are ordered by priority: gaps, low-hanging keywords, growth topics."),
+        _nav_row("📊 SEO Rankings",     "rankings",
+                 "Current Google positions for your domain's keywords. Track which pages are climbing or dropping."),
+        _nav_row("🔍 Keyword Research", "keywords",
+                 "Find new keywords by volume and difficulty. Add promising ones to the content plan with one click."),
+        _nav_row("📚 Brand Knowledge",  "docs",
+                 "Upload brand guides, product docs, or style rules. AI uses these as context when writing articles — so content always matches your brand."),
+        _nav_row("⚙️ Settings",         "settings",
+                 "Connect SE Ranking (for keyword data), WordPress (for publishing), and brand info (company name, voice, social links)."),
     ], gap=4)
 
     pipeline = ui.Stack(children=[
-        ui.Header(text="Pipeline", level=6),
+        ui.Header(text="Article Pipeline", level=6),
         ui.Stack(children=[
             ui.Button(label=f"Ideas · {counts['idea']}",      on_click=ui.Call("__panel__editor", active_view="plan", plan_filter="idea",      note_id="board")),
             ui.Button(label=f"Writing · {counts['writing']}", on_click=ui.Call("__panel__editor", active_view="plan", plan_filter="writing",  note_id="board")),
