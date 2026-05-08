@@ -349,3 +349,37 @@ async def mos_docs_create(ctx, name: str, content: str, size: int = 0, ext: str 
 
 async def mos_docs_delete(ctx, doc_id: str) -> dict:
     return await _post(ctx, "/api/storage/docs/delete", {**_scope(ctx), "id": doc_id})
+
+
+async def ser_add_keyword(ctx, keyword: str, landing_url: str = "") -> dict:
+    s = await load_settings(ctx)
+    key = s.get("seranking_project_key", "")
+    pid = s.get("seranking_project_id", "")
+    if not key or not pid:
+        return {"error": "SE Ranking Project key/ID not configured."}
+    return await _post(ctx, "/api/seranking/add-keyword", {
+        "seranking_project_key": key, "project_id": pid,
+        "keyword": keyword, "landing_url": landing_url,
+    })
+
+
+async def ser_remove_keyword(ctx, keyword_id: str) -> dict:
+    s = await load_settings(ctx)
+    key = s.get("seranking_project_key", "")
+    pid = s.get("seranking_project_id", "")
+    if not key or not pid:
+        return {"error": "SE Ranking Project key/ID not configured."}
+    return await _post(ctx, "/api/seranking/remove-keyword", {
+        "seranking_project_key": key, "project_id": pid, "keyword_id": keyword_id,
+    })
+
+
+async def ser_list_site_keywords(ctx) -> dict:
+    s = await load_settings(ctx)
+    key = s.get("seranking_project_key", "")
+    pid = s.get("seranking_project_id", "")
+    if not key or not pid:
+        return {"error": "SE Ranking Project key/ID not configured."}
+    return await _post(ctx, "/api/seranking/list-site-keywords", {
+        "seranking_project_key": key, "project_id": pid,
+    })

@@ -1686,6 +1686,86 @@
       "event": "",
       "scopes": [],
       "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "add_tracked_keyword",
+      "description": "Add a keyword to SE Ranking position tracking. Use when user says: track this keyword, add keyword to SE Ranking, начать отслеживать ключевое слово, добавь кейворд в трекинг, track position for X, добавь X в SE Ranking.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "create:keyword"
+      ],
+      "params_schema": {
+        "properties": {
+          "keyword": {
+            "description": "Keyword to start tracking in SE Ranking",
+            "title": "Keyword",
+            "type": "string"
+          },
+          "landing_url": {
+            "default": "",
+            "description": "Landing page URL for this keyword (optional)",
+            "title": "Landing Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "keyword"
+        ],
+        "title": "AddTrackedKeywordParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "remove_tracked_keyword",
+      "description": "Remove a keyword from SE Ranking position tracking. Use when user says: stop tracking keyword, remove keyword from SE Ranking, удали кейворд из трекинга, убери ключевое слово из SE Ranking, перестань отслеживать X.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "delete:keyword"
+      ],
+      "params_schema": {
+        "properties": {
+          "keyword_id": {
+            "default": "",
+            "description": "SE Ranking keyword ID to remove (from list_tracked_keywords)",
+            "title": "Keyword Id",
+            "type": "string"
+          },
+          "keyword": {
+            "default": "",
+            "description": "Keyword name to remove — system will find ID automatically",
+            "title": "Keyword",
+            "type": "string"
+          }
+        },
+        "title": "RemoveTrackedKeywordParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "list_tracked_keywords",
+      "description": "List all keywords currently tracked in SE Ranking with their IDs. Use when user says: what keywords am I tracking, list SE Ranking keywords, какие ключевые слова отслеживаются, список трекинг кейвордов, покажи все отслеживаемые ключевые слова.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
     }
   ],
   "signals": [],
