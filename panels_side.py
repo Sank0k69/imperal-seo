@@ -57,24 +57,24 @@ async def sidebar_panel(ctx):
                       on_click=ui.Call("__panel__editor", active_view="editor", note_id="board")),
         ]
 
-    def _nav_row(label: str, view: str, tip: str) -> ui.UINode:
-        return ui.Stack(direction="h", gap=2, align="center", children=[
+    def _nav_item(label: str, view: str, desc: str) -> ui.UINode:
+        return ui.Stack(direction="v", gap=1, children=[
             ui.Button(label=label, on_click=ui.Call("__panel__editor", active_view=view, note_id="board")),
-            ui.Tooltip(content=tip, children=[ui.Icon(name="Info", size=14)]),
+            ui.Text(content=desc, variant="caption"),
         ])
 
     nav = ui.Stack(children=[
         *resume_btn_children,
-        _nav_row("📋 Content Plan",     "plan",
-                 "AI-generated article queue based on SE Ranking data. Articles are ordered by priority: gaps, low-hanging keywords, growth topics."),
-        _nav_row("📊 SEO Rankings",     "rankings",
-                 "Current Google positions for your domain's keywords. Track which pages are climbing or dropping."),
-        _nav_row("🔍 Keyword Research", "keywords",
-                 "Find new keywords by volume and difficulty. Add promising ones to the content plan with one click."),
-        _nav_row("📚 Brand Knowledge",  "docs",
-                 "Upload brand guides, product docs, or style rules. AI uses these as context when writing articles — so content always matches your brand."),
-        _nav_row("⚙️ Settings",         "settings",
-                 "Connect SE Ranking (for keyword data), WordPress (for publishing), and brand info (company name, voice, social links)."),
+        _nav_item("📋 Content Plan",     "plan",
+                  "AI article queue — gaps, keywords, growth topics"),
+        _nav_item("📊 SEO Rankings",     "rankings",
+                  "Google positions for your domain"),
+        _nav_item("🔍 Keyword Research", "keywords",
+                  "Find keywords by volume & difficulty"),
+        _nav_item("📚 Brand Knowledge",  "docs",
+                  "Upload brand docs — AI uses for writing style"),
+        _nav_item("⚙️ Settings",         "settings",
+                  "Connect SE Ranking, WordPress, brand info"),
     ], gap=4)
 
     pipeline = ui.Stack(children=[
