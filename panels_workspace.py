@@ -144,42 +144,145 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
 
 async def _rankings_view(ctx, state: dict) -> ui.UINode:
     rankings = state.get("rankings_results") or []
-    refresh_form = ui.Button(label="Refresh rankings", on_click=ui.Call("fetch_rankings"))
+    refresh_btn = ui.Button(label="↻ Refresh", on_click=ui.Call("fetch_rankings"), variant="ghost", size="sm")
 
     if not rankings:
-        return ui.Stack(children=[
-            ui.Header(text="Keyword Rankings", level=3),
-            ui.Alert(message="No rankings loaded. Click Refresh or configure SE Ranking in Settings.", type="info"),
-            refresh_form,
-        ])
+        return ui.Page(
+            title="SEO Rankings",
+            children=[
+                ui.Alert(
+                    message="No rankings loaded yet. Click Refresh to pull your keyword positions from SE Ranking.",
+                    type="info",
+                ),
+                ui.Form(action="fetch_rankings", submit_label="↻ Load Rankings", children=[]),
+            ],
+        )
 
-    rows = [
-        {
-            "pos": str(r.get("position", "—")),
-            "keyword": r.get("keyword", "—"),
-            "url": (r.get("url") or "/")[-55:],
-            "volume": f"{r.get('volume', 0):,}" if r.get("volume") else "—",
-            "diff": str(r.get("difficulty", "—")),
-        }
-        for r in sorted(rankings, key=lambda x: x.get("position", 9999))[:100]
-    ]
+    # ── Compute metrics ────────────────────────────────────────────────────────
+    ranked   = [r for r in rankings if r.get("position", 0) > 0]
+    top3     = sum(1 for r in ranked if r.get("position", 99) <= 3)
+    top10    = sum(1 for r in ranked if r.get("position", 99) <= 10)
+    top30    = sum(1 for r in ranked if r.get("position", 99) <= 30)
+    top100   = sum(1 for r in ranked if r.get("position", 99) <= 100)
+    not_rank = len(rankings) - len(ranked)
+    total_vol = sum(r.get("volume", 0) for r in rankings)
 
-    return ui.Stack(children=[
-        ui.Stack(children=[
-            ui.Header(text="Keyword Rankings", level=3),
-            refresh_form,
-        ], direction="horizontal", justify="between"),
-        ui.DataTable(
+    # Change: positive = moved UP (lower position = better)
+    gainers = []
+    losers  = []
+    for r in ranked:
+        prev = r.get("previous_position", 0)
+        curr = r.get("position", 0)
+        if prev and curr and prev != curr:
+            change = prev - curr  # positive = moved up
+            entry  = {**r, "_change": change}
+            if change > 0:
+                gainers.append(entry)
+            else:
+                losers.append(entry)
+    gainers = sorted(gainers, key=lambda x: -x["_change"])[:8]
+    losers  = sorted(losers,  key=lambda x: x["_change"])[:8]
+
+    # Position distribution for chart
+    buckets = {"Top 3": top3, "4-10": top10-top3, "11-30": top30-top10,
+               "31-100": top100-top30, "Not ranked": not_rank}
+    chart_data = [{"label": k, "value": v} for k, v in buckets.items() if v > 0]
+
+    # ── Header stats ──────────────────────────────────────────────────────────
+    stats = ui.Stats(children=[
+        ui.Stat(label="Total tracked",  value=str(len(rankings)),   icon="Target"),
+        ui.Stat(label="Top 3",          value=str(top3),            color="green",  icon="TrendingUp"),
+        ui.Stat(label="Top 10",         value=str(top10),           color="blue",   icon="Award"),
+        ui.Stat(label="Top 30",         value=str(top30),           color="yellow", icon="BarChart2"),
+        ui.Stat(label="Monthly volume", value=f"{total_vol:,}",     icon="Eye"),
+    ])
+
+    # ── Position chart ────────────────────────────────────────────────────────
+    chart = ui.Section(title="Position Distribution", children=[
+        ui.Chart(
+            type="bar",
+            data=chart_data,
+            x_key="label",
+            y_keys=["value"],
+            colors={"value": "#3b82f6"},
+            height=180,
+        ),
+    ], collapsible=False)
+
+    # ── Top movers ─────────────────────────────────────────────────────────────
+    def _change_label(change: int) -> str:
+        return f"▲ {change}" if change > 0 else f"▼ {abs(change)}"
+
+    def _mover_table(items: list, title: str, color: str) -> ui.UINode:
+        if not items:
+            return ui.Empty(message=f"No {title.lower()} this period")
+        rows = [
+            {
+                "pos":     str(r.get("position", "—")),
+                "change":  _change_label(r["_change"]),
+                "keyword": r.get("keyword", "—")[:40],
+                "vol":     f"{r.get('volume', 0):,}" if r.get("volume") else "—",
+            }
+            for r in items
+        ]
+        return ui.DataTable(
             columns=[
-                ui.DataColumn(key="pos", label="#", width="8%"),
-                ui.DataColumn(key="keyword", label="Keyword", width="40%"),
-                ui.DataColumn(key="url", label="Page", width="30%"),
-                ui.DataColumn(key="volume", label="Volume", width="12%"),
-                ui.DataColumn(key="diff", label="Diff", width="10%"),
+                ui.DataColumn(key="pos",     label="#",       width="8%"),
+                ui.DataColumn(key="change",  label="Change",  width="15%"),
+                ui.DataColumn(key="keyword", label="Keyword", width="57%"),
+                ui.DataColumn(key="vol",     label="Vol",     width="20%"),
             ],
             rows=rows,
+        )
+
+    movers = ui.Stack(direction="h", gap=3, children=[
+        ui.Section(title=f"🚀 Top Gainers ({len(gainers)})", collapsible=False, children=[
+            _mover_table(gainers, "Top Gainers", "green"),
+        ]),
+        ui.Section(title=f"📉 Top Losers ({len(losers)})", collapsible=False, children=[
+            _mover_table(losers, "Top Losers", "red"),
+        ]),
+    ])
+
+    # ── Full table ─────────────────────────────────────────────────────────────
+    all_rows = [
+        {
+            "pos":     str(r.get("position", "—")),
+            "prev":    ("▲" if (r.get("previous_position", 0) or 0) > (r.get("position", 0) or 0)
+                        else "▼" if (r.get("previous_position", 0) or 0) < (r.get("position", 0) or 0)
+                        else "—") if r.get("previous_position") else "—",
+            "keyword": r.get("keyword", "—"),
+            "url":     (r.get("url") or "")[-45:],
+            "vol":     f"{r.get('volume', 0):,}" if r.get("volume") else "—",
+        }
+        for r in sorted(rankings, key=lambda x: x.get("position", 9999))[:200]
+    ]
+    full_table = ui.Section(title=f"All Keywords ({len(rankings)})", collapsible=True, children=[
+        ui.DataTable(
+            columns=[
+                ui.DataColumn(key="pos",     label="#",       width="7%"),
+                ui.DataColumn(key="prev",    label="±",       width="5%"),
+                ui.DataColumn(key="keyword", label="Keyword", width="43%"),
+                ui.DataColumn(key="url",     label="Page",    width="30%"),
+                ui.DataColumn(key="vol",     label="Vol",     width="15%"),
+            ],
+            rows=all_rows,
         ),
     ])
+
+    return ui.Page(
+        title="SEO Rankings",
+        children=[
+            ui.Stack(direction="h", justify="between", align="center", children=[
+                ui.Text(content="Keyword positions from SE Ranking", variant="caption"),
+                refresh_btn,
+            ]),
+            stats,
+            chart,
+            movers,
+            full_table,
+        ],
+    )
 
 
 # ── Keywords view ─────────────────────────────────────────────────────────────
