@@ -1,22 +1,1700 @@
 {
+  "manifest_schema_version": 3,
   "app_id": "wp-blogger",
   "version": "1.3.0",
   "name": "WP Blogger",
   "description": "AI-powered WordPress content studio: keyword research, SE Rankings tracking, AI article writing with SEO optimization, and one-click publishing to WordPress.",
   "icon": "icon.svg",
-  "capabilities": ["store:read", "store:write"],
+  "actions_explicit": true,
+  "capabilities": [],
   "tools": [
     {
       "name": "wp_blogger",
       "description": "WP Blogger. Keyword research, rankings tracking, content plan, AI article writing, publish to WordPress.",
       "scopes": [],
       "parameters": {
-        "message": {"type": "string", "required": false},
-        "kwargs":  {"type": "string", "required": true}
+        "message": {
+          "type": "string",
+          "required": false
+        },
+        "kwargs": {
+          "type": "string",
+          "required": true
+        }
       }
+    },
+    {
+      "name": "skeleton_refresh_current_article",
+      "description": "Currently open article in editor — keyword, title, word count, status, id",
+      "scopes": [],
+      "parameters": {}
+    },
+    {
+      "name": "skeleton_refresh_content_overview",
+      "description": "Content plan summary — total items, counts by status",
+      "scopes": [],
+      "parameters": {}
+    },
+    {
+      "name": "skeleton_refresh_wp_config",
+      "description": "WordPress and SE Ranking connection status",
+      "scopes": [],
+      "parameters": {}
+    },
+    {
+      "name": "go_plan",
+      "description": "Switch main panel to Content Plan view.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_plan_ideas",
+      "description": "Switch to Content Plan showing only Idea status items.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_plan_writing",
+      "description": "Switch to Content Plan showing only Writing status items.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_plan_review",
+      "description": "Switch to Content Plan showing only Review status items.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_plan_done",
+      "description": "Switch to Content Plan showing only Published/Done items.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_rankings",
+      "description": "Switch main panel to Rankings view.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_keywords",
+      "description": "Switch main panel to Keyword Research view.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_settings",
+      "description": "Switch main panel to Settings view.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_docs",
+      "description": "Switch main panel to Knowledge Base (docs) view.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "open_editor",
+      "description": "Open a specific content item in the editor.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "description": "Content item ID to open in editor",
+            "title": "Content Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_id"
+        ],
+        "title": "OpenEditorParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "set_editor_mode",
+      "description": "Toggle editor between edit and preview mode.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "mode": {
+            "description": "'edit' or 'preview'",
+            "title": "Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "title": "SetEditorModeParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_preview",
+      "description": "Switch editor to preview mode.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "go_edit",
+      "description": "Switch editor to edit mode.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "show_editor_panel",
+      "description": "Show the article text editor in Step 3.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "hide_editor_panel",
+      "description": "Hide the article text editor in Step 3.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "resume_editor",
+      "description": "Return to the editor for the currently open content item.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "new_content",
+      "description": "Create a new content plan item (blog post or newsletter) and open it in the editor.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "create:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "keyword": {
+            "description": "Target keyword for this content",
+            "title": "Keyword",
+            "type": "string"
+          },
+          "type": {
+            "default": "blog",
+            "description": "'blog' or 'newsletter'",
+            "title": "Type",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "description": "Content title (optional, AI can generate)",
+            "title": "Title",
+            "type": "string"
+          },
+          "volume": {
+            "default": 0,
+            "description": "Monthly search volume from SE Ranking",
+            "title": "Volume",
+            "type": "integer"
+          },
+          "difficulty": {
+            "default": 0,
+            "description": "Keyword difficulty 0-100",
+            "title": "Difficulty",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "keyword"
+        ],
+        "title": "CreateContentParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.created",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "import_from_wp",
+      "description": "Import an existing WordPress post into the Content Plan for editing. Use when user wants to edit an existing WP article, draft, or post that was not created through this extension. Accepts post ID or keyword/title to find the post. After import, the post is available in Content Plan and can be edited, improved, or republished.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "create:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "post_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "WordPress post ID to import",
+            "title": "Post Id"
+          },
+          "keyword_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Post title or keyword to search for in WordPress",
+            "title": "Keyword Hint"
+          }
+        },
+        "title": "ImportFromWpParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.created",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "save_draft",
+      "description": "Save title and HTML content from the editor to the content store.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "description": "Article or newsletter title",
+            "title": "Title",
+            "type": "string"
+          },
+          "content": {
+            "default": "",
+            "description": "HTML content from the editor",
+            "title": "Content",
+            "type": "string"
+          },
+          "subject": {
+            "default": "",
+            "description": "Email subject line (newsletter only)",
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "title": "SaveDraftParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "update_status",
+      "description": "Move a content item to a new status: idea, writing, review, or published.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "status": {
+            "description": "New status: idea|writing|review|published",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "UpdateStatusParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "delete_content",
+      "description": "Delete a content plan item permanently.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "delete:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "description": "Content item ID to delete",
+            "title": "Content Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_id"
+        ],
+        "title": "DeleteContentParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.deleted",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "generate_brief",
+      "description": "Generate an SEO content brief: title, meta description, H2/H3 outline, search intent. Saved and shown in the editor.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "extra": {
+            "default": "",
+            "description": "Additional context or instructions for the AI",
+            "title": "Extra",
+            "type": "string"
+          }
+        },
+        "title": "AiBriefParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "save_brief",
+      "description": "Save manually edited brief text.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "brief_text": {
+            "default": "",
+            "description": "Brief content to save",
+            "title": "Brief Text",
+            "type": "string"
+          }
+        },
+        "title": "SaveBriefParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "patch_article",
+      "description": "Edit or rewrite a specific part of the currently open article. Use when user says: rewrite intro/paragraph/conclusion, fix this section, make it more engaging, перепиши абзац/вступление/заключение, сделай цепляющим, улучши начало, измени этот раздел, add a section about X, shorten/expand part of the article. Works on currently open article — no need to specify which one.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "instruction": {
+            "title": "Instruction",
+            "type": "string"
+          },
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instruction"
+        ],
+        "title": "PatchArticleParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "check_article_quality",
+      "description": "Script-based article quality audit — zero AI tokens. Checks: word count, H2/H3 structure, comparison table, FAQ, outbound links, keyword density, em dashes, placeholders, bold text, lists. Returns score 0-100 and specific issues to fix.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "extra": {
+            "default": "",
+            "description": "Additional context or instructions for the AI",
+            "title": "Extra",
+            "type": "string"
+          }
+        },
+        "title": "AiBriefParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "list_articles",
+      "description": "List all content items in the content plan (articles, newsletters). Use when user asks: show my articles, what articles do I have, list content, show drafts, what have I written, articles from another device.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "migrate_from_store",
+      "description": "Migrate content items from old ctx.store to MOS server storage. One-time migration — use if articles are missing after storage upgrade.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.created",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "upload_doc",
+      "description": "Upload a documentation file (.md or .txt) to the knowledge base. Used as AI context when writing content.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "create:doc"
+      ],
+      "params_schema": {
+        "properties": {
+          "files": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Base64-encoded files from FileUpload component",
+            "title": "Files"
+          }
+        },
+        "title": "UploadDocParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.docs.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "delete_doc",
+      "description": "Delete a documentation file from the knowledge base.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "delete:doc"
+      ],
+      "params_schema": {
+        "properties": {
+          "doc_id": {
+            "description": "Store ID of the doc to delete",
+            "title": "Doc Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_id"
+        ],
+        "title": "DeleteDocParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.docs.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "list_docs",
+      "description": "List all uploaded documentation files in the knowledge base.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "ai_write",
+      "description": "Generate a full SEO + AI-optimized article. Phase 1: enrich keyword set (secondary KWs, LSI, FAQ questions). Phase 2: write via MOS content engine with structured output. section: full | improve",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "section": {
+            "default": "full",
+            "description": "'full' or 'improve'",
+            "title": "Section",
+            "type": "string"
+          },
+          "article_type": {
+            "default": "",
+            "description": "blog | comparison | tutorial | pillar | news | review — overrides item type",
+            "title": "Article Type",
+            "type": "string"
+          }
+        },
+        "title": "AiWriteParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "check_article_job",
+      "description": "Check if background article generation has completed. Call after ai_write to retrieve the finished article. Returns 'pending' if still generating, saves and shows article when done.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "extra": {
+            "default": "",
+            "description": "Additional context or instructions for the AI",
+            "title": "Extra",
+            "type": "string"
+          }
+        },
+        "title": "AiBriefParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "improve_article",
+      "description": "Fully improve/rewrite the current article for SEO and quality. Use when user says: improve article, make it better, full rewrite, улучши статью, перепиши полностью, сделай лучше, SEO улучшение, добавь FAQ, оптимизируй под SEO. Adds FAQ, sharpens structure, improves keyword density. Async — ~60s.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "instruction": {
+            "default": "",
+            "description": "Optional specific improvement instruction",
+            "title": "Instruction",
+            "type": "string"
+          }
+        },
+        "title": "ImproveArticleParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "generate_newsletter",
+      "description": "Write a newsletter from a news item or topic. Uses brand voice from Settings.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Newsletter content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "news_text": {
+            "description": "The news, update, or topic to write the newsletter about",
+            "title": "News Text",
+            "type": "string"
+          },
+          "tone_note": {
+            "default": "",
+            "description": "Optional tone instruction, e.g. 'more urgent', 'focus on price'",
+            "title": "Tone Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "news_text"
+        ],
+        "title": "GenerateNewsletterParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "fetch_keywords",
+      "description": "Find keywords using SE Ranking — keyword research, volume, difficulty, positions. Use when user asks: find keywords, what keywords to target, keyword ideas for topic X, show me keywords for [topic], поиск ключевых слов, найди ключевые слова, какие ключевики взять, keywords for [topic/niche]. Uses configured domain by default. All params optional.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "domain": {
+            "default": "",
+            "description": "Domain to analyse — leave empty to use domain from Settings",
+            "title": "Domain",
+            "type": "string"
+          },
+          "source": {
+            "default": "",
+            "description": "Regional database code, e.g. 'us', 'gb' — empty = use Settings",
+            "title": "Source",
+            "type": "string"
+          },
+          "limit": {
+            "default": 80,
+            "description": "Number of keywords to return (max 100)",
+            "title": "Limit",
+            "type": "integer"
+          },
+          "min_volume": {
+            "default": 50,
+            "description": "Minimum monthly search volume",
+            "title": "Min Volume",
+            "type": "integer"
+          },
+          "max_difficulty": {
+            "default": 70,
+            "description": "Maximum keyword difficulty",
+            "title": "Max Difficulty",
+            "type": "integer"
+          }
+        },
+        "title": "FetchKeywordsParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "fetch_gaps",
+      "description": "Find keyword gaps vs competitor — keywords competitor ranks for but we don't. Use when user asks: what keywords am I missing, gap analysis, competitor keywords, что я упускаю по ключевым словам, анализ конкурентов, keyword gaps.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "competitor": {
+            "description": "Competitor domain to compare against",
+            "title": "Competitor",
+            "type": "string"
+          },
+          "source": {
+            "default": "us",
+            "description": "Regional database code",
+            "title": "Source",
+            "type": "string"
+          },
+          "limit": {
+            "default": 30,
+            "description": "Number of gap keywords to return",
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "competitor"
+        ],
+        "title": "FetchGapsParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "fetch_rankings",
+      "description": "Fetch keyword positions from SE Ranking + AI traffic from Matomo. Use when user asks: show rankings, what positions do I have, SEO positions, покажи позиции, какие позиции в гугл, SEO Rankings, рейтинг ключевых слов, сколько нас выдают ИИ, AI трафик, откуда идёт трафик от ИИ.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "FetchRankingsParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "list_ser_projects",
+      "description": "List SE Ranking projects — use this to find the project_id for settings.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "ListProjectsParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "build_content_plan",
+      "description": "Generate a 5-article content plan using SE Ranking keyword data and AI. Automatically avoids topics already published on the blog. Creates content items in the plan ready for writing.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "create:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "competitor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "",
+            "description": "Competitor domain for gap analysis — empty = use Settings",
+            "title": "Competitor"
+          },
+          "language": {
+            "default": "en",
+            "description": "Content language: 'en' or 'ru'",
+            "title": "Language",
+            "type": "string"
+          }
+        },
+        "title": "BuildPlanParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.created",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "setup_blog_style",
+      "description": "Analyze a blog URL and create a writing style profile for that blog. Use when user provides their blog URL and wants articles written in their style. Crawls RSS feed, analyzes recent posts, generates writing instructions.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:settings"
+      ],
+      "params_schema": {
+        "properties": {
+          "blog_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Blog Url"
+          }
+        },
+        "title": "SetupBlogStyleParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.settings.saved",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "publish_wp",
+      "description": "Create or update a WordPress post from a blog content item. status: 'draft' or 'publish'.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "publish:post"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "keyword_hint": {
+            "default": "",
+            "description": "Keyword or title of the article — server resolves ID automatically",
+            "title": "Keyword Hint",
+            "type": "string"
+          },
+          "status": {
+            "default": "draft",
+            "description": "WP post status: 'draft' or 'publish'",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "PublishWpParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.published",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "publish_wp_draft",
+      "description": "Publish or update the current WordPress post as a draft.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "publish:post"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "keyword_hint": {
+            "default": "",
+            "description": "Keyword or title of the article — server resolves ID automatically",
+            "title": "Keyword Hint",
+            "type": "string"
+          },
+          "status": {
+            "default": "draft",
+            "description": "WP post status: 'draft' or 'publish'",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "PublishWpParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.published",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "publish_wp_publish",
+      "description": "Publish or update the current WordPress post as published (live).",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "publish:post"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "keyword_hint": {
+            "default": "",
+            "description": "Keyword or title of the article — server resolves ID automatically",
+            "title": "Keyword Hint",
+            "type": "string"
+          },
+          "status": {
+            "default": "draft",
+            "description": "WP post status: 'draft' or 'publish'",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "PublishWpParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.published",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "set_wp_seo",
+      "description": "Set Rank Math SEO on the WordPress post: focus + secondary keywords, meta description, excerpt. Auto-generates meta description and excerpt if not provided. Call after publish_wp.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:post"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "keyword_hint": {
+            "default": "",
+            "description": "Keyword or title of the article to update — server resolves ID automatically",
+            "title": "Keyword Hint",
+            "type": "string"
+          },
+          "meta_description": {
+            "default": "",
+            "description": "SEO meta description (120-155 chars) — leave empty to auto-generate",
+            "title": "Meta Description",
+            "type": "string"
+          },
+          "focus_keyword": {
+            "default": "",
+            "description": "Rank Math focus keyword — leave empty to use item's keyword",
+            "title": "Focus Keyword",
+            "type": "string"
+          }
+        },
+        "title": "SetWpSeoParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "save_settings",
+      "description": "Save API keys and configuration for SE Ranking and WordPress.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:settings"
+      ],
+      "params_schema": {
+        "properties": {
+          "seranking_data_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Seranking Data Key"
+          },
+          "seranking_project_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Seranking Project Key"
+          },
+          "seranking_project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Seranking Project Id"
+          },
+          "seranking_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Seranking Domain"
+          },
+          "seranking_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Seranking Source"
+          },
+          "seranking_competitor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Seranking Competitor"
+          },
+          "wp_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Wp Url"
+          },
+          "wp_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Wp Username"
+          },
+          "wp_app_password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Wp App Password"
+          },
+          "wp_author_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Wp Author Id"
+          },
+          "matomo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Matomo Url"
+          },
+          "matomo_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Matomo Token"
+          },
+          "matomo_site_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Matomo Site Id"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Company Name"
+          },
+          "brand_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Brand Description"
+          },
+          "brand_voice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Brand Voice"
+          },
+          "newsletter_cta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Newsletter Cta"
+          },
+          "site_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Site Url"
+          },
+          "blog_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Blog Url"
+          },
+          "tg_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Tg Url"
+          },
+          "community_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Community Url"
+          }
+        },
+        "title": "SaveSettingsParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.settings.saved",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "list_wp_posts",
+      "description": "List posts from WordPress — published AND drafts. Use when user asks: show WP posts, show drafts, what's in WordPress, show published articles, list blog drafts. Shows title, status, date, URL. Use status='draft' for only drafts, 'publish' for published, leave empty for all.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "any",
+            "description": "Post status: any, publish, draft",
+            "title": "Status"
+          },
+          "per_page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": 20,
+            "description": "Number of posts to return (max 50)",
+            "title": "Per Page"
+          }
+        },
+        "title": "ListWpPostsParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "unpublish_wp",
+      "description": "Set a WordPress post back to draft (unpublish). Use when user says: unpublish, снять с публикации, перевести в черновик, скрыть статью, убрать с сайта, set to draft.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:post"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "keyword_hint": {
+            "default": "",
+            "description": "Post title/keyword to find if no content_id",
+            "title": "Keyword Hint",
+            "type": "string"
+          }
+        },
+        "title": "UnpublishWpParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "get_article_link",
+      "description": "Find a WordPress post by title/keyword and return its URL. Use when user asks: дай ссылку на статью X, link to post about X, where is article X, URL статьи, ссылка на черновик X.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "title_or_keyword": {
+            "description": "Title or keyword to search for in WordPress posts",
+            "title": "Title Or Keyword",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title_or_keyword"
+        ],
+        "title": "GetArticleLinkParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "rewrite_article",
+      "description": "Fully rewrite the current article from scratch with improved structure and quality. Use when user says: rewrite completely, полностью перепиши, перепиши статью заново, новая версия статьи, full rewrite, rewrite from scratch. Different from improve_article (which adds sections) — this regenerates the whole article.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "instruction": {
+            "default": "",
+            "description": "Optional focus for the rewrite (e.g. \"more conversational tone\", \"comparison style\")",
+            "title": "Instruction",
+            "type": "string"
+          }
+        },
+        "title": "RewriteArticleParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "add_keywords_to_article",
+      "description": "Add keywords to the current article and update Rank Math SEO. Use when user says: add keywords, добавь ключевые слова, добавь кейворды, add these keywords to the article, track these keywords in Rank Math, добавь в Rank Math.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "keywords": {
+            "description": "Comma-separated keywords to add to the article and Rank Math",
+            "title": "Keywords",
+            "type": "string"
+          },
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "keywords"
+        ],
+        "title": "AddKeywordsParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "check_seo_meta",
+      "description": "Show Rank Math SEO settings for the current article — focus keyword, secondary keywords, meta description, excerpt, WP status. Use when user asks: покажи Rank Math, SEO настройки статьи, какой focus keyword, meta description, rank math score, SEO статус статьи, что в Rank Math.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {
+          "content_id": {
+            "default": "",
+            "description": "Content item ID — leave empty to use currently open item",
+            "title": "Content Id",
+            "type": "string"
+          },
+          "keyword_hint": {
+            "default": "",
+            "description": "Post title/keyword to find if no content_id",
+            "title": "Keyword Hint",
+            "type": "string"
+          }
+        },
+        "title": "CheckSeoMetaParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
     }
   ],
   "signals": [],
   "schedules": [],
-  "required_scopes": []
+  "required_scopes": [],
+  "icon_size_bytes": 317,
+  "lifecycle": {
+    "health_check": {
+      "interval_sec": 60
+    }
+  }
 }
