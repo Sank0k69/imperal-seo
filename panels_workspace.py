@@ -149,146 +149,204 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
 # ── Rankings view ─────────────────────────────────────────────────────────────
 
 async def _rankings_view(ctx, state: dict) -> ui.UINode:
-    rankings = state.get("rankings_results") or []
+    rankings  = state.get("rankings_results") or []
+    ai_data   = state.get("ai_traffic") or {}
     refresh_btn = ui.Form(action="fetch_rankings", submit_label="↻ Refresh", children=[])
 
     if not rankings:
-        return ui.Page(
-            title="SEO Rankings",
-            children=[
-                ui.Alert(
-                    message="No rankings loaded yet. Click Refresh to pull your keyword positions from SE Ranking.",
-                    type="info",
-                ),
-                ui.Form(action="fetch_rankings", submit_label="↻ Load Rankings", children=[]),
-            ],
-        )
+        return ui.Stack(children=[
+            ui.Stack(direction="horizontal", justify="between", children=[
+                ui.Header(text="SEO Rankings", level=3),
+                refresh_btn,
+            ]),
+            ui.Alert(message="Нет данных. Нажми ↻ Refresh чтобы загрузить позиции из SE Ranking.", type="info"),
+            ui.Form(action="fetch_rankings", submit_label="↻ Load Rankings", children=[]),
+        ])
 
     # ── Compute metrics ────────────────────────────────────────────────────────
-    ranked   = [r for r in rankings if r.get("position", 0) > 0]
-    top3     = sum(1 for r in ranked if r.get("position", 99) <= 3)
-    top10    = sum(1 for r in ranked if r.get("position", 99) <= 10)
-    top30    = sum(1 for r in ranked if r.get("position", 99) <= 30)
-    top100   = sum(1 for r in ranked if r.get("position", 99) <= 100)
-    not_rank = len(rankings) - len(ranked)
+    ranked    = [r for r in rankings if r.get("position", 0) > 0]
+    top3      = sum(1 for r in ranked if r.get("position", 99) <= 3)
+    top10     = sum(1 for r in ranked if r.get("position", 99) <= 10)
+    top30     = sum(1 for r in ranked if r.get("position", 99) <= 30)
+    top100    = sum(1 for r in ranked if r.get("position", 99) <= 100)
+    not_rank  = len(rankings) - len(ranked)
     total_vol = sum(r.get("volume", 0) for r in rankings)
 
-    # Change: positive = moved UP (lower position = better)
-    gainers = []
-    losers  = []
+    gainers, losers = [], []
     for r in ranked:
         prev = r.get("previous_position", 0)
         curr = r.get("position", 0)
         if prev and curr and prev != curr:
-            change = prev - curr  # positive = moved up
+            change = prev - curr
             entry  = {**r, "_change": change}
-            if change > 0:
-                gainers.append(entry)
-            else:
-                losers.append(entry)
+            (gainers if change > 0 else losers).append(entry)
     gainers = sorted(gainers, key=lambda x: -x["_change"])[:8]
-    losers  = sorted(losers,  key=lambda x: x["_change"])[:8]
+    losers  = sorted(losers,  key=lambda x:  x["_change"])[:8]
 
-    # Position distribution for chart
-    buckets = {"Top 3": top3, "4-10": top10-top3, "11-30": top30-top10,
-               "31-100": top100-top30, "Not ranked": not_rank}
-    chart_data = [{"label": k, "value": v} for k, v in buckets.items() if v > 0]
-
-    # ── Header stats ──────────────────────────────────────────────────────────
+    # ── Stats row ─────────────────────────────────────────────────────────────
     stats = ui.Stats(children=[
-        ui.Stat(label="Total tracked",  value=str(len(rankings)),   icon="Target"),
-        ui.Stat(label="Top 3",          value=str(top3),            color="green",  icon="TrendingUp"),
-        ui.Stat(label="Top 10",         value=str(top10),           color="blue",   icon="Award"),
-        ui.Stat(label="Top 30",         value=str(top30),           color="yellow", icon="BarChart2"),
-        ui.Stat(label="Monthly volume", value=f"{total_vol:,}",     icon="Eye"),
+        ui.Stat(label="Tracked",        value=str(len(rankings)), icon="Target"),
+        ui.Stat(label="Top 3",          value=str(top3),   color="green",  icon="TrendingUp"),
+        ui.Stat(label="Top 10",         value=str(top10),  color="blue",   icon="Award"),
+        ui.Stat(label="Top 30",         value=str(top30),  color="yellow", icon="BarChart2"),
+        ui.Stat(label="Not ranked",     value=str(not_rank), color="gray", icon="Minus"),
+        ui.Stat(label="Monthly volume", value=f"{total_vol:,}", icon="Eye"),
     ])
 
-    # ── Position chart ────────────────────────────────────────────────────────
-    chart = ui.Section(title="Position Distribution", children=[
+    # ── Position distribution chart ───────────────────────────────────────────
+    buckets = [
+        {"label": "Top 3",       "value": top3},
+        {"label": "4–10",        "value": top10 - top3},
+        {"label": "11–30",       "value": top30 - top10},
+        {"label": "31–100",      "value": top100 - top30},
+        {"label": "Not ranked",  "value": not_rank},
+    ]
+    pos_chart = ui.Section(title="Position Distribution", collapsible=False, children=[
         ui.Chart(
             type="bar",
-            data=chart_data,
+            data=[b for b in buckets if b["value"] > 0],
             x_key="label",
             y_keys=["value"],
             colors={"value": "#3b82f6"},
-            height=180,
+            height=160,
         ),
-    ], collapsible=False)
+    ])
 
-    # ── Top movers ─────────────────────────────────────────────────────────────
-    def _change_label(change: int) -> str:
-        return f"▲ {change}" if change > 0 else f"▼ {abs(change)}"
+    # ── AI Traffic section ────────────────────────────────────────────────────
+    ai_sources    = ai_data.get("sources", [])
+    ai_total      = ai_data.get("total_visits", 0)
+    ai_change_pct = ai_data.get("total_change_pct", 0)
+    ai_sign       = "+" if ai_change_pct >= 0 else ""
 
-    def _mover_table(items: list, title: str, color: str) -> ui.UINode:
-        if not items:
-            return ui.Empty(message=f"No {title.lower()} this period")
-        rows = [
+    if ai_sources:
+        ai_chart_data = [{"label": s["source"], "value": s["visits"]} for s in ai_sources[:8] if s["visits"] > 0]
+        ai_rows = [
+            {
+                "source":  s["source"],
+                "visits":  str(s["visits"]),
+                "prev":    str(s["prev_visits"]),
+                "change":  f"{'+' if s['change'] >= 0 else ''}{s['change_pct']}%",
+                "trend":   "▲" if s["trend"] == "up" else ("▼" if s["trend"] == "down" else "—"),
+            }
+            for s in ai_sources
+        ]
+        ai_section = ui.Section(
+            title=f"🤖 AI Traffic — {ai_total} visits ({ai_sign}{ai_change_pct}% vs last month)",
+            collapsible=False,
+            children=[
+                ui.Text(
+                    content=f"Traffic from ChatGPT, Perplexity, Gemini, Claude and other AI sources.",
+                    variant="caption",
+                ),
+                ui.Chart(
+                    type="bar",
+                    data=ai_chart_data,
+                    x_key="label",
+                    y_keys=["value"],
+                    colors={"value": "#8b5cf6"},
+                    height=140,
+                ) if ai_chart_data else ui.Empty(message="No chart data"),
+                ui.DataTable(
+                    columns=[
+                        ui.DataColumn(key="source", label="AI Source", width="30%"),
+                        ui.DataColumn(key="visits", label="Visits",    width="15%"),
+                        ui.DataColumn(key="prev",   label="Last mo.",  width="15%"),
+                        ui.DataColumn(key="change", label="Change",    width="20%"),
+                        ui.DataColumn(key="trend",  label="↕",         width="10%"),
+                    ],
+                    rows=ai_rows,
+                ),
+            ],
+        )
+    else:
+        ai_section = ui.Section(
+            title="🤖 AI Traffic",
+            collapsible=True,
+            children=[
+                ui.Alert(
+                    message="Configure Matomo in Settings to see AI referrer traffic (ChatGPT, Perplexity, Gemini, etc.)",
+                    type="info",
+                ),
+            ],
+        )
+
+    # ── Top movers ────────────────────────────────────────────────────────────
+    def _chg(c: int) -> str:
+        return f"▲ {c}" if c > 0 else f"▼ {abs(c)}"
+
+    def _mover_rows(items: list) -> list:
+        return [
             {
                 "pos":     str(r.get("position", "—")),
-                "change":  _change_label(r["_change"]),
-                "keyword": r.get("keyword", "—")[:40],
+                "chg":     _chg(r["_change"]),
+                "keyword": r.get("keyword", "—")[:38],
                 "vol":     f"{r.get('volume', 0):,}" if r.get("volume") else "—",
             }
             for r in items
         ]
-        return ui.DataTable(
-            columns=[
-                ui.DataColumn(key="pos",     label="#",       width="8%"),
-                ui.DataColumn(key="change",  label="Change",  width="15%"),
-                ui.DataColumn(key="keyword", label="Keyword", width="57%"),
-                ui.DataColumn(key="vol",     label="Vol",     width="20%"),
-            ],
-            rows=rows,
-        )
 
-    movers = ui.Stack(direction="h", gap=3, children=[
-        ui.Section(title=f"🚀 Top Gainers ({len(gainers)})", collapsible=False, children=[
-            _mover_table(gainers, "Top Gainers", "green"),
+    mover_cols = [
+        ui.DataColumn(key="pos",     label="#",       width="8%"),
+        ui.DataColumn(key="chg",     label="±",       width="14%"),
+        ui.DataColumn(key="keyword", label="Keyword", width="58%"),
+        ui.DataColumn(key="vol",     label="Vol",     width="20%"),
+    ]
+
+    movers = ui.Stack(direction="horizontal", gap=3, children=[
+        ui.Section(title=f"🚀 Gainers ({len(gainers)})", collapsible=False, children=[
+            ui.DataTable(columns=mover_cols, rows=_mover_rows(gainers))
+            if gainers else ui.Text(content="No gainers this period", variant="caption"),
         ]),
-        ui.Section(title=f"📉 Top Losers ({len(losers)})", collapsible=False, children=[
-            _mover_table(losers, "Top Losers", "red"),
+        ui.Section(title=f"📉 Losers ({len(losers)})", collapsible=False, children=[
+            ui.DataTable(columns=mover_cols, rows=_mover_rows(losers))
+            if losers else ui.Text(content="No losers this period", variant="caption"),
         ]),
     ])
 
-    # ── Full table ─────────────────────────────────────────────────────────────
+    # ── Full keyword table ────────────────────────────────────────────────────
     all_rows = [
         {
-            "pos":     str(r.get("position", "—")),
-            "prev":    ("▲" if (r.get("previous_position", 0) or 0) > (r.get("position", 0) or 0)
-                        else "▼" if (r.get("previous_position", 0) or 0) < (r.get("position", 0) or 0)
-                        else "—") if r.get("previous_position") else "—",
-            "keyword": r.get("keyword", "—"),
-            "url":     (r.get("url") or "")[-45:],
-            "vol":     f"{r.get('volume', 0):,}" if r.get("volume") else "—",
+            "pos":  str(r.get("position") or "—"),
+            "chg":  ("▲" if (r.get("previous_position") or 0) > (r.get("position") or 0)
+                     else "▼" if (r.get("previous_position") or 0) < (r.get("position") or 0)
+                     else "—") if r.get("previous_position") else "—",
+            "kw":   r.get("keyword", "—"),
+            "url":  (r.get("url") or "")[-40:],
+            "vol":  f"{r.get('volume', 0):,}" if r.get("volume") else "—",
+            "diff": f"{r.get('difficulty', 0):.0f}" if r.get("difficulty") else "—",
         }
-        for r in sorted(rankings, key=lambda x: x.get("position", 9999))[:200]
+        for r in sorted(rankings, key=lambda x: x.get("position") or 9999)[:200]
     ]
-    full_table = ui.Section(title=f"All Keywords ({len(rankings)})", collapsible=True, children=[
-        ui.DataTable(
-            columns=[
-                ui.DataColumn(key="pos",     label="#",       width="7%"),
-                ui.DataColumn(key="prev",    label="±",       width="5%"),
-                ui.DataColumn(key="keyword", label="Keyword", width="43%"),
-                ui.DataColumn(key="url",     label="Page",    width="30%"),
-                ui.DataColumn(key="vol",     label="Vol",     width="15%"),
-            ],
-            rows=all_rows,
-        ),
-    ])
-
-    return ui.Page(
-        title="SEO Rankings",
+    full_table = ui.Section(
+        title=f"All Keywords ({len(rankings)}) — sorted by position",
+        collapsible=True,
         children=[
-            ui.Stack(direction="h", justify="between", align="center", children=[
-                ui.Text(content="Keyword positions from SE Ranking", variant="caption"),
-                refresh_btn,
-            ]),
-            stats,
-            chart,
-            movers,
-            full_table,
+            ui.DataTable(
+                columns=[
+                    ui.DataColumn(key="pos",  label="#",        width="6%"),
+                    ui.DataColumn(key="chg",  label="±",        width="5%"),
+                    ui.DataColumn(key="kw",   label="Keyword",  width="38%"),
+                    ui.DataColumn(key="url",  label="Page",     width="30%"),
+                    ui.DataColumn(key="vol",  label="Vol",      width="12%"),
+                    ui.DataColumn(key="diff", label="Diff",     width="9%"),
+                ],
+                rows=all_rows,
+            ),
         ],
     )
+
+    return ui.Stack(children=[
+        ui.Stack(direction="horizontal", justify="between", align="center", children=[
+            ui.Header(text="SEO Rankings", level=3),
+            refresh_btn,
+        ]),
+        ui.Text(content="SE Ranking positions + Matomo AI referrers", variant="caption"),
+        stats,
+        pos_chart,
+        ai_section,
+        movers,
+        full_table,
+    ])
 
 
 # ── Keywords view ─────────────────────────────────────────────────────────────
