@@ -116,14 +116,52 @@ async def save_ui_state(ctx, values: dict, persist: bool = False) -> dict:
     return merged
 
 
-# ── Content store — backed by MOS SQLite (user-isolated) ─────────────────────
+# ── Content store — MOS primary, ctx.store fallback + silent auto-migrate ─────
+
+async def _store_list(ctx) -> list[dict]:
+    """Read legacy ctx.store content items."""
+    try:
+        page = await ctx.store.query(CONTENT_COL, limit=200)
+        docs = getattr(page, "data", None) or []
+        items = []
+        for d in docs:
+            if isinstance(getattr(d, "data", None), dict):
+                item = dict(d.data)
+                item["id"] = d.id
+                items.append(item)
+        return items
+    except Exception:
+        return []
+
+
+async def _auto_migrate(ctx, store_items: list[dict]) -> list[dict]:
+    """Silently copy ctx.store items to MOS on first access. Fire-and-forget."""
+    from api_client import mos_content_create, mos_content_list
+    try:
+        for item in store_items:
+            copy = {k: v for k, v in item.items() if k != "id"}
+            await mos_content_create(ctx, copy)
+    except Exception:
+        pass
+    try:
+        return await mos_content_list(ctx)
+    except Exception:
+        return store_items
+
 
 async def list_content(ctx, status: str | None = None) -> list[dict]:
     from api_client import mos_content_list
     try:
         items = await mos_content_list(ctx)
     except Exception:
-        return []
+        items = []
+
+    # MOS empty → check ctx.store and auto-migrate silently
+    if not items:
+        store_items = await _store_list(ctx)
+        if store_items:
+            items = await _auto_migrate(ctx, store_items)
+
     if status:
         items = [i for i in items if i.get("status") == status]
     return items
@@ -133,9 +171,14 @@ async def get_content(ctx, content_id: str) -> dict | None:
     from api_client import mos_content_get
     try:
         result = await mos_content_get(ctx, content_id)
-        return result.get("item") or None
+        item = result.get("item") or None
+        if item:
+            return item
     except Exception:
-        return None
+        pass
+    # Fallback: search ctx.store by id
+    store_items = await _store_list(ctx)
+    return next((i for i in store_items if i.get("id") == content_id), None)
 
 
 async def create_content(ctx, data: dict) -> str:
