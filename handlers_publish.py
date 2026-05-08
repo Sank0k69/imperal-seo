@@ -2,7 +2,7 @@
 import re
 import time
 
-from imperal_sdk import ActionResult
+from imperal_sdk import ActionResult, ui
 from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, get_content, update_content, load_settings, load_ui_state, list_content
@@ -413,12 +413,11 @@ async def save_settings_fn(ctx, params: SaveSettingsParams) -> ActionResult:
 )
 async def list_wp_posts(ctx, params: ListWpPostsParams) -> ActionResult:
     """Fetch and display WordPress posts."""
-    from imperal_sdk import ui
     s = await load_settings(ctx)
     if not s.get("wp_app_password"):
         return ActionResult.error(error="WordPress not configured. Add credentials in Settings.")
 
-    from api_client import _post as _mos_post
+    _mos_post = _post  # already imported at module level
     # Paginate to fetch ALL posts
     all_posts = []
     page = 1
