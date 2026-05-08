@@ -1,9 +1,10 @@
 """SE Ranking handlers — keywords, gaps, rankings, content plan."""
-from imperal_sdk import ActionResult
+from imperal_sdk import ActionResult, ui
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from app import chat, load_settings, save_ui_state, create_content
-from api_client import ser_keywords, ser_gaps, ser_rankings, ser_projects, content_plan
+from app import chat, load_settings, save_settings, save_ui_state, create_content, list_content
+from api_client import ser_keywords, ser_gaps, ser_rankings, ser_projects, content_plan, _post
+from handlers_docs import _load_docs
 from params import FetchKeywordsParams, FetchGapsParams, FetchRankingsParams, ListProjectsParams, BuildPlanParams, SetupBlogStyleParams
 
 
@@ -132,7 +133,6 @@ async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
     language = params.language or "en"
     competitor = params.competitor or s.get("seranking_competitor", "")
 
-    from app import list_content
     existing_items = await list_content(ctx)
     existing_kws = [i.get("keyword") or i.get("title") or "" for i in existing_items if i.get("keyword") or i.get("title")]
 
@@ -196,11 +196,6 @@ async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
 )
 async def setup_blog_style(ctx, params: SetupBlogStyleParams) -> ActionResult:
     """Analyze blog writing style and save as active brand profile."""
-    from app import save_settings
-    from api_client import _post
-    from handlers_docs import _load_docs
-    from imperal_sdk import ui
-
     s = await load_settings(ctx)
     blog_url = params.blog_url or s.get("blog_url", "")
     if not blog_url:
