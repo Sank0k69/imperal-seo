@@ -13,9 +13,11 @@ from params import ImproveArticleParams, GenerateNewsletterParams
 @chat.function(
     "improve_article",
     description=(
-        "Improve an existing article for SEO and AI-search visibility. "
-        "Adds FAQ section if missing, sharpens H2 structure, makes answers more direct, "
-        "adds comparison tables where helpful. Uses async job — check with check_article_job."
+        "Fully improve/rewrite the current article for SEO and quality. "
+        "Use when user says: improve article, make it better, full rewrite, "
+        "улучши статью, перепиши полностью, сделай лучше, SEO улучшение, "
+        "добавь FAQ, оптимизируй под SEO. "
+        "Adds FAQ, sharpens structure, improves keyword density. Async — ~60s."
     ),
     action_type="write",
     chain_callable=True,
