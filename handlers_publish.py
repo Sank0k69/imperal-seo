@@ -562,7 +562,7 @@ async def get_article_link(ctx, params: GetArticleLinkParams) -> ActionResult:
             summary=f"**{title}**\nStatus: {status}\nURL: {link}",
         )
 
-    # Fallback: search WP directly
+    # Fallback: search WP directly (all posts any status)
     data = await _post(ctx, "/api/wordpress/list", {
         "wp_url": s["wp_url"], "wp_user": s["wp_username"],
         "wp_password": s["wp_app_password"],
@@ -570,8 +570,27 @@ async def get_article_link(ctx, params: GetArticleLinkParams) -> ActionResult:
     })
     posts = data.get("posts", [])
     found = [p for p in posts if query in (p.get("title") or "").lower()]
+
+    # Also search by slug
     if not found:
-        return ActionResult.error(error=f"No post found matching '{params.title_or_keyword}'.")
+        slug_query = query.replace(" ", "-")
+        found = [p for p in posts if slug_query in (p.get("slug") or p.get("link") or "").lower()]
+
+    if not found:
+        # Last resort: show all posts so user can pick
+        all_rows = [{"title": p.get("title","")[:55], "status": p.get("status",""), "link": p.get("link","")} for p in posts[:20]]
+        return ActionResult.success(
+            {"posts": posts, "query": query},
+            summary=f"No exact match for '{params.title_or_keyword}'. Showing recent 20 posts — pick one:",
+            ui=ui.DataTable(
+                columns=[
+                    ui.DataColumn(key="title", label="Title", width="50%"),
+                    ui.DataColumn(key="status", label="Status", width="15%"),
+                    ui.DataColumn(key="link", label="URL", width="35%"),
+                ],
+                rows=all_rows,
+            ),
+        )
 
     rows = [{"title": p.get("title","")[:55], "status": p.get("status",""), "link": p.get("link","")} for p in found[:5]]
     return ActionResult.success(
@@ -693,10 +712,46 @@ async def add_keywords_to_article(ctx, params: AddKeywordsParams) -> ActionResul
 )
 async def check_seo_meta(ctx, params: CheckSeoMetaParams) -> ActionResult:
     s = await load_settings(ctx)
+
+    # Detect WP post ID (numeric ≤7 digits) — fetch from WP directly
+    raw_id = params.content_id.strip() if params.content_id else ""
+    if raw_id.isdigit() and len(raw_id) <= 7:
+        if not s.get("wp_app_password"):
+            return ActionResult.error(error="WordPress not configured. Add credentials in Settings.")
+        wp_data = await _post(ctx, "/api/wordpress/get", {
+            "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+            "wp_password": s["wp_app_password"], "post_id": int(raw_id),
+        })
+        if "error" in wp_data:
+            return ActionResult.error(error=f"WP post {raw_id} not found: {wp_data['error']}")
+        content_html = wp_data.get("content", "")
+        word_count   = len(re.sub(r"<[^>]+>", " ", content_html).split()) if content_html else 0
+        title        = wp_data.get("title", "—")
+        link         = wp_data.get("link", "")
+        wp_status    = wp_data.get("status", "")
+        rows = [
+            {"field": "Title",       "value": title[:60]},
+            {"field": "WP Post ID",  "value": raw_id},
+            {"field": "Status",      "value": wp_status},
+            {"field": "URL",         "value": link},
+            {"field": "Word count",  "value": str(word_count)},
+            {"field": "Note",        "value": "Import to Content Plan via import_from_wp to see full SEO meta"},
+        ]
+        table = ui.DataTable(
+            columns=[ui.DataColumn(key="field", label="Field", width="35%"),
+                     ui.DataColumn(key="value", label="Value", width="65%")],
+            rows=rows,
+        )
+        return ActionResult.success(
+            {"wp_post_id": raw_id, "title": title, "word_count": word_count},
+            summary=f"WP Post #{raw_id}: '{title}'\nStatus: {wp_status} | Words: {word_count}\nURL: {link}",
+            ui=table,
+        )
+
     cid = await _resolve_id(ctx, params.content_id, params.keyword_hint)
     item = await get_content(ctx, cid)
     if not item:
-        return ActionResult.error(error="No article found. Open one from Content Plan or specify a keyword.")
+        return ActionResult.error(error="No article found. Open one from Content Plan, or specify keyword name.")
 
     keyword    = item.get("keyword", "—")
     sec_kws    = item.get("secondary_keywords") or []

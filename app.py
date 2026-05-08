@@ -16,8 +16,16 @@ chat = ChatExtension(
     ext,
     tool_name="wp_blogger",
     description=(
-        "WP Blogger. Keyword research, rankings tracking, "
-        "content plan, AI article writing, publish to WordPress."
+        "WP Blogger — SEO content studio for WordPress blogs. Use for: "
+        "keyword research (найди ключевые слова, find keywords), "
+        "SEO rankings/positions (покажи позиции в гугл, SEO rankings), "
+        "content plan generation (придумай контент план), "
+        "AI article writing and rewriting (напиши статью, перепиши), "
+        "WordPress publish/unpublish (опубликуй, сними с публикации), "
+        "get article links (дай ссылку на статью X), "
+        "Rank Math SEO settings (покажи rank math, SEO настройки статьи), "
+        "add/remove tracked keywords in SE Ranking, "
+        "check article quality, manage content plan items."
     ),
     max_rounds=10,
 )
