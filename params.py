@@ -170,3 +170,27 @@ class ListWpPostsParams(BaseModel):
 class ImportFromWpParams(BaseModel):
     post_id: Optional[int] = Field(None, description='WordPress post ID to import')
     keyword_hint: Optional[str] = Field(None, description='Post title or keyword to search for in WordPress')
+
+
+class UnpublishWpParams(BaseModel):
+    content_id: str = Field('', description='Content item ID — leave empty to use currently open item')
+    keyword_hint: str = Field('', description='Post title/keyword to find if no content_id')
+
+
+class GetArticleLinkParams(BaseModel):
+    title_or_keyword: str = Field(..., description='Title or keyword to search for in WordPress posts')
+
+
+class RewriteArticleParams(BaseModel):
+    content_id: str = Field('', description='Content item ID — leave empty to use currently open item')
+    instruction: str = Field('', description='Optional focus for the rewrite (e.g. "more conversational tone", "comparison style")')
+
+
+class AddKeywordsParams(BaseModel):
+    keywords: str = Field(..., description='Comma-separated keywords to add to the article and Rank Math')
+    content_id: str = Field('', description='Content item ID — leave empty to use currently open item')
+
+
+class CheckSeoMetaParams(BaseModel):
+    content_id: str = Field('', description='Content item ID — leave empty to use currently open item')
+    keyword_hint: str = Field('', description='Post title/keyword to find if no content_id')

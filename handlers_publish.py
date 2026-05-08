@@ -9,7 +9,9 @@ from app import chat, get_content, update_content, load_settings, load_ui_state,
 from app import save_settings as _save_settings
 from api_client import log_action, _post
 from api_wordpress import create_post, update_post
-from params import PublishWpParams, SaveSettingsParams, SetWpSeoParams, ListWpPostsParams
+from params import (PublishWpParams, SaveSettingsParams, SetWpSeoParams, ListWpPostsParams,
+                    UnpublishWpParams, GetArticleLinkParams, RewriteArticleParams,
+                    AddKeywordsParams, CheckSeoMetaParams)
 
 
 async def _resolve_id(ctx, content_id: str, keyword_hint: str = "") -> str:
@@ -477,3 +479,292 @@ async def list_wp_posts(ctx, params: ListWpPostsParams) -> ActionResult:
         summary=f"{len(posts)} posts found: {published} published, {drafts} drafts.",
         ui=table,
     )
+
+
+# ── Unpublish ─────────────────────────────────────────────────────────────────
+
+@chat.function(
+    "unpublish_wp",
+    description=(
+        "Set a WordPress post back to draft (unpublish). "
+        "Use when user says: unpublish, снять с публикации, перевести в черновик, "
+        "скрыть статью, убрать с сайта, set to draft."
+    ),
+    action_type="write",
+    chain_callable=True,
+    effects=["update:post"],
+    event="seo.content.updated",
+)
+async def unpublish_wp(ctx, params: UnpublishWpParams) -> ActionResult:
+    s = await load_settings(ctx)
+    if not s.get("wp_app_password"):
+        return ActionResult.error(error="WordPress not configured. Add credentials in Settings.")
+
+    cid = await _resolve_id(ctx, params.content_id, params.keyword_hint)
+    item = await get_content(ctx, cid) if cid else None
+    wp_id = int(item.get("wp_post_id")) if item and item.get("wp_post_id") else None
+    if not wp_id:
+        return ActionResult.error(error="No WP post ID. Publish to WordPress first.")
+
+    data = await _post(ctx, "/api/wordpress/update", {
+        "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+        "wp_password": s["wp_app_password"],
+        "post_id": wp_id, "status": "draft",
+    })
+    if "error" in data:
+        return ActionResult.error(error=data["error"])
+
+    if item and cid:
+        await update_content(ctx, cid, {"status": "review"})
+
+    return ActionResult.success(
+        {"post_id": wp_id, "status": "draft"},
+        summary=f"Post #{wp_id} set to draft. Removed from public site.",
+    )
+
+
+# ── Get article link ──────────────────────────────────────────────────────────
+
+@chat.function(
+    "get_article_link",
+    description=(
+        "Find a WordPress post by title/keyword and return its URL. "
+        "Use when user asks: дай ссылку на статью X, link to post about X, "
+        "where is article X, URL статьи, ссылка на черновик X."
+    ),
+    action_type="read",
+)
+async def get_article_link(ctx, params: GetArticleLinkParams) -> ActionResult:
+    s = await load_settings(ctx)
+    if not s.get("wp_app_password"):
+        return ActionResult.error(error="WordPress not configured.")
+
+    # Search in MOS content items first
+    items = await list_content(ctx)
+    query = params.title_or_keyword.lower()
+    matches = [
+        i for i in items
+        if query in (i.get("keyword") or "").lower() or query in (i.get("title") or "").lower()
+    ]
+    if matches and matches[0].get("wp_post_id"):
+        item = matches[0]
+        # Fetch live link from WP
+        data = await _post(ctx, "/api/wordpress/get", {
+            "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+            "wp_password": s["wp_app_password"],
+            "post_id": int(item["wp_post_id"]),
+        })
+        link  = data.get("link", "")
+        title = data.get("title") or item.get("title") or item.get("keyword", "")
+        status = data.get("status", "unknown")
+        return ActionResult.success(
+            {"link": link, "title": title, "status": status, "post_id": item["wp_post_id"]},
+            summary=f"**{title}**\nStatus: {status}\nURL: {link}",
+        )
+
+    # Fallback: search WP directly
+    data = await _post(ctx, "/api/wordpress/list", {
+        "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+        "wp_password": s["wp_app_password"],
+        "per_page": 100, "page": 1, "status": "any",
+    })
+    posts = data.get("posts", [])
+    found = [p for p in posts if query in (p.get("title") or "").lower()]
+    if not found:
+        return ActionResult.error(error=f"No post found matching '{params.title_or_keyword}'.")
+
+    rows = [{"title": p.get("title","")[:55], "status": p.get("status",""), "link": p.get("link","")} for p in found[:5]]
+    return ActionResult.success(
+        {"posts": found},
+        summary="\n".join(f"**{r['title']}** ({r['status']})\n{r['link']}" for r in rows),
+    )
+
+
+# ── Rewrite article ───────────────────────────────────────────────────────────
+
+@chat.function(
+    "rewrite_article",
+    description=(
+        "Fully rewrite the current article from scratch with improved structure and quality. "
+        "Use when user says: rewrite completely, полностью перепиши, перепиши статью заново, "
+        "новая версия статьи, full rewrite, rewrite from scratch. "
+        "Different from improve_article (which adds sections) — this regenerates the whole article."
+    ),
+    action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
+    event="seo.content.updated",
+)
+async def rewrite_article(ctx, params: RewriteArticleParams) -> ActionResult:
+    import time as _time
+    cid = await _resolve_id(ctx, params.content_id)
+    item = await get_content(ctx, cid)
+    if not item:
+        return ActionResult.error(error="No article open. Open an article from Content Plan first.")
+
+    keyword = item.get("keyword", "")
+    instruction = params.instruction or "full rewrite — better structure, more engaging, stronger intro"
+
+    t0 = _time.monotonic()
+    data = await _post(ctx, "/api/content/refine/start", {
+        "content":     item.get("content", ""),
+        "keyword":     keyword,
+        "instruction": f"FULL REWRITE: {instruction}. Keep the same keyword focus. Minimum 2500 words.",
+    }, timeout=10)
+
+    if "error" in data:
+        return ActionResult.error(error=data["error"])
+
+    job_id = data.get("job_id", "")
+    await update_content(ctx, cid, {"generating": True})
+
+    return ActionResult.success(
+        {"job_id": job_id, "content_id": cid},
+        summary=f"Rewrite started for '{keyword}'. Job: {job_id}\nUse check_article_job to poll status (~60-90s).",
+    )
+
+
+# ── Add keywords to article ───────────────────────────────────────────────────
+
+@chat.function(
+    "add_keywords_to_article",
+    description=(
+        "Add keywords to the current article and update Rank Math SEO. "
+        "Use when user says: add keywords, добавь ключевые слова, "
+        "добавь кейворды, add these keywords to the article, "
+        "track these keywords in Rank Math, добавь в Rank Math."
+    ),
+    action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
+    event="seo.content.updated",
+)
+async def add_keywords_to_article(ctx, params: AddKeywordsParams) -> ActionResult:
+    s = await load_settings(ctx)
+    cid = await _resolve_id(ctx, params.content_id)
+    item = await get_content(ctx, cid)
+    if not item:
+        return ActionResult.error(error="No article open. Open an article from Content Plan first.")
+
+    new_kws = [k.strip() for k in params.keywords.split(",") if k.strip()]
+    existing = item.get("secondary_keywords") or []
+    if isinstance(existing, str):
+        existing = [k.strip() for k in existing.split(",") if k.strip()]
+    combined = list(dict.fromkeys(existing + new_kws))  # deduplicate preserving order
+
+    await update_content(ctx, cid, {"secondary_keywords": combined})
+
+    # Update Rank Math if post is published
+    wp_id = item.get("wp_post_id")
+    rm_updated = False
+    if wp_id and s.get("wp_app_password"):
+        focus_kw = item.get("keyword", "")
+        all_kws  = focus_kw + ", " + ", ".join(combined) if focus_kw else ", ".join(combined)
+        rm_data  = await _post(ctx, "/api/wordpress/update", {
+            "wp_url":        s["wp_url"],
+            "wp_user":       s["wp_username"],
+            "wp_password":   s["wp_app_password"],
+            "post_id":       int(wp_id),
+            "focus_keyword": all_kws,
+        })
+        rm_updated = "error" not in rm_data
+
+    summary = (
+        f"Added {len(new_kws)} keywords to article.\n"
+        f"Total secondary keywords: {len(combined)}\n"
+        f"Keywords: {', '.join(combined[:10])}\n"
+        + ("Rank Math updated in WordPress." if rm_updated else "Saved locally (not yet in WordPress — publish first).")
+    )
+    return ActionResult.success({"keywords": combined, "rank_math_updated": rm_updated}, summary=summary)
+
+
+# ── Check SEO meta ────────────────────────────────────────────────────────────
+
+@chat.function(
+    "check_seo_meta",
+    description=(
+        "Show Rank Math SEO settings for the current article — focus keyword, "
+        "secondary keywords, meta description, excerpt, WP status. "
+        "Use when user asks: покажи Rank Math, SEO настройки статьи, "
+        "какой focus keyword, meta description, rank math score, "
+        "SEO статус статьи, что в Rank Math."
+    ),
+    action_type="read",
+)
+async def check_seo_meta(ctx, params: CheckSeoMetaParams) -> ActionResult:
+    s = await load_settings(ctx)
+    cid = await _resolve_id(ctx, params.content_id, params.keyword_hint)
+    item = await get_content(ctx, cid)
+    if not item:
+        return ActionResult.error(error="No article found. Open one from Content Plan or specify a keyword.")
+
+    keyword    = item.get("keyword", "—")
+    sec_kws    = item.get("secondary_keywords") or []
+    if isinstance(sec_kws, str):
+        sec_kws = [k.strip() for k in sec_kws.split(",") if k.strip()]
+    meta_desc  = item.get("meta_description") or item.get("excerpt") or "—"
+    title      = item.get("title") or keyword
+    status     = item.get("status", "idea")
+    wp_id      = item.get("wp_post_id")
+    content    = item.get("content", "")
+    word_count = len(content.split()) if content else 0
+
+    # Check keyword density
+    kw_lower    = keyword.lower()
+    content_lc  = content.lower()
+    kw_count    = content_lc.count(kw_lower) if kw_lower else 0
+    kw_density  = round(kw_count / (word_count / 100), 2) if word_count > 0 else 0
+
+    # Fetch live WP data if published
+    wp_link = wp_status = ""
+    if wp_id and s.get("wp_app_password"):
+        try:
+            wp_data   = await _post(ctx, "/api/wordpress/get", {
+                "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+                "wp_password": s["wp_app_password"], "post_id": int(wp_id),
+            })
+            wp_link   = wp_data.get("link", "")
+            wp_status = wp_data.get("status", "")
+        except Exception:
+            pass
+
+    rows = [
+        {"field": "Focus keyword",    "value": keyword},
+        {"field": "Secondary KWs",    "value": ", ".join(sec_kws[:8]) or "—"},
+        {"field": "Meta description", "value": meta_desc[:100] if meta_desc != "—" else "—"},
+        {"field": "Title",            "value": title[:60]},
+        {"field": "Word count",       "value": str(word_count)},
+        {"field": "KW density",       "value": f"{kw_density}%" + (" ✅" if 0.5 <= kw_density <= 1.5 else " ⚠️ too low" if kw_density < 0.5 else " ⚠️ too high")},
+        {"field": "Status",           "value": f"{status}" + (f" → WP {wp_status}" if wp_status else "")},
+        {"field": "WP Post ID",       "value": str(wp_id) if wp_id else "not published"},
+        {"field": "URL",              "value": wp_link or "not published"},
+    ]
+
+    table = ui.DataTable(
+        columns=[
+            ui.DataColumn(key="field", label="Field", width="35%"),
+            ui.DataColumn(key="value", label="Value", width="65%"),
+        ],
+        rows=rows,
+    )
+
+    issues = []
+    if kw_density < 0.5 and word_count > 300:
+        issues.append(f"⚠️ Keyword density {kw_density}% — too low (aim 0.5–1.5%)")
+    if not sec_kws:
+        issues.append("⚠️ No secondary keywords — add with add_keywords_to_article")
+    if meta_desc == "—":
+        issues.append("⚠️ No meta description — run set_wp_seo")
+    if word_count < 1500:
+        issues.append(f"⚠️ Only {word_count} words — aim for 2000+")
+
+    summary = (
+        f"SEO Meta for '{keyword}':\n"
+        f"• Focus keyword: {keyword}\n"
+        f"• Secondary: {', '.join(sec_kws[:5]) or 'none'}\n"
+        f"• Words: {word_count} | KW density: {kw_density}%\n"
+        f"• Meta desc: {'set' if meta_desc != '—' else 'missing'}\n"
+        f"• WP: {'#' + str(wp_id) + ' ' + wp_status if wp_id else 'not published'}\n"
+        + (("\n" + "\n".join(issues)) if issues else "\n✅ SEO looks good!")
+    )
+    return ActionResult.success({"seo": rows, "issues": issues}, summary=summary, ui=table)
