@@ -9,7 +9,7 @@ from app import chat, get_content, update_content, load_settings, load_ui_state,
 from app import save_settings as _save_settings
 from api_client import log_action, _post
 from api_wordpress import create_post, update_post
-from params import PublishWpParams, SaveSettingsParams, SetWpSeoParams
+from params import PublishWpParams, SaveSettingsParams, SetWpSeoParams, ListWpPostsParams
 
 
 async def _resolve_id(ctx, content_id: str, keyword_hint: str = "") -> str:
@@ -398,4 +398,67 @@ async def save_settings_fn(ctx, params: SaveSettingsParams) -> ActionResult:
     return ActionResult.success(
         {"updated": list(updated.keys())},
         summary=f"Settings saved. Credentials configured: {', '.join(keys_set) or 'none'}",
+    )
+
+
+@chat.function(
+    "list_wp_posts",
+    description=(
+        "List published posts from the WordPress blog. "
+        "Use when user asks to see all articles, blog posts, what's published, recent posts. "
+        "Shows title, status, date, URL for each post."
+    ),
+    action_type="read",
+    event="",
+)
+async def list_wp_posts(ctx, params: ListWpPostsParams) -> ActionResult:
+    """Fetch and display WordPress posts."""
+    from imperal_sdk import ui
+    s = await load_settings(ctx)
+    if not s.get("wp_app_password"):
+        return ActionResult.error(error="WordPress not configured. Add credentials in Settings.")
+
+    from api_client import _post as _mos_post
+    data = await _mos_post(ctx, "/api/wordpress/list", {
+        "wp_url":      s["wp_url"],
+        "wp_user":     s["wp_username"],
+        "wp_password": s["wp_app_password"],
+        "per_page":    params.per_page or 20,
+        "status":      params.status or "any",
+    })
+
+    if "error" in data:
+        return ActionResult.error(error=data["error"])
+
+    posts = data.get("posts", [])
+    if not posts:
+        return ActionResult.success({}, summary="No posts found in WordPress blog.")
+
+    rows = [
+        {
+            "title":  p.get("title", "—")[:55],
+            "status": p.get("status", "—"),
+            "date":   p.get("date", "")[:10],
+            "link":   p.get("link", ""),
+        }
+        for p in posts
+    ]
+
+    table = ui.DataTable(
+        columns=[
+            ui.DataColumn(key="title",  label="Title",   width="50%"),
+            ui.DataColumn(key="status", label="Status",  width="12%"),
+            ui.DataColumn(key="date",   label="Date",    width="13%"),
+            ui.DataColumn(key="link",   label="URL",     width="25%"),
+        ],
+        rows=rows,
+    )
+
+    published = sum(1 for p in posts if p.get("status") == "publish")
+    drafts    = sum(1 for p in posts if p.get("status") == "draft")
+
+    return ActionResult.success(
+        {"posts": posts, "count": len(posts)},
+        summary=f"{len(posts)} posts found: {published} published, {drafts} drafts.",
+        ui=table,
     )

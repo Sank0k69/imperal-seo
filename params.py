@@ -160,3 +160,8 @@ class SetupBlogStyleParams(BaseModel):
 class PatchArticleParams(BaseModel):
     instruction: str
     content_id: str = Field('', description='Content item ID — leave empty to use currently open item')
+
+
+class ListWpPostsParams(BaseModel):
+    status: Optional[str] = Field('any', description='Post status: any, publish, draft')
+    per_page: Optional[int] = Field(20, description='Number of posts to return (max 50)')
