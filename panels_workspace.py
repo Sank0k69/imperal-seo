@@ -99,11 +99,11 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
 
     header_row_children = [
         ui.Header(text=title, level=3),
-        ui.Button(label="+ Find keywords", on_click=ui.Call("go_keywords")),
+        ui.Form(action="go_keywords", submit_label="+ Find keywords", children=[]),
     ]
     if plan_filter not in ("all", ""):
         header_row_children.append(
-            ui.Button(label="× All", on_click=ui.Call("go_plan")),
+            ui.Form(action="go_plan", submit_label="× All", children=[]),
         )
 
     build_plan_form = ui.Form(
@@ -144,7 +144,7 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
 
 async def _rankings_view(ctx, state: dict) -> ui.UINode:
     rankings = state.get("rankings_results") or []
-    refresh_btn = ui.Button(label="↻ Refresh", on_click=ui.Call("fetch_rankings"), variant="ghost", size="sm")
+    refresh_btn = ui.Form(action="fetch_rankings", submit_label="↻ Refresh", children=[])
 
     if not rankings:
         return ui.Page(

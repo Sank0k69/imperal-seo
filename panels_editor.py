@@ -50,13 +50,13 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool
     has_content = bool(content_html and len(content_html.strip()) > 100)
 
     # ── Header ────────────────────────────────────────────────────────────────
-    toggle_btn = ui.Button(label="Preview", on_click=ui.Call("go_preview")) \
+    toggle_btn = ui.Form(action="go_preview", submit_label="Preview", children=[]) \
         if mode == "edit" else \
-        ui.Button(label="← Edit", on_click=ui.Call("go_edit"))
+        ui.Form(action="go_edit", submit_label="← Edit", children=[])
 
     header = ui.Stack(children=[
         ui.Stack(children=[
-            ui.Button(label="← Plan", on_click=ui.Call("go_plan")),
+            ui.Form(action="go_plan", submit_label="← Plan", children=[]),
             ui.Header(text=title or kw, level=3),
             ui.Badge(label=status, color=STATUS_COLOR.get(status, "gray")),
         ], direction="horizontal", gap=8),
@@ -175,7 +175,7 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool
                     ),
                 ],
             ),
-            ui.Button(label="Hide editor", on_click=ui.Call("hide_editor_panel")),
+            ui.Form(action="hide_editor_panel", submit_label="Hide editor", children=[]),
         ]
     else:
         if has_content:
@@ -183,7 +183,7 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool
                 ui.Text(content=f"{word_count:,} words ready. Click Preview ↑ to read.", variant="caption"),
             )
         step3_children.append(
-            ui.Button(label="✏ Edit article", on_click=ui.Call("show_editor_panel")),
+            ui.Form(action="show_editor_panel", submit_label="✏ Edit article", children=[]),
         )
     step3 = ui.Section(title=step3_title, children=step3_children)
 
