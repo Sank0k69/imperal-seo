@@ -160,9 +160,8 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool
 
     # ── Edit mode continues below ─────────────────────────────────────────────
     step3_title = f"Step 3 — Edit & Save{f'  ·  {word_count:,} words' if word_count else ''}"
-    step3_children = []
     if show_editor:
-        step3_children += [
+        step3 = ui.Section(title=step3_title, children=[
             ui.Form(
                 action="save_draft",
                 submit_label="Save",
@@ -175,17 +174,22 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool
                     ),
                 ],
             ),
-            ui.Button(label="Hide editor", on_click=ui.Call("__panel__editor", active_view="editor", show_editor="0", note_id="board")),
-        ]
+            ui.Stack(direction="horizontal", children=[
+                ui.Button(label="Hide editor", on_click=ui.Call("__panel__editor", active_view="editor", show_editor="0", note_id="board"), size="sm", variant="ghost"),
+            ]),
+        ])
     else:
+        # Compact inline — no Section to avoid empty black void
+        edit_row_children = []
         if has_content:
-            step3_children.append(
-                ui.Text(content=f"{word_count:,} words ready. Click Preview ↑ to read.", variant="caption"),
-            )
-        step3_children.append(
-            ui.Button(label="✏ Edit article", on_click=ui.Call("__panel__editor", active_view="editor", show_editor="1", note_id="board")),
+            edit_row_children.append(ui.Text(content=f"{word_count:,} words ready.", variant="caption"))
+        edit_row_children.append(
+            ui.Button(label="✏ Edit article", on_click=ui.Call("__panel__editor", active_view="editor", show_editor="1", note_id="board"), size="sm"),
         )
-    step3 = ui.Section(title=step3_title, children=step3_children)
+        step3 = ui.Stack(children=[
+            ui.Text(content=step3_title, variant="caption"),
+            ui.Stack(direction="horizontal", gap=8, children=edit_row_children),
+        ])
 
     # ── Step 4: Publish ───────────────────────────────────────────────────────
     seo_done = bool(item.get("meta_description") or item.get("excerpt"))
