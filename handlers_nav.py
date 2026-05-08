@@ -3,7 +3,7 @@ from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, save_ui_state, create_content as _create, get_content as _get_content
-from params import OpenEditorParams, CreateContentParams, SetEditorModeParams, EmptyParams
+from params import OpenEditorParams, CreateContentParams, SetEditorModeParams, EmptyParams, ImportFromWpParams
 
 
 @chat.function("go_plan", description="Switch main panel to Content Plan view.", action_type="read", event="seo.nav.changed")
@@ -175,4 +175,93 @@ async def new_content(ctx, params: CreateContentParams) -> ActionResult:
     return ActionResult.success(
         {"id": item_id, "keyword": params.keyword},
         summary=f"Created '{params.keyword}' ({params.type}) and opened in editor",
+    )
+
+
+@chat.function(
+    "import_from_wp",
+    description=(
+        "Import an existing WordPress post into the Content Plan for editing. "
+        "Use when user wants to edit an existing WP article, draft, or post that was not created through this extension. "
+        "Accepts post ID or keyword/title to find the post. "
+        "After import, the post is available in Content Plan and can be edited, improved, or republished."
+    ),
+    action_type="write",
+    chain_callable=True,
+    effects=["create:content"],
+    event="seo.content.created",
+)
+async def import_from_wp(ctx, params: ImportFromWpParams) -> ActionResult:
+    """Pull a WP post into Content Plan so Webbee can edit it."""
+    from app import load_settings, create_content
+    from api_client import _post
+
+    s = await load_settings(ctx)
+    if not s.get("wp_app_password"):
+        return ActionResult.error(error="WordPress not configured. Add credentials in Settings.")
+
+    # Fetch post from WP via MOS
+    data = await _post(ctx, "/api/wordpress/get", {
+        "wp_url":      s["wp_url"],
+        "wp_user":     s["wp_username"],
+        "wp_password": s["wp_app_password"],
+        "post_id":     params.post_id,
+    }) if params.post_id else {}
+
+    # If no post_id, search by keyword in recent posts
+    if not data or "error" in data:
+        posts_data = await _post(ctx, "/api/wordpress/list", {
+            "wp_url":      s["wp_url"],
+            "wp_user":     s["wp_username"],
+            "wp_password": s["wp_app_password"],
+            "per_page":    50,
+            "status":      "any",
+        })
+        posts = posts_data.get("posts", []) if "error" not in posts_data else []
+        q = (params.keyword_hint or "").lower()
+        match = next(
+            (p for p in posts if q in (p.get("title") or "").lower() or q in (p.get("slug") or "").lower()),
+            None
+        )
+        if not match:
+            titles = [p.get("title", "")[:40] for p in posts[:10]]
+            return ActionResult.error(
+                error=f"Post '{params.keyword_hint}' not found in WordPress. Available: {', '.join(titles)}"
+            )
+        # Fetch full content
+        data = await _post(ctx, "/api/wordpress/get", {
+            "wp_url":      s["wp_url"],
+            "wp_user":     s["wp_username"],
+            "wp_password": s["wp_app_password"],
+            "post_id":     match["id"],
+        })
+
+    if "error" in data:
+        return ActionResult.error(error=f"Failed to fetch post: {data['error']}")
+
+    title   = data.get("title", "Imported post")
+    content = data.get("content", "")
+    slug    = data.get("slug", "")
+    wp_id   = data.get("id")
+    # keyword = slug → spaces
+    keyword = slug.replace("-", " ") if slug else title[:40].lower()
+
+    item_id = await create_content(ctx, {
+        "keyword":    keyword,
+        "title":      title,
+        "content":    content,
+        "status":     "review",
+        "type":       "blog",
+        "wp_post_id": wp_id,
+        "slug":       slug,
+    })
+    await save_ui_state(ctx, {"active_view": "editor", "selected_id": item_id, "editor_mode": "edit"})
+
+    return ActionResult.success(
+        {"item_id": item_id, "wp_post_id": wp_id, "title": title},
+        summary=(
+            f"✅ Imported '{title}' (WP #{wp_id}) into Content Plan.\n"
+            f"Article is now in Review status and open in editor.\n"
+            f"You can now edit, improve, or republish it."
+        ),
     )

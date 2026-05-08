@@ -165,3 +165,8 @@ class PatchArticleParams(BaseModel):
 class ListWpPostsParams(BaseModel):
     status: Optional[str] = Field('any', description='Post status: any, publish, draft')
     per_page: Optional[int] = Field(20, description='Number of posts to return (max 50)')
+
+
+class ImportFromWpParams(BaseModel):
+    post_id: Optional[int] = Field(None, description='WordPress post ID to import')
+    keyword_hint: Optional[str] = Field(None, description='Post title or keyword to search for in WordPress')
