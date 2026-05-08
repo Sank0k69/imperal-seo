@@ -132,7 +132,7 @@ async def _settings_view(ctx) -> ui.UINode:
     return ui.Stack(children=[
         ui.Stack(children=[
             ui.Header(text="Settings", level=3),
-            ui.Form(action="go_plan", submit_label="← Back", children=[]),
+            ui.Button(label="← Back", on_click=ui.Call("__panel__editor", active_view="plan", note_id="board")),
         ], direction="horizontal", justify="between"),
         ui.Alert(message="API keys stored encrypted per user.", type="info"),
         blog_style_section,

@@ -84,6 +84,23 @@ async def ser_gaps(ctx, domain: str, competitor: str, source: str, limit: int) -
     })
 
 
+async def fetch_ai_traffic(ctx) -> dict:
+    """Fetch AI referrer traffic from Matomo — current vs previous period."""
+    s = await load_settings(ctx)
+    matomo_url   = s.get("matomo_url", "")
+    matomo_token = s.get("matomo_token", "")
+    matomo_site  = s.get("matomo_site_id", 1)
+    if not matomo_url or not matomo_token:
+        return {"sources": [], "total_visits": 0, "prev_total_visits": 0, "total_change_pct": 0}
+    return await _post(ctx, "/api/analytics/ai-referrers", {
+        "matomo_url":     matomo_url,
+        "matomo_token":   matomo_token,
+        "matomo_site_id": matomo_site,
+        "period":         "month",
+        "date":           "today",
+    }, timeout=20)
+
+
 async def ser_rankings(ctx) -> dict:
     s = await load_settings(ctx)
     key = s.get("seranking_project_key", "")

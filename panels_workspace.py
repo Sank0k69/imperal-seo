@@ -35,6 +35,12 @@ async def workspace_panel(ctx, active_view: str = "", plan_filter: str = "", con
         updates: dict = {"active_view": active_view}
         if plan_filter:
             updates["plan_filter"] = plan_filter
+        editor_mode = _kw.get("editor_mode", "")
+        if editor_mode:
+            updates["editor_mode"] = editor_mode
+        show_editor = _kw.get("show_editor", "")
+        if show_editor != "":
+            updates["show_editor_panel"] = show_editor == "1"
         await save_ui_state(ctx, updates)
         state = {**state, **updates}
     view = active_view or state.get("active_view", "plan")
@@ -99,11 +105,11 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
 
     header_row_children = [
         ui.Header(text=title, level=3),
-        ui.Form(action="go_keywords", submit_label="+ Find keywords", children=[]),
+        ui.Button(label="+ Find keywords", on_click=ui.Call("__panel__editor", active_view="keywords", note_id="board")),
     ]
     if plan_filter not in ("all", ""):
         header_row_children.append(
-            ui.Form(action="go_plan", submit_label="× All", children=[]),
+            ui.Button(label="× All", on_click=ui.Call("__panel__editor", active_view="plan", note_id="board")),
         )
 
     build_plan_form = ui.Form(

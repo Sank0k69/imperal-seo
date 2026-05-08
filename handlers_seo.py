@@ -3,14 +3,20 @@ from imperal_sdk import ActionResult, ui
 from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, load_settings, save_settings, save_ui_state, create_content, list_content
-from api_client import ser_keywords, ser_gaps, ser_rankings, ser_projects, content_plan, _post
+from api_client import ser_keywords, ser_gaps, ser_rankings, ser_projects, content_plan, fetch_ai_traffic, _post
 from handlers_docs import _load_docs
 from params import FetchKeywordsParams, FetchGapsParams, FetchRankingsParams, ListProjectsParams, BuildPlanParams, SetupBlogStyleParams
 
 
 @chat.function(
     "fetch_keywords",
-    description="Fetch organic keywords for the domain from SE Ranking. Shows position, volume, difficulty.",
+    description=(
+        "Find keywords using SE Ranking — keyword research, volume, difficulty, positions. "
+        "Use when user asks: find keywords, what keywords to target, keyword ideas for topic X, "
+        "show me keywords for [topic], поиск ключевых слов, найди ключевые слова, "
+        "какие ключевики взять, keywords for [topic/niche]. "
+        "Uses configured domain by default. All params optional."
+    ),
     action_type="read",
     event="seo.nav.changed",
 )
@@ -39,7 +45,11 @@ async def fetch_keywords(ctx, params: FetchKeywordsParams) -> ActionResult:
 
 @chat.function(
     "fetch_gaps",
-    description="Find keyword gaps — keywords the competitor ranks for but our domain does not.",
+    description=(
+        "Find keyword gaps vs competitor — keywords competitor ranks for but we don't. "
+        "Use when user asks: what keywords am I missing, gap analysis, competitor keywords, "
+        "что я упускаю по ключевым словам, анализ конкурентов, keyword gaps."
+    ),
     action_type="read",
     event="seo.nav.changed",
 )
@@ -70,24 +80,51 @@ async def fetch_gaps(ctx, params: FetchGapsParams) -> ActionResult:
 
 @chat.function(
     "fetch_rankings",
-    description="Fetch keyword rankings from SE Ranking project (position tracking).",
+    description=(
+        "Fetch keyword positions from SE Ranking + AI traffic from Matomo. "
+        "Use when user asks: show rankings, what positions do I have, SEO positions, "
+        "покажи позиции, какие позиции в гугл, SEO Rankings, рейтинг ключевых слов, "
+        "сколько нас выдают ИИ, AI трафик, откуда идёт трафик от ИИ."
+    ),
     action_type="read",
     event="seo.nav.changed",
 )
 async def fetch_rankings(ctx, params: FetchRankingsParams) -> ActionResult:
-    """Fetch tracked keyword rankings from SE Ranking."""
-    data = await ser_rankings(ctx)
-    if "error" in data:
-        return ActionResult.error(error=data["error"])
+    """Fetch keyword rankings + AI referrer traffic in parallel."""
+    import asyncio
+    rankings_data, ai_data = await asyncio.gather(
+        ser_rankings(ctx),
+        fetch_ai_traffic(ctx),
+    )
+    if "error" in rankings_data:
+        return ActionResult.error(error=rankings_data["error"])
 
-    rankings = data.get("rankings", [])
-    await save_ui_state(ctx, {"active_view": "rankings", "rankings_results": rankings[:200]})
+    rankings = rankings_data.get("rankings", [])
+    await save_ui_state(ctx, {
+        "active_view": "rankings",
+        "rankings_results": rankings[:200],
+        "ai_traffic": ai_data,
+    })
 
-    top = sorted(rankings, key=lambda r: r.get("position", 999))[:5]
-    lines = [f"- #{r.get('position')} {r.get('keyword')} → {(r.get('url') or '/')[-50:]}" for r in top]
+    ranked = [r for r in rankings if r.get("position", 0) > 0]
+    top3   = sum(1 for r in ranked if r.get("position", 0) <= 3)
+    top10  = sum(1 for r in ranked if r.get("position", 0) <= 10)
+    top_kws = sorted(ranked, key=lambda r: r.get("position", 999))[:3]
+    lines  = [f"#{r['position']} {r['keyword']}" for r in top_kws]
+
+    ai_sources = ai_data.get("sources", [])
+    ai_total   = ai_data.get("total_visits", 0)
+    ai_change  = ai_data.get("total_change_pct", 0)
+    ai_line    = f"AI traffic: {ai_total} visits ({'+' if ai_change >= 0 else ''}{ai_change}% vs last month)" if ai_total else ""
+
+    summary = (
+        f"Loaded {len(rankings)} tracked keywords: {len(ranked)} ranked, {top3} top-3, {top10} top-10.\n"
+        f"Top positions: {', '.join(lines)}\n"
+        + (ai_line or "No AI referrer data (configure Matomo in Settings).")
+    )
     return ActionResult.success(
-        {"count": len(rankings), "rankings": rankings},
-        summary=f"Loaded {len(rankings)} tracked keywords.\nTop 5:\n" + "\n".join(lines),
+        {"count": len(rankings), "rankings": rankings, "ai_traffic": ai_data},
+        summary=summary,
     )
 
 
@@ -134,7 +171,13 @@ async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
     competitor = params.competitor or s.get("seranking_competitor", "")
 
     existing_items = await list_content(ctx)
-    existing_kws = [i.get("keyword") or i.get("title") or "" for i in existing_items if i.get("keyword") or i.get("title")]
+    # Only hard-block written/published content — ideas don't block new suggestions
+    HARD_BLOCK_STATUSES = {"writing", "review", "published"}
+    existing_kws = [
+        i.get("keyword") or i.get("title") or ""
+        for i in existing_items
+        if (i.get("keyword") or i.get("title")) and i.get("status", "idea") in HARD_BLOCK_STATUSES
+    ]
 
     data = await content_plan(ctx, competitor=competitor, language=language, existing_keywords=existing_kws)
     if "error" in data:
@@ -142,7 +185,11 @@ async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
 
     articles = data.get("articles", [])
     if not articles:
-        return ActionResult.error(error="AI returned no articles. Try again or check SE Ranking data.")
+        # Retry with no duplicate filter — maybe SE Ranking data is sparse
+        data = await content_plan(ctx, competitor=competitor, language=language, existing_keywords=[])
+        articles = data.get("articles", [])
+    if not articles:
+        return ActionResult.error(error="AI returned no articles. Check SE Ranking Data API key and domain in Settings.")
 
     created = 0
     for a in articles:

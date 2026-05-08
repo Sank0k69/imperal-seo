@@ -18,13 +18,13 @@ def _newsletter_editor(item: dict, mode: str) -> ui.UINode:
     content_html = item.get("content", "")
     status       = item.get("status", "idea")
 
-    nl_toggle = ui.Form(action="go_preview", submit_label="Preview", children=[]) \
+    nl_toggle = ui.Button(label="Preview", on_click=ui.Call("__panel__editor", active_view="editor", editor_mode="preview", note_id="board")) \
         if mode == "edit" else \
-        ui.Form(action="go_edit", submit_label="← Edit", children=[])
+        ui.Button(label="← Edit", on_click=ui.Call("__panel__editor", active_view="editor", editor_mode="edit", note_id="board"))
 
     header = ui.Stack(children=[
         ui.Stack(children=[
-            ui.Form(action="go_plan", submit_label="← Plan", children=[]),
+            ui.Button(label="← Plan", on_click=ui.Call("__panel__editor", active_view="plan", note_id="board")),
             ui.Header(text=title or subject or kw, level=3),
             ui.Badge(label=status, color=STATUS_COLOR.get(status, "gray")),
             ui.Badge(label="newsletter", color="violet"),
