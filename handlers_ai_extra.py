@@ -37,10 +37,17 @@ async def improve_article(ctx, params: ImproveArticleParams) -> ActionResult:
 
         kw = item.get("keyword", "")
         instruction = params.instruction or (
-            f"Improve this article about '{kw}' for SEO and GEO (AI-search visibility). "
-            "Add FAQ section if missing. Sharpen H2 structure — each H2 must answer one specific question. "
-            "Make answers more direct and quotable. Add comparison table if the topic calls for it. "
-            "Ensure every factual claim includes a specific number or example."
+            f"Improve this article about '{kw}' for SEO and Rank Math optimization. "
+            f"CRITICAL: The focus keyword '{kw}' MUST appear in the FIRST sentence AND in at least 2 H2 headings. "
+            f"Target keyword density: 0.5-1% (use '{kw}' ~12-15 times in 2500 words). "
+            "Add FAQ section if missing (5-7 questions, each answerable by AI assistants). "
+            "Add comparison table with hosting providers/plans if not present. "
+            "Sharpen H2 structure — each H2 must answer one specific question and contain the keyword or a variant. "
+            "Make answers more direct and quotable. "
+            "Ensure every factual claim includes a specific number or example. "
+            "Add 2-3 outbound DoFollow links to authoritative sources. "
+            "Do NOT remove or change existing outbound/internal links. "
+            "Maintain article length ≥2500 words."
         )
 
         job = await start_refine_article(ctx, content=existing, keyword=kw, instruction=instruction)

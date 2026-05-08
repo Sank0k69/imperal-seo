@@ -171,11 +171,15 @@ async def patch_article(ctx, params: PatchArticleParams) -> ActionResult:
     if not content:
         return ActionResult.error(error="Article has no content yet. Generate it first with ai_write.")
 
+    kw = item.get("keyword", "")
+    # Add keyword preservation to any patch instruction
+    kw_note = (f" IMPORTANT: Preserve the focus keyword '{kw}' — it must remain in the first sentence "
+               f"and appear throughout the text. Do not replace '{kw}' with synonyms.") if kw else ""
     data = await _post(ctx, "/api/content/refine", {
         "user_key":    "",
         "content":     content,
-        "instruction": params.instruction,
-        "keyword":     item.get("keyword", ""),
+        "instruction": params.instruction + kw_note,
+        "keyword":     kw,
     }, timeout=60)
 
     if "error" in data:
