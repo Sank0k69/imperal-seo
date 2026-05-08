@@ -191,8 +191,15 @@ async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
     if not articles:
         return ActionResult.error(error="AI returned no articles. Check SE Ranking Data API key and domain in Settings.")
 
+    # Dedup: skip if keyword already exists in MOS storage
+    existing_all = await list_content(ctx)
+    existing_kw_set = {(i.get("keyword") or "").lower() for i in existing_all if i.get("keyword")}
+
     created = 0
     for a in articles:
+        kw = (a.get("keyword") or "").lower()
+        if kw and kw in existing_kw_set:
+            continue  # already in plan
         await create_content(ctx, {
             "keyword":    a.get("keyword", ""),
             "type":       a.get("article_type", "blog"),
