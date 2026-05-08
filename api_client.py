@@ -280,3 +280,55 @@ async def wp_update(ctx, post_id: int, title: str = "", content: str = "", statu
         "content": content,
         "status": status,
     })
+
+
+# ── MOS Storage — user-isolated content + docs ────────────────────────────────
+
+def _scope(ctx) -> dict:
+    """User context for storage isolation — (tenant_id, user_id) composite key."""
+    return {
+        "user_id": ctx.user.imperal_id,
+        "tenant_id": ctx.user.tenant_id,
+    }
+
+
+async def mos_content_list(ctx) -> list:
+    data = await _post(ctx, "/api/storage/content/list", _scope(ctx))
+    return data.get("items", [])
+
+
+async def mos_content_get(ctx, item_id: str) -> dict:
+    return await _post(ctx, "/api/storage/content/get", {**_scope(ctx), "id": item_id})
+
+
+async def mos_content_create(ctx, item: dict) -> dict:
+    return await _post(ctx, "/api/storage/content/create", {**_scope(ctx), **item})
+
+
+async def mos_content_update(ctx, item_id: str, fields: dict) -> dict:
+    return await _post(ctx, "/api/storage/content/update", {**_scope(ctx), "id": item_id, **fields})
+
+
+async def mos_content_delete(ctx, item_id: str) -> dict:
+    return await _post(ctx, "/api/storage/content/delete", {**_scope(ctx), "id": item_id})
+
+
+async def mos_docs_list(ctx) -> list:
+    data = await _post(ctx, "/api/storage/docs/list", _scope(ctx))
+    return data.get("docs", [])
+
+
+async def mos_docs_get_all(ctx) -> list:
+    """Returns docs with full content — for AI context injection."""
+    data = await _post(ctx, "/api/storage/docs/get_all", _scope(ctx))
+    return data.get("docs", [])
+
+
+async def mos_docs_create(ctx, name: str, content: str, size: int = 0, ext: str = "md") -> dict:
+    return await _post(ctx, "/api/storage/docs/create", {
+        **_scope(ctx), "name": name, "content": content, "size": size, "ext": ext,
+    })
+
+
+async def mos_docs_delete(ctx, doc_id: str) -> dict:
+    return await _post(ctx, "/api/storage/docs/delete", {**_scope(ctx), "id": doc_id})

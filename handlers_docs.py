@@ -5,9 +5,9 @@ from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
 from app import chat, ext
+from api_client import mos_docs_create, mos_docs_delete, mos_docs_get_all, mos_docs_list
 from params import DeleteDocParams, EmptyParams, UploadDocParams
 
-DOCS_COLLECTION = "seo_docs"
 MAX_CONTEXT_CHARS = 3000  # per doc, for AI injection
 
 
@@ -48,21 +48,7 @@ async def upload_doc(ctx, params: UploadDocParams) -> ActionResult:
         if ext_lower not in ("md", "txt", "markdown"):
             continue
 
-        doc_data = {
-            "name": name,
-            "content": text[:12000],
-            "size": size or len(text),
-            "ext": ext_lower,
-        }
-
-        page = await ctx.store.query(DOCS_COLLECTION, limit=50)
-        docs = getattr(page, "data", None) or []
-        existing = next((d for d in docs if getattr(d, "data", {}).get("name") == name), None)
-        if existing:
-            await ctx.store.update(DOCS_COLLECTION, existing.id, doc_data)
-        else:
-            await ctx.store.create(DOCS_COLLECTION, doc_data)
-
+        await mos_docs_create(ctx, name=name, content=text, size=size or len(text), ext=ext_lower)
         saved.append(name)
 
     if not saved:
@@ -83,9 +69,9 @@ async def upload_doc(ctx, params: UploadDocParams) -> ActionResult:
     event="seo.docs.updated",
 )
 async def delete_doc(ctx, params: DeleteDocParams) -> ActionResult:
-    """Remove a doc from the knowledge base by store ID."""
+    """Remove a doc from the knowledge base by ID."""
     try:
-        await ctx.store.delete(DOCS_COLLECTION, params.doc_id)
+        await mos_docs_delete(ctx, params.doc_id)
     except Exception as e:
         return ActionResult.error(error=f"Could not delete doc: {e}")
     return ActionResult.success({"id": params.doc_id}, summary="Doc deleted")
@@ -98,7 +84,7 @@ async def delete_doc(ctx, params: DeleteDocParams) -> ActionResult:
 )
 async def list_docs_fn(ctx, params: EmptyParams) -> ActionResult:
     """Return all docs in the knowledge base."""
-    docs = await _load_docs(ctx)
+    docs = await mos_docs_list(ctx)
     summary_lines = [f"• {d['name']} ({d.get('size', 0)} chars)" for d in docs]
     return ActionResult.success(
         {"docs": docs, "count": len(docs)},
@@ -107,23 +93,19 @@ async def list_docs_fn(ctx, params: EmptyParams) -> ActionResult:
 
 
 async def _load_docs(ctx) -> list[dict]:
+    """Load docs for panel rendering (no content needed, just metadata)."""
     try:
-        page = await ctx.store.query(DOCS_COLLECTION, limit=20)
+        return await mos_docs_list(ctx)
     except Exception:
         return []
-    docs = getattr(page, "data", None) or []
-    result = []
-    for d in docs:
-        if isinstance(getattr(d, "data", None), dict):
-            item = dict(d.data)
-            item["id"] = d.id
-            result.append(item)
-    return result
 
 
 async def build_docs_context(ctx) -> str:
-    """Load all docs and return a single context string for AI prompts."""
-    docs = await _load_docs(ctx)
+    """Load all docs with full content and return a single context string for AI prompts."""
+    try:
+        docs = await mos_docs_get_all(ctx)
+    except Exception:
+        return ""
     if not docs:
         return ""
     parts = []

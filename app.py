@@ -116,54 +116,42 @@ async def save_ui_state(ctx, values: dict, persist: bool = False) -> dict:
     return merged
 
 
-# ── Content store ─────────────────────────────────────────────────────────────
+# ── Content store — backed by MOS SQLite (user-isolated) ─────────────────────
 
 async def list_content(ctx, status: str | None = None) -> list[dict]:
+    from api_client import mos_content_list
     try:
-        page = await ctx.store.query(CONTENT_COL, limit=100)
+        items = await mos_content_list(ctx)
     except Exception:
         return []
-    docs = getattr(page, "data", None) or []
-    items = [d.data for d in docs if isinstance(getattr(d, "data", None), dict)]
-    # attach store id to each item
-    for d, item in zip(docs, items):
-        item["id"] = d.id
     if status:
         items = [i for i in items if i.get("status") == status]
     return items
 
 
 async def get_content(ctx, content_id: str) -> dict | None:
+    from api_client import mos_content_get
     try:
-        doc = await ctx.store.get(CONTENT_COL, content_id)
-        if doc and isinstance(getattr(doc, "data", None), dict):
-            result = dict(doc.data)
-            result["id"] = doc.id
-            return result
+        result = await mos_content_get(ctx, content_id)
+        return result.get("item") or None
     except Exception:
-        pass
-    return None
+        return None
 
 
 async def create_content(ctx, data: dict) -> str:
-    doc = await ctx.store.create(CONTENT_COL, data)
-    return doc.id
+    from api_client import mos_content_create
+    result = await mos_content_create(ctx, data)
+    return result.get("id", "")
 
 
 async def update_content(ctx, content_id: str, data: dict) -> None:
-    try:
-        doc = await ctx.store.get(CONTENT_COL, content_id)
-        if doc and isinstance(getattr(doc, "data", None), dict):
-            merged = {**doc.data, **data}
-            await ctx.store.update(CONTENT_COL, content_id, merged)
-            return
-    except Exception:
-        pass
-    await ctx.store.update(CONTENT_COL, content_id, data)
+    from api_client import mos_content_update
+    await mos_content_update(ctx, content_id, data)
 
 
 async def delete_content(ctx, content_id: str) -> None:
-    await ctx.store.delete(CONTENT_COL, content_id)
+    from api_client import mos_content_delete
+    await mos_content_delete(ctx, content_id)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
