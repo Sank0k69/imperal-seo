@@ -528,9 +528,11 @@ async def unpublish_wp(ctx, params: UnpublishWpParams) -> ActionResult:
 @chat.function(
     "get_article_link",
     description=(
-        "Find a WordPress post by title/keyword and return its URL. "
-        "Use when user asks: дай ссылку на статью X, link to post about X, "
-        "where is article X, URL статьи, ссылка на черновик X."
+        "Find URL/link to a WordPress blog post by title or keyword. "
+        "Use when user wants a link, URL, or permalink to any article — "
+        "e.g. 'найди ссылку', 'где статья про X', 'можешь найти пост', "
+        "'url статьи X', 'хочу ссылку на пост', 'link to article about X', "
+        "'где опубликована статья', 'дай permalink'. Searches WP drafts too."
     ),
     action_type="read",
 )
@@ -702,11 +704,13 @@ async def add_keywords_to_article(ctx, params: AddKeywordsParams) -> ActionResul
 @chat.function(
     "check_seo_meta",
     description=(
-        "Show Rank Math SEO settings for the current article — focus keyword, "
-        "secondary keywords, meta description, excerpt, WP status. "
-        "Use when user asks: покажи Rank Math, SEO настройки статьи, "
-        "какой focus keyword, meta description, rank math score, "
-        "SEO статус статьи, что в Rank Math."
+        "Show SEO settings for an article — Rank Math focus keyword, secondary keywords, "
+        "meta description, keyword density, word count, WP status. "
+        "Use when user asks about SEO of an article — "
+        "'покажи rank math', 'seo настройки статьи', 'как настроено seo', "
+        "'keyword density', 'какой focus keyword', 'meta description статьи', "
+        "'check seo', 'seo audit article', 'посмотреть настройки статьи'. "
+        "Works with content plan ID or WP post ID (numeric)."
     ),
     action_type="read",
 )

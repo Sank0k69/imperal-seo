@@ -10,7 +10,7 @@
   "tools": [
     {
       "name": "wp_blogger",
-      "description": "WP Blogger. Keyword research, rankings tracking, content plan, AI article writing, publish to WordPress.",
+      "description": "WP Blogger — SEO content studio for WordPress blogs. Use for: keyword research (найди ключевые слова, find keywords), SEO rankings/positions (покажи позиции в гугл, SEO rankings), content plan generation (придумай контент план), AI article writing and rewriting (напиши статью, перепиши), WordPress publish/unpublish (опубликуй, сними с публикации), get article links (дай ссылку на статью X), Rank Math SEO settings (покажи rank math, SEO настройки статьи), add/remove tracked keywords in SE Ranking, check article quality, manage content plan items.",
       "scopes": [],
       "parameters": {
         "message": {
@@ -1571,7 +1571,7 @@
     },
     {
       "name": "get_article_link",
-      "description": "Find a WordPress post by title/keyword and return its URL. Use when user asks: дай ссылку на статью X, link to post about X, where is article X, URL статьи, ссылка на черновик X.",
+      "description": "Find URL/link to a WordPress blog post by title or keyword. Use when user wants a link, URL, or permalink to any article — e.g. 'найди ссылку', 'где статья про X', 'можешь найти пост', 'url статьи X', 'хочу ссылку на пост', 'link to article about X', 'где опубликована статья', 'дай permalink'. Searches WP drafts too.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1660,7 +1660,7 @@
     },
     {
       "name": "check_seo_meta",
-      "description": "Show Rank Math SEO settings for the current article — focus keyword, secondary keywords, meta description, excerpt, WP status. Use when user asks: покажи Rank Math, SEO настройки статьи, какой focus keyword, meta description, rank math score, SEO статус статьи, что в Rank Math.",
+      "description": "Show SEO settings for an article — Rank Math focus keyword, secondary keywords, meta description, keyword density, word count, WP status. Use when user asks about SEO of an article — 'покажи rank math', 'seo настройки статьи', 'как настроено seo', 'keyword density', 'какой focus keyword', 'meta description статьи', 'check seo', 'seo audit article', 'посмотреть настройки статьи'. Works with content plan ID or WP post ID (numeric).",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1689,7 +1689,7 @@
     },
     {
       "name": "add_tracked_keyword",
-      "description": "Add a keyword to SE Ranking position tracking. Use when user says: track this keyword, add keyword to SE Ranking, начать отслеживать ключевое слово, добавь кейворд в трекинг, track position for X, добавь X в SE Ranking.",
+      "description": "Add a keyword to SE Ranking position tracking. Use when user wants to track a new keyword — 'добавь в трекинг', 'начать отслеживать кейворд', 'track this keyword', 'хочу отслеживать позицию по слову X', 'add to SE Ranking', 'мониторить позицию', 'add keyword tracking for X'.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -1753,7 +1753,7 @@
     },
     {
       "name": "list_tracked_keywords",
-      "description": "List all keywords currently tracked in SE Ranking with their IDs. Use when user says: what keywords am I tracking, list SE Ranking keywords, какие ключевые слова отслеживаются, список трекинг кейвордов, покажи все отслеживаемые ключевые слова.",
+      "description": "List all keywords tracked in SE Ranking with IDs and positions. Use when user wants to see tracked keywords — 'какие ключевые слова я отслеживаю', 'список трекинга', 'сколько кейвордов в трекинге', 'show tracked keywords', 'what am I tracking in SE Ranking', 'покажи все мои ключевые слова'.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],

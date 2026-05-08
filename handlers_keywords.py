@@ -23,9 +23,10 @@ class RemoveTrackedKeywordParams(BaseModel):
     "add_tracked_keyword",
     description=(
         "Add a keyword to SE Ranking position tracking. "
-        "Use when user says: track this keyword, add keyword to SE Ranking, "
-        "начать отслеживать ключевое слово, добавь кейворд в трекинг, "
-        "track position for X, добавь X в SE Ranking."
+        "Use when user wants to track a new keyword — "
+        "'добавь в трекинг', 'начать отслеживать кейворд', 'track this keyword', "
+        "'хочу отслеживать позицию по слову X', 'add to SE Ranking', "
+        "'мониторить позицию', 'add keyword tracking for X'."
     ),
     action_type="write",
     chain_callable=True,
@@ -91,10 +92,11 @@ async def remove_tracked_keyword(ctx, params: RemoveTrackedKeywordParams) -> Act
 @chat.function(
     "list_tracked_keywords",
     description=(
-        "List all keywords currently tracked in SE Ranking with their IDs. "
-        "Use when user says: what keywords am I tracking, list SE Ranking keywords, "
-        "какие ключевые слова отслеживаются, список трекинг кейвордов, "
-        "покажи все отслеживаемые ключевые слова."
+        "List all keywords tracked in SE Ranking with IDs and positions. "
+        "Use when user wants to see tracked keywords — "
+        "'какие ключевые слова я отслеживаю', 'список трекинга', "
+        "'сколько кейвордов в трекинге', 'show tracked keywords', "
+        "'what am I tracking in SE Ranking', 'покажи все мои ключевые слова'."
     ),
     action_type="read",
 )
