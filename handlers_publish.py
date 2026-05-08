@@ -404,9 +404,11 @@ async def save_settings_fn(ctx, params: SaveSettingsParams) -> ActionResult:
 @chat.function(
     "list_wp_posts",
     description=(
-        "List published posts from the WordPress blog. "
-        "Use when user asks to see all articles, blog posts, what's published, recent posts. "
-        "Shows title, status, date, URL for each post."
+        "List posts from WordPress — published AND drafts. "
+        "Use when user asks: show WP posts, show drafts, what's in WordPress, "
+        "show published articles, list blog drafts. "
+        "Shows title, status, date, URL. Use status='draft' for only drafts, "
+        "'publish' for published, leave empty for all."
     ),
     action_type="read",
     event="",

@@ -1,12 +1,12 @@
 """Content CRUD handlers (save/update/delete/brief). AI writing moved to handlers_ai_write.py."""
 import time
 
-from imperal_sdk import ActionResult
+from imperal_sdk import ActionResult, ui
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from app import chat, get_content, update_content, delete_content, load_settings, load_ui_state
+from app import chat, get_content, update_content, delete_content, load_settings, load_ui_state, list_content, create_content
 from api_client import generate_brief as _mos_brief, log_action, _post
-from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, SaveBriefParams, PatchArticleParams
+from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, SaveBriefParams, PatchArticleParams, EmptyParams
 
 
 async def _resolve_id(ctx, content_id: str) -> str:
@@ -250,3 +250,107 @@ async def check_article_quality(ctx, params: AiBriefParams) -> ActionResult:
         summary_lines.append("✅ No issues found!")
 
     return ActionResult.success(data=data, summary="\n".join(summary_lines))
+
+
+@chat.function(
+    "list_articles",
+    description=(
+        "List all content items in the content plan (articles, newsletters). "
+        "Use when user asks: show my articles, what articles do I have, list content, "
+        "show drafts, what have I written, articles from another device."
+    ),
+    action_type="read",
+)
+async def list_articles(ctx, params: EmptyParams) -> ActionResult:
+    """Show all content items from MOS storage for this user."""
+    items = await list_content(ctx)
+
+    if not items:
+        return ActionResult.success(
+            {"items": [], "count": 0},
+            summary="No articles in content plan yet. Use 'Build Content Plan (AI)' or '+ New item' to add some.",
+        )
+
+    STATUS_ORDER = {"review": 0, "writing": 1, "published": 2, "idea": 3}
+    items_sorted = sorted(items, key=lambda x: STATUS_ORDER.get(x.get("status", "idea"), 3))
+
+    rows = [
+        {
+            "keyword": (i.get("keyword") or i.get("title") or "untitled")[:45],
+            "type":    i.get("type", "blog"),
+            "status":  i.get("status", "idea"),
+            "words":   str(len((i.get("content") or "").split())) if i.get("content") else "—",
+            "wp":      "✓" if i.get("wp_post_id") else "—",
+            "id":      i.get("id", ""),
+        }
+        for i in items_sorted
+    ]
+
+    table = ui.DataTable(
+        columns=[
+            ui.DataColumn(key="keyword", label="Keyword / Topic", width="40%"),
+            ui.DataColumn(key="type",    label="Type",            width="12%"),
+            ui.DataColumn(key="status",  label="Status",          width="12%"),
+            ui.DataColumn(key="words",   label="Words",           width="10%"),
+            ui.DataColumn(key="wp",      label="In WP",           width="8%"),
+            ui.DataColumn(key="id",      label="ID",              width="18%"),
+        ],
+        rows=rows,
+    )
+
+    published = sum(1 for i in items if i.get("status") == "published")
+    writing   = sum(1 for i in items if i.get("status") == "writing")
+    review    = sum(1 for i in items if i.get("status") == "review")
+    in_wp     = sum(1 for i in items if i.get("wp_post_id"))
+
+    summary = (
+        f"{len(items)} content items: {published} published, {review} in review, "
+        f"{writing} writing, {in_wp} synced to WordPress.\n"
+        "To open an item in the editor, say its keyword or ID."
+    )
+    return ActionResult.success({"items": items, "count": len(items)}, summary=summary, ui=table)
+
+
+@chat.function(
+    "migrate_from_store",
+    description=(
+        "Migrate content items from old ctx.store to MOS server storage. "
+        "One-time migration — use if articles are missing after storage upgrade."
+    ),
+    action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
+    event="seo.content.created",
+)
+async def migrate_from_store(ctx, params: EmptyParams) -> ActionResult:
+    """Read legacy ctx.store content items and import to MOS SQLite."""
+    CONTENT_COL = "seo_content"
+    try:
+        page = await ctx.store.query(CONTENT_COL, limit=200)
+    except Exception as e:
+        return ActionResult.error(error=f"Could not read ctx.store: {e}")
+
+    docs = getattr(page, "data", None) or []
+    if not docs:
+        return ActionResult.success(
+            {"migrated": 0},
+            summary="No items found in old storage. Nothing to migrate.",
+        )
+
+    migrated = 0
+    skipped  = 0
+    for d in docs:
+        if not isinstance(getattr(d, "data", None), dict):
+            continue
+        item = dict(d.data)
+        item.pop("id", None)  # MOS will assign new UUID
+        try:
+            await create_content(ctx, item)
+            migrated += 1
+        except Exception:
+            skipped += 1
+
+    return ActionResult.success(
+        {"migrated": migrated, "skipped": skipped},
+        summary=f"Migration complete: {migrated} items imported to MOS storage. {skipped} skipped.",
+    )
