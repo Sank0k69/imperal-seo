@@ -63,6 +63,12 @@ async def workspace_panel(ctx, active_view: str = "", plan_filter: str = "", con
 _STATUS_COLOR = {"idea": "gray", "writing": "blue", "review": "yellow", "published": "green"}
 _STATUS_ICON  = {"idea": "Lightbulb", "writing": "PenLine", "review": "Eye", "published": "CheckCircle"}
 
+
+def _vol_str(v: int) -> str:
+    if v >= 1_000_000: return f"{v/1_000_000:.1f}M"
+    if v >= 1_000: return f"{v/1_000:.0f}K"
+    return str(v) or "0"
+
 async def _plan_view(ctx, state: dict) -> ui.UINode:
     items = await list_content(ctx)
     plan_filter = state.get("plan_filter") or "all"
@@ -84,8 +90,8 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
         ui.Stat(label="Published",      value=str(counts["published"]),  color="green",  icon="CheckCircle"),
         ui.Stat(label="Words written",  value=f"{total_words:,}",        icon="Hash"),
         ui.Stat(label="In WordPress",   value=str(in_wp),                icon="Globe"),
-        ui.Stat(label="Total volume",   value=f"{total_vol_str(total_volume)}", icon="TrendingUp"),
-    ]) if items else ui.Empty(message="No content yet.")
+        ui.Stat(label="Total volume",   value=_vol_str(total_volume), icon="TrendingUp"),
+    ]) if items else ui.Alert(message="No content yet. Build a content plan or add items from the left sidebar.", type="info")
 
     # ── Pipeline funnel chart ─────────────────────────────────────────────────
     funnel_data = [
@@ -97,13 +103,13 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
     pipeline_chart = ui.Section(title="Content Pipeline", collapsible=False, children=[
         ui.Chart(
             type="bar",
-            data=[f for f in funnel_data if f["value"] > 0 or True],
+            data=funnel_data,
             x_key="label",
             y_keys=["value"],
             colors={"value": "#6366f1"},
             height=120,
         ),
-    ]) if items else ui.Empty(message="")
+    ]) if items else None
 
     # ── Filter buttons ────────────────────────────────────────────────────────
     def _filter_btn(label: str, status: str, count: int) -> ui.UINode:
@@ -175,40 +181,27 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
                 ],
             ),
         ],
-    ) if items else ui.Empty(message="")
+    ) if items else None
 
-    return ui.Stack(children=[
-        # Header
-        ui.Stack(direction="horizontal", justify="between", align="center", children=[
-            ui.Header(text=title, level=3),
-            ui.Stack(direction="horizontal", gap=2, children=[
-                ui.Button(label="🔍 Keywords",  size="sm", variant="ghost",
-                          on_click=ui.Call("__panel__editor", active_view="keywords", note_id="board")),
-                ui.Button(label="📊 Rankings",  size="sm", variant="ghost",
-                          on_click=ui.Call("__panel__editor", active_view="rankings", note_id="board")),
-            ]),
+    header = ui.Stack(direction="horizontal", justify="between", align="center", children=[
+        ui.Header(text=title, level=3),
+        ui.Stack(direction="horizontal", gap=2, children=[
+            ui.Button(label="🔍 Keywords", size="sm", variant="ghost",
+                      on_click=ui.Call("__panel__editor", active_view="keywords", note_id="board")),
+            ui.Button(label="📊 Rankings", size="sm", variant="ghost",
+                      on_click=ui.Call("__panel__editor", active_view="rankings", note_id="board")),
         ]),
-        # Stats
-        stats,
-        # Pipeline chart
-        pipeline_chart if items else ui.Empty(message=""),
-        # Build plan action
-        ui.Form(action="build_content_plan", submit_label="✨ Build Content Plan (AI)", children=[]),
-        ui.Divider(),
-        # Filters
-        filter_row,
-        # Table
-        table,
-        # Open editor
-        ui.Divider(),
-        open_form,
     ])
 
+    build_btn = ui.Form(action="build_content_plan", submit_label="✨ Build Content Plan (AI)", children=[])
 
-def total_vol_str(v: int) -> str:
-    if v >= 1_000_000: return f"{v/1_000_000:.1f}M"
-    if v >= 1_000: return f"{v/1_000:.0f}K"
-    return str(v)
+    children = [header, stats, build_btn, ui.Divider(), filter_row, table]
+    if pipeline_chart:
+        children.insert(2, pipeline_chart)
+    if open_form:
+        children += [ui.Divider(), open_form]
+
+    return ui.Stack(children=children)
 
 
 # ── Rankings view ─────────────────────────────────────────────────────────────
