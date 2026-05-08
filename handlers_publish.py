@@ -62,6 +62,18 @@ async def _auto_seo(ctx, cid: str, wp_post_id: int, item: dict, s: dict) -> None
                 meta_desc = meta_desc or seo.get("meta_description", "")
                 excerpt   = excerpt   or seo.get("excerpt", "")
 
+        # Sanitize: strip LLM echoes + em dashes
+        import re as _re
+        def _clean_seo(text: str, maxlen: int) -> str:
+            for pfx in ["here is a wordpress post excerpt:", "here is an seo meta description:",
+                        "wordpress post excerpt:", "meta description:", "excerpt:", "here's a "]:
+                if text.lower().startswith(pfx):
+                    text = text[len(pfx):].strip()
+            text = text.replace("—", " - ").replace("–", " - ")
+            return _re.sub(r'\s+', ' ', text).strip().strip('"').strip("'")[:maxlen]
+        meta_desc = _clean_seo(meta_desc, 155)
+        excerpt   = _clean_seo(excerpt, 150)
+
         # Rank Math focus keyword: primary + up to 4 secondary
         secondary  = item.get("secondary_keywords", [])
         all_kws    = [keyword] + [k for k in secondary[:4] if k.lower() != keyword.lower()]
@@ -286,24 +298,36 @@ async def set_wp_seo(ctx, params: SetWpSeoParams) -> ActionResult:
         all_kws = [focus_kw] + [k for k in secondary_kws[:4] if k.lower() != focus_kw.lower()]
         rm_focus_kw = ", ".join(all_kws)
 
-        # Meta description: provided → stored → generate
+        # Meta + excerpt: use MOS server (avoids ctx.ai.complete instruction-echo bugs)
         meta_desc = params.meta_description or item.get("meta_description", "")
-        if not meta_desc:
-            result = await ctx.ai.complete(
-                f"Write an SEO meta description.\n"
-                f"Title: {title}\nFocus keyword: {focus_kw}\n\n"
-                "Rules: 120-155 characters, include the focus keyword naturally, active voice, no quotes, no trailing period."
-            )
-            meta_desc = (getattr(result, "text", None) or str(result)).strip().strip('"').strip("'")[:155]
+        excerpt   = item.get("excerpt", "")
+        if not meta_desc or not excerpt:
+            seo = await _post(ctx, "/api/content/seo_meta", {
+                "title":            title,
+                "keyword":          focus_kw,
+                "content_snippet":  content_html[:500],
+                "language":         s.get("language", "en"),
+            })
+            if "error" not in seo:
+                meta_desc = meta_desc or seo.get("meta_description", "")
+                excerpt   = excerpt   or seo.get("excerpt", "")
 
-        # Excerpt: short plain-text teaser for WordPress blog listing
-        excerpt_result = await ctx.ai.complete(
-            f"Write a WordPress post excerpt.\n"
-            f"Title: {title}\nFocus keyword: {focus_kw}\n"
-            f"Article opening (first 400 chars): {content_html[:400]}\n\n"
-            "Rules: 130-150 characters, plain text (no HTML), include the focus keyword, factual and compelling."
-        )
-        excerpt = (getattr(excerpt_result, "text", None) or str(excerpt_result)).strip().strip('"').strip("'")[:150]
+        # Sanitize: strip instruction echoes + em dashes (brand rule)
+        def _clean(text: str, maxlen: int) -> str:
+            import re
+            for prefix in [
+                "here is a wordpress post excerpt:", "wordpress post excerpt:",
+                "here is an seo meta description:", "meta description:",
+                "excerpt:", "here's a ", "here is a ",
+            ]:
+                if text.lower().startswith(prefix):
+                    text = text[len(prefix):].strip()
+            text = text.replace("—", " - ").replace("–", " - ")  # em/en dash
+            text = re.sub(r'\s+', ' ', text).strip().strip('"').strip("'")
+            return text[:maxlen]
+
+        meta_desc = _clean(meta_desc, 155)
+        excerpt   = _clean(excerpt, 150)
 
         # Excerpt via direct WP REST API
         post = await update_post(
