@@ -419,18 +419,32 @@ async def list_wp_posts(ctx, params: ListWpPostsParams) -> ActionResult:
         return ActionResult.error(error="WordPress not configured. Add credentials in Settings.")
 
     from api_client import _post as _mos_post
-    data = await _mos_post(ctx, "/api/wordpress/list", {
-        "wp_url":      s["wp_url"],
-        "wp_user":     s["wp_username"],
-        "wp_password": s["wp_app_password"],
-        "per_page":    params.per_page or 20,
-        "status":      params.status or "any",
-    })
-
-    if "error" in data:
-        return ActionResult.error(error=data["error"])
-
-    posts = data.get("posts", [])
+    # Paginate to fetch ALL posts
+    all_posts = []
+    page = 1
+    while True:
+        data = await _mos_post(ctx, "/api/wordpress/list", {
+            "wp_url":      s["wp_url"],
+            "wp_user":     s["wp_username"],
+            "wp_password": s["wp_app_password"],
+            "per_page":    100,
+            "page":        page,
+            "status":      params.status or "any",
+        })
+        if "error" in data:
+            if page == 1:
+                return ActionResult.error(error=data["error"])
+            break
+        batch = data.get("posts", [])
+        if not batch:
+            break
+        all_posts.extend(batch)
+        if len(batch) < 100:
+            break  # last page
+        page += 1
+        if page > 20:  # safety cap at 2000 posts
+            break
+    posts = all_posts
     if not posts:
         return ActionResult.success({}, summary="No posts found in WordPress blog.")
 
