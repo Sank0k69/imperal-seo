@@ -81,10 +81,11 @@ async def fetch_gaps(ctx, params: FetchGapsParams) -> ActionResult:
 @chat.function(
     "fetch_rankings",
     description=(
-        "Fetch keyword positions from SE Ranking + AI traffic from Matomo. "
-        "Use when user asks: show rankings, what positions do I have, SEO positions, "
-        "покажи позиции, какие позиции в гугл, SEO Rankings, рейтинг ключевых слов, "
-        "сколько нас выдают ИИ, AI трафик, откуда идёт трафик от ИИ."
+        "Show Google keyword POSITIONS from SE Ranking — NOT Matomo traffic. "
+        "Use for: keyword rankings, SEO positions, what page do I rank for X, "
+        "покажи позиции в Google, какие позиции в поиске, SEO Rankings, "
+        "рейтинг ключевых слов, на какой странице мой сайт. "
+        "Returns: keyword positions, top-3/10/30 counts, gainers/losers."
     ),
     action_type="read",
     event="seo.nav.changed",

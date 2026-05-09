@@ -11,7 +11,7 @@ from api_client import log_action, _post
 from api_wordpress import create_post, update_post
 from params import (PublishWpParams, SaveSettingsParams, SetWpSeoParams, ListWpPostsParams,
                     UnpublishWpParams, GetArticleLinkParams, RewriteArticleParams,
-                    AddKeywordsParams, CheckSeoMetaParams)
+                    AddKeywordsParams, CheckSeoMetaParams, EmptyParams)
 
 
 async def _resolve_id(ctx, content_id: str, keyword_hint: str = "") -> str:
@@ -412,7 +412,7 @@ async def save_settings_fn(ctx, params: SaveSettingsParams) -> ActionResult:
     ),
     action_type="read",
 )
-async def get_settings(ctx, params) -> ActionResult:
+async def get_settings(ctx, params: EmptyParams) -> ActionResult:
     """Show which settings are configured (keys masked)."""
     s = await load_settings(ctx)
     def _mask(v):
