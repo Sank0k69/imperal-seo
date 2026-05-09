@@ -160,6 +160,7 @@ class SetupBlogStyleParams(BaseModel):
 class PatchArticleParams(BaseModel):
     instruction: str
     content_id: str = Field('', description='Content item ID — leave empty to use currently open item')
+    keyword_hint: str = Field('', description='Keyword or title to find the article if no content_id or open article')
 
 
 class ListWpPostsParams(BaseModel):

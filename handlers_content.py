@@ -4,17 +4,34 @@ import time
 from imperal_sdk import ActionResult, ui
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from wpb_app import chat, get_content, update_content, delete_content, load_settings, load_ui_state, list_content, create_content
+from wpb_app import chat, get_content, update_content, delete_content, load_settings, load_ui_state, list_content, create_content, _store_list
 from api_client import generate_brief as _mos_brief, log_action, _post
 from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, SaveBriefParams, PatchArticleParams, EmptyParams
 
 
-async def _resolve_id(ctx, content_id: str) -> str:
-    """Return content_id if set, else use the currently open editor item."""
+async def _resolve_id(ctx, content_id: str, keyword_hint: str = "") -> str:
+    """Return content_id → ui_state selected_id → keyword search → most recent article."""
     if content_id:
         return content_id
+    # Check ui_state (set when article is opened in editor)
     state = await load_ui_state(ctx)
-    return state.get("selected_id", "")
+    if state.get("selected_id"):
+        return state["selected_id"]
+    # Search by keyword_hint
+    if keyword_hint:
+        items = await list_content(ctx)
+        q = keyword_hint.lower()
+        for item in items:
+            kw    = (item.get("keyword") or "").lower()
+            title = (item.get("title") or "").lower()
+            if q in kw or q in title or any(w in kw or w in title for w in q.split()):
+                return item["id"]
+    # Fallback: most recently updated article (best guess)
+    items = await list_content(ctx)
+    if items:
+        by_status = sorted(items, key=lambda x: {"review": 0, "writing": 1, "published": 2, "idea": 3}.get(x.get("status","idea"), 3))
+        return by_status[0]["id"]
+    return ""
 
 
 @chat.function(
@@ -164,10 +181,10 @@ async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
 )
 async def patch_article(ctx, params: PatchArticleParams) -> ActionResult:
     """Apply a specific edit to the article content via AI on MOS server."""
-    cid = await _resolve_id(ctx, params.content_id)
+    cid = await _resolve_id(ctx, params.content_id, getattr(params, "keyword_hint", ""))
     item = await get_content(ctx, cid)
     if not item:
-        return ActionResult.error(error="No article open. Open an article from the Content Plan first.")
+        return ActionResult.error(error="No article found. Specify keyword_hint or open an article from Content Plan.")
 
     content = item.get("content", "")
     if not content:
