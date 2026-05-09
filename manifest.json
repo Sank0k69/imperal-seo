@@ -1516,7 +1516,7 @@
     },
     {
       "name": "get_settings",
-      "description": "Show current extension settings — which APIs are configured. Use when user asks: what settings are saved, are my keys configured, какие настройки сохранены, проверь настройки, есть ли SE Ranking ключ.",
+      "description": "Show WP Blogger extension settings — SE Ranking and WordPress API keys (masked). Use ONLY for: SE Ranking keys configured, WordPress credentials check, какие ключи SE Ranking настроены, есть ли ключ SE Ranking, WP Blogger настройки, seranking_data_key, wp_app_password configured. NOT for Matomo/analytics stats — only API key presence check.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
