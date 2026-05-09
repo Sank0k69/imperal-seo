@@ -5,7 +5,7 @@ import time
 from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from wpb_app import chat, get_content, update_content, load_settings, save_ui_state
+from wpb_app import chat, get_content, update_content, load_settings, save_ui_state, load_ui_state
 from api_client import (keywords_for_article, start_generate_article,
                         poll_article_job, generate_newsletter_mos as _mos_newsletter,
                         log_action, _post)
@@ -196,16 +196,38 @@ async def check_article_job(ctx, params: AiBriefParams) -> ActionResult:
             updates["title"] = final_title
 
         await update_content(ctx, cid, updates)
+
+        # If this was a WP edit job, save patched content back to WordPress
+        ui_state = await load_ui_state(ctx)
+        pending_wp = ui_state.get("pending_wp_edit", "")
+        pending_job = ui_state.get("pending_wp_edit_job", "")
+        wp_saved = False
+        if pending_wp and pending_job == job_id and draft_html:
+            s = await load_settings(ctx)
+            if s.get("wp_app_password"):
+                try:
+                    from api_client import _post as _api_post
+                    await _api_post(ctx, "/api/wordpress/update", {
+                        "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+                        "wp_password": s["wp_app_password"],
+                        "post_id": int(pending_wp), "content": draft_html,
+                    })
+                    await save_ui_state(ctx, {"pending_wp_edit": "", "pending_wp_edit_job": ""})
+                    wp_saved = True
+                except Exception:
+                    pass
+
         await save_ui_state(ctx, {"editor_mode": "preview"})
 
         kw = item.get("keyword", "")
         await log_action(ctx, "check_article_job", cid, int((time.monotonic() - t0) * 1000), True)
         return ActionResult.success(
-            {"length": len(draft_html), "word_count": kw_used},
+            {"length": len(draft_html), "word_count": kw_used, "saved_to_wp": wp_saved},
             summary=(
                 f"Article ready for '{kw}' (~{kw_used} words).\n"
                 f"Title: {final_title}\n"
-                f"Secondary KWs: {', '.join(secondary[:3])}{'...' if len(secondary) > 3 else ''}"
+                + (f"✅ Saved to WP post #{pending_wp}.\n" if wp_saved else "")
+                + f"Secondary KWs: {', '.join(secondary[:3])}{'...' if len(secondary) > 3 else ''}"
             ),
         )
     except Exception as e:

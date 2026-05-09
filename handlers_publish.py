@@ -406,9 +406,11 @@ async def save_settings_fn(ctx, params: SaveSettingsParams) -> ActionResult:
 @chat.function(
     "get_settings",
     description=(
-        "Show current extension settings — which APIs are configured. "
-        "Use when user asks: what settings are saved, are my keys configured, "
-        "какие настройки сохранены, проверь настройки, есть ли SE Ranking ключ."
+        "Show WP Blogger extension settings — SE Ranking and WordPress API keys (masked). "
+        "Use ONLY for: SE Ranking keys configured, WordPress credentials check, "
+        "какие ключи SE Ranking настроены, есть ли ключ SE Ranking, WP Blogger настройки, "
+        "seranking_data_key, wp_app_password configured. "
+        "NOT for Matomo/analytics stats — only API key presence check."
     ),
     action_type="read",
 )
@@ -988,27 +990,25 @@ async def edit_wp_article(ctx, params: EditWpArticleParams) -> ActionResult:
     if not content:
         return ActionResult.error(error=f"WP post {wp_id} has no content.")
 
-    # AI patch via MOS
-    data = await _post(ctx, "/api/content/refine", {
-        "content":     content,
-        "keyword":     title,
-        "instruction": params.instruction + (f" Keep focus keyword '{title}' prominent." if title else ""),
-    }, timeout=90)
+    # Use async job — /api/content/refine blocks 60-90s, ctx.http timeout < that
+    instruction = params.instruction + (f" Keep focus keyword '{title}' prominent." if title else "")
+    job_data = await _post(ctx, "/api/content/refine/start", {
+        "user_key": "", "content": content, "keyword": title, "instruction": instruction,
+    }, timeout=10)
 
-    new_content = data.get("content", "") if "error" not in data else ""
-    if not new_content:
-        return ActionResult.error(error="AI returned empty. Try again.")
+    if "error" in job_data:
+        return ActionResult.error(error=job_data["error"])
 
-    # Save back to WordPress
-    upd = await _post(ctx, "/api/wordpress/update", {
-        "wp_url": s["wp_url"], "wp_user": s["wp_username"],
-        "wp_password": s["wp_app_password"],
-        "post_id": wp_id, "content": new_content,
-    })
-    if "error" in upd:
-        return ActionResult.error(error=f"Failed to save to WP: {upd['error']}")
+    job_id = job_data.get("job_id", "")
+    # Store WP ID in a temp key so check_wp_edit_job can save back
+    from wpb_app import save_ui_state
+    await save_ui_state(ctx, {"pending_wp_edit": str(wp_id), "pending_wp_edit_job": job_id})
 
     return ActionResult.success(
-        {"wp_post_id": wp_id, "title": title},
-        summary=f"✅ '{title}' (WP #{wp_id}) updated. Changes saved to WordPress.",
+        {"job_id": job_id, "wp_post_id": wp_id, "title": title},
+        summary=(
+            f"✏️ Rewrite started for '{title}' (WP #{wp_id}).\n"
+            f"Job ID: {job_id}\n"
+            f"Takes ~60-90 seconds. Call check_article_job to check — it will auto-save to WordPress."
+        ),
     )

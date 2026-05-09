@@ -10,7 +10,7 @@
   "tools": [
     {
       "name": "wp_blogger",
-      "description": "WP Blogger. Keyword research, rankings tracking, content plan, AI article writing, publish to WordPress.",
+      "description": "WP Blogger — SEO content studio for WordPress blogs. Use for: keyword research (найди ключевые слова, find keywords), SEO rankings/positions (покажи позиции в гугл, SEO rankings), content plan generation (придумай контент план), AI article writing and rewriting (напиши статью, перепиши), WordPress publish/unpublish (опубликуй, сними с публикации), get article links (дай ссылку на статью X), Rank Math SEO settings (покажи rank math, SEO настройки статьи), add/remove tracked keywords in SE Ranking, check article quality, manage content plan items.",
       "scopes": [],
       "parameters": {
         "message": {
@@ -368,7 +368,7 @@
     },
     {
       "name": "import_from_wp",
-      "description": "Import an existing WordPress post into the Content Plan for editing. Use when user wants to edit an existing WP article, draft, or post that was not created through this extension. Accepts post ID or keyword/title to find the post. After import, the post is available in Content Plan and can be edited, improved, or republished.",
+      "description": "Import a WordPress post and optionally edit it in one step. Use when user mentions editing/rewriting a specific WordPress post. If instruction is provided (rewrite intro, add section, etc.), applies the edit immediately after import — NO second tool call needed. Use for: перепиши вступление поста 1902, edit WP post 1902, import and rewrite, import and improve, измени статью из WP. post_id: WP post ID. instruction: what to change (optional).",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -401,6 +401,19 @@
             "default": null,
             "description": "Post title or keyword to search for in WordPress",
             "title": "Keyword Hint"
+          },
+          "instruction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "If provided, immediately edit the post after importing (e.g. rewrite intro, add section)",
+            "title": "Instruction"
           }
         },
         "title": "ImportFromWpParams",
@@ -578,7 +591,7 @@
     },
     {
       "name": "patch_article",
-      "description": "Edit or rewrite a specific part of the currently open article. Use when user says: rewrite intro/paragraph/conclusion, fix this section, make it more engaging, перепиши абзац/вступление/заключение, сделай цепляющим, улучши начало, измени этот раздел, add a section about X, shorten/expand part of the article. Works on currently open article — no need to specify which one.",
+      "description": "Edit or rewrite a specific part of an article. CALL THIS DIRECTLY — do NOT navigate to content plan first. Use keyword_hint to find the article by name if none is open. Use when user says: rewrite intro/paragraph/conclusion, fix this section, make it more engaging, перепиши абзац/вступление/заключение, сделай цепляющим, улучши начало, измени этот раздел, перепиши статью про X, add a section about X. keyword_hint: article name/keyword (e.g. 'infinityfree', 'affordable hosting'). Can work without an open article — just provide keyword_hint.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -594,6 +607,12 @@
             "default": "",
             "description": "Content item ID — leave empty to use currently open item",
             "title": "Content Id",
+            "type": "string"
+          },
+          "keyword_hint": {
+            "default": "",
+            "description": "Keyword or title to find the article if no content_id or open article",
+            "title": "Keyword Hint",
             "type": "string"
           }
         },
@@ -971,7 +990,7 @@
     },
     {
       "name": "fetch_rankings",
-      "description": "Fetch keyword positions from SE Ranking + AI traffic from Matomo. Use when user asks: show rankings, what positions do I have, SEO positions, покажи позиции, какие позиции в гугл, SEO Rankings, рейтинг ключевых слов, сколько нас выдают ИИ, AI трафик, откуда идёт трафик от ИИ.",
+      "description": "Show Google keyword POSITIONS from SE Ranking — NOT Matomo traffic. Use for: keyword rankings, SEO positions, what page do I rank for X, покажи позиции в Google, какие позиции в поиске, SEO Rankings, рейтинг ключевых слов, на какой странице мой сайт. Returns: keyword positions, top-3/10/30 counts, gainers/losers.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1496,6 +1515,22 @@
       "owner_chat_tool": "wp_blogger"
     },
     {
+      "name": "get_settings",
+      "description": "Show current extension settings — which APIs are configured. Use when user asks: what settings are saved, are my keys configured, какие настройки сохранены, проверь настройки, есть ли SE Ranking ключ.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
       "name": "list_wp_posts",
       "description": "List posts from WordPress — published AND drafts. Use when user asks: show WP posts, show drafts, what's in WordPress, show published articles, list blog drafts. Shows title, status, date, URL. Use status='draft' for only drafts, 'publish' for published, leave empty for all.",
       "action_type": "read",
@@ -1571,7 +1606,7 @@
     },
     {
       "name": "get_article_link",
-      "description": "Find the URL of a specific article on OUR WordPress blog — NOT a Google search. Use for internal blog post lookups: 'найди ссылку на статью', 'где статья про X', 'дай ссылку на пост', 'url статьи X', 'link to our article about X', 'ссылка на черновик X'. Searches WordPress drafts and published posts directly. Do NOT use Google or web search — use this tool instead.",
+      "description": "Find the URL of a specific article on OUR WordPress blog — NOT a Google search. Use for internal blog post lookups: 'найди ссылку на статью', 'где статья про X', 'дай ссылку на пост', 'url статьи X', 'можешь найти где статья', 'link to our article about X', 'permalink нашей статьи'. Searches WordPress drafts and published posts directly. Do NOT use Google or web search — use this tool instead.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1660,7 +1695,7 @@
     },
     {
       "name": "check_seo_meta",
-      "description": "Show Rank Math SEO settings for the current article — focus keyword, secondary keywords, meta description, excerpt, WP status. Use when user asks: покажи Rank Math, SEO настройки статьи, какой focus keyword, meta description, rank math score, SEO статус статьи, что в Rank Math.",
+      "description": "Show SEO settings for an article — Rank Math focus keyword, secondary keywords, meta description, keyword density, word count, WP status. Use when user asks about SEO of an article — 'покажи rank math', 'seo настройки статьи', 'как настроено seo', 'keyword density', 'какой focus keyword', 'meta description статьи', 'check seo', 'seo audit article', 'посмотреть настройки статьи'. Works with content plan ID or WP post ID (numeric).",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1680,6 +1715,152 @@
           }
         },
         "title": "CheckSeoMetaParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "patch_wp_article",
+      "description": "Edit/rewrite a specific part of a WordPress post by WP post ID. Use when user says: rewrite intro of post 1902, edit article wp 1902, перепиши вступление поста 1902, измени статью WP #1902, edit WP article, rewrite part of published post. Fetches content directly from WordPress, patches, saves back. No need to open article in editor first.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "wp_post_id": {
+            "description": "WordPress post ID (numeric, e.g. 1902)",
+            "title": "Wp Post Id",
+            "type": "string"
+          },
+          "instruction": {
+            "description": "What to change: rewrite intro, add section, fix conclusion, etc.",
+            "title": "Instruction",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wp_post_id",
+          "instruction"
+        ],
+        "title": "PatchWpArticleParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "edit_wp_article",
+      "description": "Import a WordPress post and immediately edit/rewrite a part of it — all in one step. PREFER this over patch_article when user mentions a WordPress post ID or title. Use when user says: перепиши вступление поста 1902, edit post 1902, измени статью wp 1902, rewrite intro of WP article, перепиши вступление/абзац/заключение поста, edit/improve specific WP post. wp_post_id: numeric WordPress ID (e.g. '1902'). instruction: what to change (e.g. 'rewrite intro mentioning WebHostMost as alternative').",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "wp_post_id": {
+            "description": "WordPress post ID (e.g. '1902')",
+            "title": "Wp Post Id",
+            "type": "string"
+          },
+          "instruction": {
+            "description": "What to change: rewrite intro, add section, etc.",
+            "title": "Instruction",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wp_post_id",
+          "instruction"
+        ],
+        "title": "EditWpArticleParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "add_tracked_keyword",
+      "description": "Add a keyword to SE Ranking position tracking. Use when user wants to track a new keyword — 'добавь в трекинг', 'начать отслеживать кейворд', 'track this keyword', 'хочу отслеживать позицию по слову X', 'add to SE Ranking', 'мониторить позицию', 'add keyword tracking for X'.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "create:keyword"
+      ],
+      "params_schema": {
+        "properties": {
+          "keyword": {
+            "description": "Keyword to start tracking in SE Ranking",
+            "title": "Keyword",
+            "type": "string"
+          },
+          "landing_url": {
+            "default": "",
+            "description": "Landing page URL for this keyword (optional)",
+            "title": "Landing Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "keyword"
+        ],
+        "title": "AddTrackedKeywordParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "remove_tracked_keyword",
+      "description": "Remove a keyword from SE Ranking position tracking. Use when user says: stop tracking keyword, remove keyword from SE Ranking, удали кейворд из трекинга, убери ключевое слово из SE Ranking, перестань отслеживать X.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "delete:keyword"
+      ],
+      "params_schema": {
+        "properties": {
+          "keyword_id": {
+            "default": "",
+            "description": "SE Ranking keyword ID to remove (from list_tracked_keywords)",
+            "title": "Keyword Id",
+            "type": "string"
+          },
+          "keyword": {
+            "default": "",
+            "description": "Keyword name to remove — system will find ID automatically",
+            "title": "Keyword",
+            "type": "string"
+          }
+        },
+        "title": "RemoveTrackedKeywordParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.nav.changed",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "list_tracked_keywords",
+      "description": "List all keywords tracked in SE Ranking with IDs and positions. Use when user wants to see tracked keywords — 'какие ключевые слова я отслеживаю', 'список трекинга', 'сколько кейвордов в трекинге', 'show tracked keywords', 'what am I tracking in SE Ranking', 'покажи все мои ключевые слова'.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {
+        "properties": {},
+        "title": "EmptyParams",
         "type": "object"
       },
       "return_schema": {},
