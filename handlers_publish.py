@@ -404,6 +404,46 @@ async def save_settings_fn(ctx, params: SaveSettingsParams) -> ActionResult:
 
 
 @chat.function(
+    "get_settings",
+    description=(
+        "Show current extension settings — which APIs are configured. "
+        "Use when user asks: what settings are saved, are my keys configured, "
+        "какие настройки сохранены, проверь настройки, есть ли SE Ranking ключ."
+    ),
+    action_type="read",
+)
+async def get_settings(ctx, params) -> ActionResult:
+    """Show which settings are configured (keys masked)."""
+    s = await load_settings(ctx)
+    def _mask(v):
+        if not v: return "NOT SET"
+        sv = str(v)
+        return sv[:4] + "***" + sv[-4:] if len(sv) > 8 else "***"
+
+    rows = [
+        {"key": "SE Ranking Data Key",    "value": _mask(s.get("seranking_data_key"))},
+        {"key": "SE Ranking Project Key", "value": _mask(s.get("seranking_project_key"))},
+        {"key": "SE Ranking Project ID",  "value": s.get("seranking_project_id") or "NOT SET"},
+        {"key": "SE Ranking Domain",      "value": s.get("seranking_domain") or "NOT SET"},
+        {"key": "SE Ranking Source",      "value": s.get("seranking_source") or "us"},
+        {"key": "SE Ranking Competitor",  "value": s.get("seranking_competitor") or "NOT SET"},
+        {"key": "WordPress URL",          "value": s.get("wp_url") or "NOT SET"},
+        {"key": "WordPress User",         "value": s.get("wp_username") or "NOT SET"},
+        {"key": "WP App Password",        "value": _mask(s.get("wp_app_password"))},
+    ]
+    configured = sum(1 for r in rows if r["value"] != "NOT SET")
+    return ActionResult.success(
+        {"settings": rows, "configured": configured},
+        summary="\n".join(f"{r['key']}: {r['value']}" for r in rows),
+        ui=ui.DataTable(
+            columns=[ui.DataColumn(key="key", label="Setting", width="45%"),
+                     ui.DataColumn(key="value", label="Value", width="55%")],
+            rows=rows,
+        ),
+    )
+
+
+@chat.function(
     "list_wp_posts",
     description=(
         "List posts from WordPress — published AND drafts. "
