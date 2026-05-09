@@ -4,7 +4,7 @@ import base64
 from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from app import chat, ext
+from wpb_app import chat, ext
 from api_client import mos_docs_create, mos_docs_delete, mos_docs_get_all, mos_docs_list
 from params import DeleteDocParams, EmptyParams, UploadDocParams
 

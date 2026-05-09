@@ -2,7 +2,7 @@
 from imperal_sdk import ActionResult, ui
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from app import chat
+from wpb_app import chat
 from api_client import ser_add_keyword, ser_remove_keyword, ser_list_site_keywords
 from params import EmptyParams
 

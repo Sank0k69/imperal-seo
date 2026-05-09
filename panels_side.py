@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from imperal_sdk import ui
 
-from app import ext, load_settings, load_ui_state, list_content, ser_ready, wp_ready
+from wpb_app import ext, load_settings, load_ui_state, list_content, ser_ready, wp_ready
 
 
 def _nav_btn(label: str, view: str) -> ui.UINode:

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from imperal_sdk import ui
 
-from app import load_settings
+from wpb_app import load_settings
 
 
 def _masked(v: str) -> str:

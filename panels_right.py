@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from imperal_sdk import ui
 
-from app import ext, get_content, load_ui_state
+from wpb_app import ext, get_content, load_ui_state
 
 REFRESH = (
     "on_event:seo.content.created,seo.content.updated,"

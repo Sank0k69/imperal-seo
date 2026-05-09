@@ -2,7 +2,7 @@
 from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from app import chat, save_ui_state, create_content as _create, get_content as _get_content
+from wpb_app import chat, save_ui_state, create_content as _create, get_content as _get_content
 from params import OpenEditorParams, CreateContentParams, SetEditorModeParams, EmptyParams, ImportFromWpParams
 
 
@@ -193,7 +193,7 @@ async def new_content(ctx, params: CreateContentParams) -> ActionResult:
 )
 async def import_from_wp(ctx, params: ImportFromWpParams) -> ActionResult:
     """Pull a WP post into Content Plan so Webbee can edit it."""
-    from app import load_settings, create_content
+    from wpb_app import load_settings, create_content
     from api_client import _post
 
     s = await load_settings(ctx)

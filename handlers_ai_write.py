@@ -5,7 +5,7 @@ import time
 from imperal_sdk import ActionResult
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from app import chat, get_content, update_content, load_settings, save_ui_state
+from wpb_app import chat, get_content, update_content, load_settings, save_ui_state
 from api_client import (keywords_for_article, start_generate_article,
                         poll_article_job, generate_newsletter_mos as _mos_newsletter,
                         log_action, _post)

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import time
 
-from app import load_settings
+from wpb_app import load_settings
 
 SERVER_URL = "https://mos.lexa-lox.xyz"
 SERVER_API_KEY = "dd5f08814b30d05ff8b573231a14a6826c39d7c07f226995c9a8b1573ceebb90"

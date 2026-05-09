@@ -10,10 +10,13 @@ dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
 
 [tool.setuptools]
 py-modules = [
-    "main", "app", "params",
-    "api_seranking", "api_wordpress",
+    "main", "wpb_app", "params",
+    "api_client", "api_seranking", "api_wordpress",
     "handlers_nav", "handlers_content", "handlers_seo", "handlers_publish", "handlers_docs",
-    "panels_side", "panels_workspace", "panels_editor", "panels_docs",
+    "handlers_ai_write", "handlers_ai_extra", "handlers_keywords",
+    "panels_side", "panels_right", "panels_workspace", "panels_editor",
+    "panels_editor_helpers", "panels_editor_newsletter",
+    "panels_settings_view", "panels_docs", "skeleton",
 ]
 
 [tool.pytest.ini_options]

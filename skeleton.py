@@ -1,5 +1,5 @@
 """Skeleton context providers — inject live data into Webbee LLM context."""
-from app import ext, load_ui_state, get_content, load_settings, list_content
+from wpb_app import ext, load_ui_state, get_content, load_settings, list_content
 
 
 @ext.skeleton("current_article", ttl=60,

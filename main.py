@@ -9,16 +9,16 @@ sys.path.insert(0, _dir)
 
 for _m in list(sys.modules):
     if _m in (
-        "app", "params", "api_client", "api_seranking", "api_wordpress",
+        "wpb_app", "params", "api_client", "api_seranking", "api_wordpress",
         "handlers_nav", "handlers_content", "handlers_ai_write", "handlers_ai_extra",
         "handlers_seo", "handlers_publish", "handlers_docs", "handlers_keywords",
-        "panels_side", "panels_workspace", "panels_editor",
+        "panels_side", "panels_right", "panels_workspace", "panels_editor",
         "panels_editor_helpers", "panels_editor_newsletter",
         "panels_settings_view", "panels_docs", "skeleton",
     ):
         del sys.modules[_m]
 
-from app import ext, chat  # noqa: E402, F401
+from wpb_app import ext, chat  # noqa: E402, F401
 
 import handlers_nav        # noqa: E402, F401
 import handlers_content    # noqa: E402, F401
@@ -30,4 +30,5 @@ import handlers_docs       # noqa: E402, F401
 import handlers_keywords   # noqa: E402, F401
 import skeleton            # noqa: E402, F401
 import panels_side         # noqa: E402, F401
+import panels_right        # noqa: E402, F401
 import panels_workspace    # noqa: E402, F401

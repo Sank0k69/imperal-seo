@@ -5,8 +5,8 @@ import time
 from imperal_sdk import ActionResult, ui
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from app import chat, get_content, update_content, load_settings, load_ui_state, list_content
-from app import save_settings as _save_settings
+from wpb_app import chat, get_content, update_content, load_settings, load_ui_state, list_content
+from wpb_app import save_settings as _save_settings
 from api_client import log_action, _post
 from api_wordpress import create_post, update_post
 from params import (PublishWpParams, SaveSettingsParams, SetWpSeoParams, ListWpPostsParams,

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from imperal_sdk import ui
 
-from app import get_content, load_settings
+from wpb_app import get_content, load_settings
 from panels_editor_helpers import _brief_html, _article_html
 from panels_editor_newsletter import _newsletter_editor
 

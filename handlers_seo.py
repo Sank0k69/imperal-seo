@@ -2,7 +2,7 @@
 from imperal_sdk import ActionResult, ui
 from imperal_sdk.types import ActionResult  # noqa: F811
 
-from app import chat, load_settings, save_settings, save_ui_state, create_content, list_content
+from wpb_app import chat, load_settings, save_settings, save_ui_state, create_content, list_content
 from api_client import ser_keywords, ser_gaps, ser_rankings, ser_projects, content_plan, fetch_ai_traffic, _post
 from handlers_docs import _load_docs
 from params import FetchKeywordsParams, FetchGapsParams, FetchRankingsParams, ListProjectsParams, BuildPlanParams, SetupBlogStyleParams
