@@ -2,7 +2,7 @@
 from wpb_app import ext, load_ui_state, get_content, load_settings, list_content
 
 
-@ext.skeleton("current_article", ttl=60,
+@ext.skeleton("current_article", ttl=10,
               description="Currently open article in editor — keyword, title, word count, status, id")
 async def refresh_current_article(ctx) -> dict:
     """Inject open article context so Webbee knows what's being edited."""

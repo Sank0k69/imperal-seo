@@ -80,15 +80,29 @@ async def open_editor(ctx, params: OpenEditorParams) -> ActionResult:
     if not params.content_id:
         return ActionResult.error(error="Select an item from the dropdown first.")
     item = await _get_content(ctx, params.content_id)
-    kw = (item.get("keyword") or item.get("title") or params.content_id) if item else params.content_id
+    kw         = (item.get("keyword") or item.get("title") or params.content_id) if item else params.content_id
+    word_count = len((item.get("content") or "").split()) if item else 0
+    status     = item.get("status", "idea") if item else "unknown"
+    wp_id      = item.get("wp_post_id", "") if item else ""
     await save_ui_state(ctx, {
         "active_view": "editor",
         "selected_id": params.content_id,
         "editor_mode": "edit",
     })
     return ActionResult.success(
-        {"content_id": params.content_id},
-        summary=f"Opened '{kw}' in editor",
+        {
+            "content_id":       params.content_id,
+            "keyword":          kw,
+            "word_count":       word_count,
+            "status":           status,
+            "wp_post_id":       wp_id,
+            "has_open_article": True,
+        },
+        summary=(
+            f"Article open: '{kw}' ({word_count} words, {status}).\n"
+            f"article_id={params.content_id}\n"
+            f"You can now edit it — tell me what to change (перепиши, улучши, добавь...)."
+        ),
     )
 
 
