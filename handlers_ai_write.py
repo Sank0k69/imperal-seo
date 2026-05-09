@@ -164,7 +164,11 @@ async def check_article_job(ctx, params: AiBriefParams) -> ActionResult:
 
         job_id = item.get("job_id", "")
         if not job_id:
-            return ActionResult.error(error="No active generation job. Run 'Write Full Article' first.")
+            # Check ui_state for pending WP edit job (from edit_wp_article / import_from_wp)
+            ui_st = await load_ui_state(ctx)
+            job_id = ui_st.get("pending_wp_edit_job", "")
+        if not job_id:
+            return ActionResult.error(error="No active generation job. Run 'Write Full Article' or 'edit_wp_article' first.")
 
         data = await poll_article_job(ctx, job_id)
         status = data.get("status", "not_found")

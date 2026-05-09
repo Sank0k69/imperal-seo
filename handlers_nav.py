@@ -282,8 +282,9 @@ async def import_from_wp(ctx, params: ImportFromWpParams) -> ActionResult:
             }, timeout=10)
             job_id = job_data.get("job_id", "") if "error" not in job_data else ""
             if job_id:
-                from wpb_app import save_ui_state as _save_state
+                from wpb_app import save_ui_state as _save_state, update_content as _upd
                 await _save_state(ctx, {"pending_wp_edit": str(wp_id), "pending_wp_edit_job": job_id})
+                await _upd(ctx, item_id, {"job_id": job_id, "generating": True})
                 return ActionResult.success(
                     {"item_id": item_id, "wp_post_id": wp_id, "title": title, "job_id": job_id},
                     summary=(
