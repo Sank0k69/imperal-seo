@@ -201,10 +201,44 @@ async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
 )
 async def patch_article(ctx, params: PatchArticleParams) -> ActionResult:
     """Apply a specific edit to the article content via AI on MOS server."""
-    cid = await _resolve_id(ctx, params.content_id, getattr(params, "keyword_hint", ""))
+    kw_hint = getattr(params, "keyword_hint", "")
+    cid = await _resolve_id(ctx, params.content_id, kw_hint)
     item = await get_content(ctx, cid)
+
+    # Last resort: if keyword_hint is a WP post ID, fetch directly from WP
+    if not item and (params.content_id.isdigit() or kw_hint.isdigit()):
+        wp_id_str = params.content_id if params.content_id.isdigit() else kw_hint
+        s = await load_settings(ctx)
+        if s.get("wp_app_password"):
+            try:
+                wp_data = await _post(ctx, "/api/wordpress/get", {
+                    "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+                    "wp_password": s["wp_app_password"], "post_id": int(wp_id_str),
+                })
+                if "error" not in wp_data and wp_data.get("content"):
+                    # Synthesize an item from WP data and patch directly
+                    kw = wp_data.get("title", "")
+                    content = wp_data.get("content", "")
+                    data = await _post(ctx, "/api/content/refine", {
+                        "content": content, "keyword": kw,
+                        "instruction": params.instruction + (f" PRESERVE keyword '{kw}'." if kw else ""),
+                    }, timeout=90)
+                    new_content = data.get("content", "")
+                    if new_content:
+                        await _post(ctx, "/api/wordpress/update", {
+                            "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+                            "wp_password": s["wp_app_password"],
+                            "post_id": int(wp_id_str), "content": new_content,
+                        })
+                        return ActionResult.success(
+                            {"wp_post_id": wp_id_str},
+                            summary=f"✅ WP post #{wp_id_str} updated — intro rewritten successfully.",
+                        )
+            except Exception:
+                pass
+
     if not item:
-        return ActionResult.error(error="No article found. Specify keyword_hint or open an article from Content Plan.")
+        return ActionResult.error(error="Article not found. Try: specify WP post ID as keyword_hint, or open article from Content Plan.")
 
     content = item.get("content", "")
     # If no local content but WP post exists, fetch from WordPress
