@@ -5,7 +5,7 @@ from imperal_sdk import ActionResult, ui
 from imperal_sdk.types import ActionResult  # noqa: F811
 
 from wpb_app import chat, get_content, update_content, delete_content, load_settings, load_ui_state, list_content, create_content, _store_list
-from api_client import generate_brief as _mos_brief, log_action, _post
+from api_client import generate_brief as _mos_brief, log_action, _post, start_refine_article
 from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiBriefParams, SaveBriefParams, PatchArticleParams, EmptyParams
 
 
@@ -263,22 +263,26 @@ async def patch_article(ctx, params: PatchArticleParams) -> ActionResult:
     # Add keyword preservation to any patch instruction
     kw_note = (f" IMPORTANT: Preserve the focus keyword '{kw}' — it must remain in the first sentence "
                f"and appear throughout the text. Do not replace '{kw}' with synonyms.") if kw else ""
-    data = await _post(ctx, "/api/content/refine", {
-        "user_key":    "",
-        "content":     content,
-        "instruction": params.instruction + kw_note,
-        "keyword":     kw,
-    }, timeout=60)
+    instruction = params.instruction + kw_note
 
-    if "error" in data:
-        return ActionResult.error(error=data["error"])
+    # Save content_id for check_article_job to find after async job completes
+    from wpb_app import save_ui_state
+    await save_ui_state(ctx, {"selected_id": cid, "active_view": "editor"})
 
-    new_content = data.get("content", content)
-    await update_content(ctx, cid, {"content": new_content})
+    # Use async job — ctx.http timeout < AI generation time (30s vs 60-90s)
+    job_data = await start_refine_article(ctx, content, kw, instruction)
 
+    if "error" in job_data:
+        return ActionResult.error(error=job_data["error"])
+
+    job_id = job_data.get("job_id", "")
     return ActionResult.success(
-        {"changed": new_content != content},
-        summary=f"Article updated: '{params.instruction[:60]}'. Saved to draft.",
+        {"job_id": job_id, "content_id": cid, "instruction": params.instruction[:80]},
+        summary=(
+            f"✏️ Rewrite started: '{params.instruction[:60]}'\n"
+            f"Job ID: {job_id}\n"
+            f"Takes ~60-90 seconds. Call check_article_job to get the result."
+        ),
     )
 
 
