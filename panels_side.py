@@ -125,7 +125,7 @@ async def sidebar_panel(ctx):
                     title=(i.get("keyword") or i.get("title") or "untitled")[:40],
                     subtitle=i.get("status", "idea"),
                     badge=ui.Badge(i.get("status", "idea"), color=STATUS_COLOR.get(i.get("status", "idea"), "gray")),
-                    on_click=ui.Call("__panel__editor", content_id=i["id"], note_id=i["id"]),
+                    on_click=ui.Call("open_editor", content_id=i["id"]),
                 )
                 for i in recent
             ]),
