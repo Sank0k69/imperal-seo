@@ -10,7 +10,7 @@
   "tools": [
     {
       "name": "wp_blogger",
-      "description": "WP Blogger — SEO content studio for WordPress blogs. Use for: keyword research (найди ключевые слова, find keywords), SEO rankings/positions (покажи позиции в гугл, SEO rankings), content plan generation (придумай контент план), AI article writing and rewriting (напиши статью, перепиши), WordPress publish/unpublish (опубликуй, сними с публикации), get article links (дай ссылку на статью X), Rank Math SEO settings (покажи rank math, SEO настройки статьи), add/remove tracked keywords in SE Ranking, check article quality, manage content plan items.",
+      "description": "WP Blogger — SEO and blog content tool. ALWAYS use for: Google search positions/rankings (покажи позиции в Google, какие позиции сайта, SEO rankings, где ранжируется), keyword research (найди ключевые слова), content plan (придумай контент план для блога), write/rewrite articles (напиши статью, перепиши вступление), WordPress: publish, draft, show posts, SEO settings, Rank Math, SE Ranking tracking (добавь кейворд в трекинг).",
       "scopes": [],
       "parameters": {
         "message": {
