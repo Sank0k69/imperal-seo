@@ -273,29 +273,23 @@ async def import_from_wp(ctx, params: ImportFromWpParams) -> ActionResult:
     })
     await save_ui_state(ctx, {"active_view": "editor", "selected_id": item_id, "editor_mode": "edit"})
 
-    # If instruction provided, patch immediately — no second tool call needed
+    # If instruction provided, start async rewrite job
     if params.instruction and content:
         try:
-            patch_data = await _post(ctx, "/api/content/refine", {
-                "content":     content,
-                "keyword":     keyword,
-                "instruction": params.instruction + (f" Preserve keyword '{keyword}'." if keyword else ""),
-            }, timeout=90)
-            new_content = patch_data.get("content", "") if "error" not in patch_data else ""
-            if new_content:
-                # Save patched content to MOS and back to WordPress
-                from wpb_app import update_content as _update_content
-                await _update_content(ctx, item_id, {"content": new_content})
-                await _post(ctx, "/api/wordpress/update", {
-                    "wp_url": s["wp_url"], "wp_user": s["wp_username"],
-                    "wp_password": s["wp_app_password"],
-                    "post_id": wp_id, "content": new_content,
-                })
+            instruction = params.instruction + (f" Preserve keyword '{keyword}'." if keyword else "")
+            job_data = await _post(ctx, "/api/content/refine/start", {
+                "user_key": "", "content": content, "keyword": keyword, "instruction": instruction,
+            }, timeout=10)
+            job_id = job_data.get("job_id", "") if "error" not in job_data else ""
+            if job_id:
+                from wpb_app import save_ui_state as _save_state
+                await _save_state(ctx, {"pending_wp_edit": str(wp_id), "pending_wp_edit_job": job_id})
                 return ActionResult.success(
-                    {"item_id": item_id, "wp_post_id": wp_id, "title": title, "patched": True},
+                    {"item_id": item_id, "wp_post_id": wp_id, "title": title, "job_id": job_id},
                     summary=(
-                        f"✅ Imported and edited '{title}' (WP #{wp_id}).\n"
-                        f"Changes saved to WordPress and Content Plan."
+                        f"✅ Imported '{title}' (WP #{wp_id}). Rewrite started.\n"
+                        f"Job ID: {job_id}\n"
+                        f"Call check_article_job in ~60-90 seconds — it will save changes to WordPress automatically."
                     ),
                 )
         except Exception:

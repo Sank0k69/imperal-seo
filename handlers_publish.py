@@ -916,12 +916,18 @@ async def patch_wp_article(ctx, params: PatchWpArticleParams) -> ActionResult:
     if not content:
         return ActionResult.error(error=f"WP post {wp_id} has no content.")
 
-    # Patch via MOS AI
-    data = await _post(ctx, "/api/content/refine", {
-        "content":     content,
-        "keyword":     title,
-        "instruction": params.instruction,
-    }, timeout=90)
+    # Patch via MOS AI (async — avoids ctx.http timeout)
+    data = await _post(ctx, "/api/content/refine/start", {
+        "user_key": "", "content": content, "keyword": title, "instruction": params.instruction,
+    }, timeout=10)
+    job_id = data.get("job_id", "") if "error" not in data else ""
+    if job_id:
+        return ActionResult.success(
+            {"job_id": job_id, "wp_post_id": wp_id_str},
+            summary=f"✏️ Rewrite started for WP #{wp_id_str}. Job: {job_id}. Call check_article_job in ~60s.",
+        )
+    # Fall through if job start fails
+    data = {"content": ""}
 
     if "error" in data:
         return ActionResult.error(error=data["error"])
