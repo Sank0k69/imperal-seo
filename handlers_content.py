@@ -167,12 +167,15 @@ async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
 @chat.function(
     "patch_article",
     description=(
-        "Edit or rewrite a specific part of the currently open article. "
+        "Edit or rewrite a specific part of an article. "
+        "CALL THIS DIRECTLY — do NOT navigate to content plan first. "
+        "Use keyword_hint to find the article by name if none is open. "
         "Use when user says: rewrite intro/paragraph/conclusion, fix this section, "
         "make it more engaging, перепиши абзац/вступление/заключение, "
         "сделай цепляющим, улучши начало, измени этот раздел, "
-        "add a section about X, shorten/expand part of the article. "
-        "Works on currently open article — no need to specify which one."
+        "перепиши статью про X, add a section about X. "
+        "keyword_hint: article name/keyword (e.g. 'infinityfree', 'affordable hosting'). "
+        "Can work without an open article — just provide keyword_hint."
     ),
     action_type="write",
     chain_callable=True,
