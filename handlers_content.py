@@ -196,8 +196,23 @@ async def patch_article(ctx, params: PatchArticleParams) -> ActionResult:
         return ActionResult.error(error="No article found. Specify keyword_hint or open an article from Content Plan.")
 
     content = item.get("content", "")
+    # If no local content but WP post exists, fetch from WordPress
+    if not content and item.get("wp_post_id"):
+        s = await load_settings(ctx)
+        if s.get("wp_app_password"):
+            try:
+                wp = await _post(ctx, "/api/wordpress/get", {
+                    "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+                    "wp_password": s["wp_app_password"],
+                    "post_id": int(item["wp_post_id"]),
+                })
+                content = wp.get("content", "")
+                if content:
+                    await update_content(ctx, cid, {"content": content})
+            except Exception:
+                pass
     if not content:
-        return ActionResult.error(error="Article has no content yet. Generate it first with ai_write.")
+        return ActionResult.error(error="Article has no content. Run ai_write first, or publish it to WordPress.")
 
     kw = item.get("keyword", "")
     # Add keyword preservation to any patch instruction
