@@ -1739,6 +1739,39 @@
       "owner_chat_tool": "wp_blogger"
     },
     {
+      "name": "edit_wp_article",
+      "description": "Import a WordPress post and immediately edit/rewrite a part of it — all in one step. PREFER this over patch_article when user mentions a WordPress post ID or title. Use when user says: перепиши вступление поста 1902, edit post 1902, измени статью wp 1902, rewrite intro of WP article, перепиши вступление/абзац/заключение поста, edit/improve specific WP post. wp_post_id: numeric WordPress ID (e.g. '1902'). instruction: what to change (e.g. 'rewrite intro mentioning WebHostMost as alternative').",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "wp_post_id": {
+            "description": "WordPress post ID (e.g. '1902')",
+            "title": "Wp Post Id",
+            "type": "string"
+          },
+          "instruction": {
+            "description": "What to change: rewrite intro, add section, etc.",
+            "title": "Instruction",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wp_post_id",
+          "instruction"
+        ],
+        "title": "EditWpArticleParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
       "name": "add_tracked_keyword",
       "description": "Add a keyword to SE Ranking position tracking. Use when user wants to track a new keyword — 'добавь в трекинг', 'начать отслеживать кейворд', 'track this keyword', 'хочу отслеживать позицию по слову X', 'add to SE Ranking', 'мониторить позицию', 'add keyword tracking for X'.",
       "action_type": "write",
