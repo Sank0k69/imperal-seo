@@ -171,6 +171,7 @@ class ListWpPostsParams(BaseModel):
 class ImportFromWpParams(BaseModel):
     post_id: Optional[int] = Field(None, description='WordPress post ID to import')
     keyword_hint: Optional[str] = Field(None, description='Post title or keyword to search for in WordPress')
+    instruction: Optional[str] = Field(None, description='If provided, immediately edit the post after importing (e.g. rewrite intro, add section)')
 
 
 class UnpublishWpParams(BaseModel):

@@ -195,10 +195,12 @@ async def new_content(ctx, params: CreateContentParams) -> ActionResult:
 @chat.function(
     "import_from_wp",
     description=(
-        "Import an existing WordPress post into the Content Plan for editing. "
-        "Use when user wants to edit an existing WP article, draft, or post that was not created through this extension. "
-        "Accepts post ID or keyword/title to find the post. "
-        "After import, the post is available in Content Plan and can be edited, improved, or republished."
+        "Import a WordPress post and optionally edit it in one step. "
+        "Use when user mentions editing/rewriting a specific WordPress post. "
+        "If instruction is provided (rewrite intro, add section, etc.), applies the edit immediately after import — NO second tool call needed. "
+        "Use for: перепиши вступление поста 1902, edit WP post 1902, "
+        "import and rewrite, import and improve, измени статью из WP. "
+        "post_id: WP post ID. instruction: what to change (optional)."
     ),
     action_type="write",
     chain_callable=True,
@@ -270,6 +272,34 @@ async def import_from_wp(ctx, params: ImportFromWpParams) -> ActionResult:
         "slug":       slug,
     })
     await save_ui_state(ctx, {"active_view": "editor", "selected_id": item_id, "editor_mode": "edit"})
+
+    # If instruction provided, patch immediately — no second tool call needed
+    if params.instruction and content:
+        try:
+            patch_data = await _post(ctx, "/api/content/refine", {
+                "content":     content,
+                "keyword":     keyword,
+                "instruction": params.instruction + (f" Preserve keyword '{keyword}'." if keyword else ""),
+            }, timeout=90)
+            new_content = patch_data.get("content", "") if "error" not in patch_data else ""
+            if new_content:
+                # Save patched content to MOS and back to WordPress
+                from wpb_app import update_content as _update_content
+                await _update_content(ctx, item_id, {"content": new_content})
+                await _post(ctx, "/api/wordpress/update", {
+                    "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+                    "wp_password": s["wp_app_password"],
+                    "post_id": wp_id, "content": new_content,
+                })
+                return ActionResult.success(
+                    {"item_id": item_id, "wp_post_id": wp_id, "title": title, "patched": True},
+                    summary=(
+                        f"✅ Imported and edited '{title}' (WP #{wp_id}).\n"
+                        f"Changes saved to WordPress and Content Plan."
+                    ),
+                )
+        except Exception:
+            pass  # Fall through to plain import result if edit fails
 
     return ActionResult.success(
         {"item_id": item_id, "content_id": item_id, "wp_post_id": wp_id, "title": title},
