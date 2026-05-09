@@ -241,31 +241,49 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
     gainers = sorted(gainers, key=lambda x: -x["_change"])[:8]
     losers  = sorted(losers,  key=lambda x:  x["_change"])[:8]
 
-    # ── Stats row ─────────────────────────────────────────────────────────────
-    stats = ui.Stats(children=[
-        ui.Stat(label="Tracked",        value=str(len(rankings)), icon="Target"),
-        ui.Stat(label="Top 3",          value=str(top3),   color="green",  icon="TrendingUp"),
-        ui.Stat(label="Top 10",         value=str(top10),  color="blue",   icon="Award"),
-        ui.Stat(label="Top 30",         value=str(top30),  color="yellow", icon="BarChart2"),
-        ui.Stat(label="Not ranked",     value=str(not_rank), color="gray", icon="Minus"),
-        ui.Stat(label="Monthly volume", value=f"{total_vol:,}", icon="Eye"),
+    # ── Good news callout ─────────────────────────────────────────────────────
+    best_kws = sorted(ranked, key=lambda r: r.get("position", 999))[:3]
+    net_gain  = len(gainers) - len(losers)
+    net_arrow = "▲" if net_gain > 0 else ("▼" if net_gain < 0 else "—")
+    net_color = "green" if net_gain > 0 else ("red" if net_gain < 0 else "gray")
+    best_str  = " · ".join(f"#{r['position']} {r['keyword']}" for r in best_kws) if best_kws else "—"
+
+    good_news = ui.Stats(children=[
+        ui.Stat(label="Best position",   value=best_kws[0]["keyword"][:25] if best_kws else "—",
+                color="green", icon="Star"),
+        ui.Stat(label="Net movers",      value=f"{net_arrow} {abs(net_gain)}",
+                color=net_color, icon="TrendingUp"),
+        ui.Stat(label="Gainers today",   value=str(len(gainers)), color="green",  icon="ArrowUp"),
+        ui.Stat(label="Losers today",    value=str(len(losers)),  color="red",    icon="ArrowDown"),
+        ui.Stat(label="Monthly volume",  value=f"{_vol_str(total_vol)}", icon="Eye"),
     ])
 
-    # ── Position distribution chart ───────────────────────────────────────────
-    buckets = [
-        {"label": "Top 3",       "value": top3},
-        {"label": "4–10",        "value": top10 - top3},
-        {"label": "11–30",       "value": top30 - top10},
-        {"label": "31–100",      "value": top100 - top30},
-        {"label": "Not ranked",  "value": not_rank},
+    # ── Stats row ─────────────────────────────────────────────────────────────
+    stats = ui.Stats(children=[
+        ui.Stat(label="Tracked",    value=str(len(rankings)), icon="Target"),
+        ui.Stat(label="Top 3  🟢",  value=str(top3),          color="green",  icon="TrendingUp"),
+        ui.Stat(label="Top 10 🔵",  value=str(top10),         color="blue",   icon="Award"),
+        ui.Stat(label="Top 30 🟡",  value=str(top30),         color="yellow", icon="BarChart2"),
+        ui.Stat(label="Top 100",    value=str(top100),        color="gray",   icon="List"),
+        ui.Stat(label="Not ranked 🔴", value=str(not_rank),   color="red",    icon="Minus"),
+    ])
+
+    # ── Position distribution — multi-color chart ─────────────────────────────
+    # Each bucket has its own key → different color per bar
+    dist_data = [
+        {"label": "Top 3",      "t3": top3,            "t10": 0, "t30": 0, "t100": 0, "nr": 0},
+        {"label": "4–10",       "t3": 0, "t10": top10-top3,       "t30": 0, "t100": 0, "nr": 0},
+        {"label": "11–30",      "t3": 0, "t10": 0, "t30": top30-top10,     "t100": 0, "nr": 0},
+        {"label": "31–100",     "t3": 0, "t10": 0, "t30": 0, "t100": top100-top30,    "nr": 0},
+        {"label": "Not ranked", "t3": 0, "t10": 0, "t30": 0, "t100": 0, "nr": not_rank},
     ]
     pos_chart = ui.Section(title="Position Distribution", collapsible=False, children=[
         ui.Chart(
             type="bar",
-            data=[b for b in buckets if b["value"] > 0],
+            data=dist_data,
             x_key="label",
-            y2_keys=["value"],
-            colors={"value": "#3b82f6"},
+            y2_keys=["t3", "t10", "t30", "t100", "nr"],
+            colors={"t3": "#22c55e", "t10": "#3b82f6", "t30": "#eab308", "t100": "#f97316", "nr": "#ef4444"},
             height=160,
         ),
     ])
@@ -328,16 +346,24 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
             ],
         )
 
-    # ── Top movers ────────────────────────────────────────────────────────────
-    def _chg(c: int) -> str:
-        return f"▲ {c}" if c > 0 else f"▼ {abs(c)}"
-
-    def _mover_rows(items: list) -> list:
+    # ── Top movers — green/red colored ───────────────────────────────────────
+    def _gainer_rows(items: list) -> list:
         return [
             {
                 "pos":     str(r.get("position", "—")),
-                "chg":     _chg(r["_change"]),
-                "keyword": r.get("keyword", "—")[:38],
+                "chg":     f"▲ +{r['_change']}",
+                "keyword": r.get("keyword", "—")[:35],
+                "vol":     f"{r.get('volume', 0):,}" if r.get("volume") else "—",
+            }
+            for r in items
+        ]
+
+    def _loser_rows(items: list) -> list:
+        return [
+            {
+                "pos":     str(r.get("position", "—")),
+                "chg":     f"▼ -{abs(r['_change'])}",
+                "keyword": r.get("keyword", "—")[:35],
                 "vol":     f"{r.get('volume', 0):,}" if r.get("volume") else "—",
             }
             for r in items
@@ -345,18 +371,28 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
 
     mover_cols = [
         ui.DataColumn(key="pos",     label="#",       width="8%"),
-        ui.DataColumn(key="chg",     label="±",       width="14%"),
-        ui.DataColumn(key="keyword", label="Keyword", width="58%"),
+        ui.DataColumn(key="chg",     label="±",       width="16%"),
+        ui.DataColumn(key="keyword", label="Keyword", width="56%"),
         ui.DataColumn(key="vol",     label="Vol",     width="20%"),
     ]
 
+    # Gainer chart (sparkline-style)
+    gainer_chart_data = [{"label": r.get("keyword","")[:15], "gain": r["_change"]} for r in gainers[:6] if r["_change"] > 0]
+    loser_chart_data  = [{"label": r.get("keyword","")[:15], "loss": abs(r["_change"])} for r in losers[:6]]
+
     movers = ui.Stack(direction="horizontal", gap=3, children=[
-        ui.Section(title=f"🚀 Gainers ({len(gainers)})", collapsible=False, children=[
-            ui.DataTable(columns=mover_cols, rows=_mover_rows(gainers))
+        ui.Section(title=f"🟢 Gainers ({len(gainers)})", collapsible=False, children=[
+            ui.Chart(type="bar", data=gainer_chart_data, x_key="label",
+                     y2_keys=["gain"], colors={"gain": "#22c55e"}, height=100)
+            if gainer_chart_data else ui.Empty(message=""),
+            ui.DataTable(columns=mover_cols, rows=_gainer_rows(gainers))
             if gainers else ui.Text(content="No gainers this period", variant="caption"),
         ]),
-        ui.Section(title=f"📉 Losers ({len(losers)})", collapsible=False, children=[
-            ui.DataTable(columns=mover_cols, rows=_mover_rows(losers))
+        ui.Section(title=f"🔴 Losers ({len(losers)})", collapsible=False, children=[
+            ui.Chart(type="bar", data=loser_chart_data, x_key="label",
+                     y2_keys=["loss"], colors={"loss": "#ef4444"}, height=100)
+            if loser_chart_data else ui.Empty(message=""),
+            ui.DataTable(columns=mover_cols, rows=_loser_rows(losers))
             if losers else ui.Text(content="No losers this period", variant="caption"),
         ]),
     ])
@@ -395,14 +431,20 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
 
     return ui.Stack(children=[
         ui.Stack(direction="horizontal", justify="between", align="center", children=[
-            ui.Header(text="SEO Rankings", level=3),
+            ui.Header(text="📊 SEO Rankings", level=3),
             refresh_btn,
         ]),
-        ui.Text(content="SE Ranking positions + Matomo AI referrers", variant="caption"),
+        # Good news row
+        good_news,
+        # Detailed stats
         stats,
+        # Multi-color position chart
         pos_chart,
+        # AI traffic
         ai_section,
+        # Green gainers + Red losers with mini charts
         movers,
+        # Full table
         full_table,
     ])
 
