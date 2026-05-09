@@ -142,32 +142,16 @@ async def _store_list(ctx) -> list[dict]:
         return []
 
 
-async def _bg_migrate(ctx, store_items: list[dict]) -> None:
-    """Background migration — runs after panel already returned data."""
-    from api_client import mos_content_create
-    for item in store_items:
-        try:
-            copy = {k: v for k, v in item.items() if k != "id"}
-            await mos_content_create(ctx, copy)
-        except Exception:
-            pass
-
-
 async def list_content(ctx, status: str | None = None) -> list[dict]:
-    import asyncio
     from api_client import mos_content_list
     try:
         items = await mos_content_list(ctx)
     except Exception:
         items = []
 
-    # MOS empty → use ctx.store data immediately, migrate in background
+    # MOS empty → fall back to ctx.store directly, no background tasks
     if not items:
-        store_items = await _store_list(ctx)
-        if store_items:
-            items = store_items
-            # Fire-and-forget: don't block the panel render
-            asyncio.create_task(_bg_migrate(ctx, store_items))
+        items = await _store_list(ctx)
 
     if status:
         items = [i for i in items if i.get("status") == status]

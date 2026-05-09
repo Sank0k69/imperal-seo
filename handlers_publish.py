@@ -528,11 +528,12 @@ async def unpublish_wp(ctx, params: UnpublishWpParams) -> ActionResult:
 @chat.function(
     "get_article_link",
     description=(
-        "Find URL/link to a WordPress blog post by title or keyword. "
-        "Use when user wants a link, URL, or permalink to any article — "
-        "e.g. 'найди ссылку', 'где статья про X', 'можешь найти пост', "
-        "'url статьи X', 'хочу ссылку на пост', 'link to article about X', "
-        "'где опубликована статья', 'дай permalink'. Searches WP drafts too."
+        "Find the URL of a specific article on OUR WordPress blog — NOT a Google search. "
+        "Use for internal blog post lookups: 'найди ссылку на статью', 'где статья про X', "
+        "'дай ссылку на пост', 'url статьи X', 'можешь найти где статья', "
+        "'link to our article about X', 'permalink нашей статьи'. "
+        "Searches WordPress drafts and published posts directly. "
+        "Do NOT use Google or web search — use this tool instead."
     ),
     action_type="read",
 )
