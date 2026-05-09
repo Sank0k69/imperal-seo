@@ -868,3 +868,77 @@ async def check_seo_meta(ctx, params: CheckSeoMetaParams) -> ActionResult:
         + (("\n" + "\n".join(issues)) if issues else "\n✅ SEO looks good!")
     )
     return ActionResult.success({"seo": rows, "issues": issues}, summary=summary, ui=table)
+
+
+# ── Direct WP article patch ────────────────────────────────────────────────────
+
+from pydantic import BaseModel as _BaseModel, Field as _Field
+
+class PatchWpArticleParams(_BaseModel):
+    wp_post_id: str = _Field(..., description="WordPress post ID (numeric, e.g. 1902)")
+    instruction: str = _Field(..., description="What to change: rewrite intro, add section, fix conclusion, etc.")
+
+
+@chat.function(
+    "patch_wp_article",
+    description=(
+        "Edit/rewrite a specific part of a WordPress post by WP post ID. "
+        "Use when user says: rewrite intro of post 1902, edit article wp 1902, "
+        "перепиши вступление поста 1902, измени статью WP #1902, "
+        "edit WP article, rewrite part of published post. "
+        "Fetches content directly from WordPress, patches, saves back. "
+        "No need to open article in editor first."
+    ),
+    action_type="write",
+    chain_callable=True,
+    effects=["update:content"],
+    event="seo.content.updated",
+)
+async def patch_wp_article(ctx, params: PatchWpArticleParams) -> ActionResult:
+    """Fetch WP post, patch a section, save back to WP — no content plan needed."""
+    s = await load_settings(ctx)
+    if not s.get("wp_app_password"):
+        return ActionResult.error(error="WordPress not configured. Add credentials in Settings.")
+
+    wp_id = int(params.wp_post_id)
+    # Fetch article from WordPress
+    wp = await _post(ctx, "/api/wordpress/get", {
+        "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+        "wp_password": s["wp_app_password"], "post_id": wp_id,
+    })
+    if "error" in wp:
+        return ActionResult.error(error=f"WP post {wp_id} not found: {wp['error']}")
+
+    content = wp.get("content", "")
+    title   = wp.get("title", "")
+    if not content:
+        return ActionResult.error(error=f"WP post {wp_id} has no content.")
+
+    # Patch via MOS AI
+    data = await _post(ctx, "/api/content/refine", {
+        "content":     content,
+        "keyword":     title,
+        "instruction": params.instruction,
+    }, timeout=90)
+
+    if "error" in data:
+        return ActionResult.error(error=data["error"])
+
+    new_content = data.get("content", "")
+    if not new_content:
+        return ActionResult.error(error="AI returned empty content. Try again.")
+
+    # Save back to WordPress
+    upd = await _post(ctx, "/api/wordpress/update", {
+        "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+        "wp_password": s["wp_app_password"],
+        "post_id": wp_id, "content": new_content,
+    })
+
+    if "error" in upd:
+        return ActionResult.error(error=f"Failed to update WP post: {upd['error']}")
+
+    return ActionResult.success(
+        {"wp_post_id": wp_id, "updated": True},
+        summary=f"✅ WP post #{wp_id} '{title}' updated successfully.",
+    )
