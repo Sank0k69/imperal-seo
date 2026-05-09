@@ -578,7 +578,7 @@
     },
     {
       "name": "patch_article",
-      "description": "Edit or rewrite a specific part of the currently open article. Use when user says: rewrite intro/paragraph/conclusion, fix this section, make it more engaging, перепиши абзац/вступление/заключение, сделай цепляющим, улучши начало, измени этот раздел, add a section about X, shorten/expand part of the article. Works on currently open article — no need to specify which one.",
+      "description": "Edit or rewrite a specific part of an article. CALL THIS DIRECTLY — do NOT navigate to content plan first. Use keyword_hint to find the article by name if none is open. Use when user says: rewrite intro/paragraph/conclusion, fix this section, make it more engaging, перепиши абзац/вступление/заключение, сделай цепляющим, улучши начало, измени этот раздел, перепиши статью про X, add a section about X. keyword_hint: article name/keyword (e.g. 'infinityfree', 'affordable hosting'). Can work without an open article — just provide keyword_hint.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -594,6 +594,12 @@
             "default": "",
             "description": "Content item ID — leave empty to use currently open item",
             "title": "Content Id",
+            "type": "string"
+          },
+          "keyword_hint": {
+            "default": "",
+            "description": "Keyword or title to find the article if no content_id or open article",
+            "title": "Keyword Hint",
             "type": "string"
           }
         },
@@ -1496,6 +1502,18 @@
       "owner_chat_tool": "wp_blogger"
     },
     {
+      "name": "get_settings",
+      "description": "Show current extension settings — which APIs are configured. Use when user asks: what settings are saved, are my keys configured, какие настройки сохранены, проверь настройки, есть ли SE Ranking ключ.",
+      "action_type": "read",
+      "chain_callable": false,
+      "effects": [],
+      "params_schema": {},
+      "return_schema": {},
+      "event": "",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
       "name": "list_wp_posts",
       "description": "List posts from WordPress — published AND drafts. Use when user asks: show WP posts, show drafts, what's in WordPress, show published articles, list blog drafts. Shows title, status, date, URL. Use status='draft' for only drafts, 'publish' for published, leave empty for all.",
       "action_type": "read",
@@ -1684,6 +1702,39 @@
       },
       "return_schema": {},
       "event": "",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "patch_wp_article",
+      "description": "Edit/rewrite a specific part of a WordPress post by WP post ID. Use when user says: rewrite intro of post 1902, edit article wp 1902, перепиши вступление поста 1902, измени статью WP #1902, edit WP article, rewrite part of published post. Fetches content directly from WordPress, patches, saves back. No need to open article in editor first.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:content"
+      ],
+      "params_schema": {
+        "properties": {
+          "wp_post_id": {
+            "description": "WordPress post ID (numeric, e.g. 1902)",
+            "title": "Wp Post Id",
+            "type": "string"
+          },
+          "instruction": {
+            "description": "What to change: rewrite intro, add section, fix conclusion, etc.",
+            "title": "Instruction",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wp_post_id",
+          "instruction"
+        ],
+        "title": "PatchWpArticleParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.updated",
       "scopes": [],
       "owner_chat_tool": "wp_blogger"
     },
