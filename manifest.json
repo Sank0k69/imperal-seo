@@ -1571,7 +1571,7 @@
     },
     {
       "name": "get_article_link",
-      "description": "Find a WordPress post by title/keyword and return its URL. Use when user asks: дай ссылку на статью X, link to post about X, where is article X, URL статьи, ссылка на черновик X.",
+      "description": "Find the URL of a specific article on OUR WordPress blog — NOT a Google search. Use for internal blog post lookups: 'найди ссылку на статью', 'где статья про X', 'дай ссылку на пост', 'url статьи X', 'link to our article about X', 'ссылка на черновик X'. Searches WordPress drafts and published posts directly. Do NOT use Google or web search — use this tool instead.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
