@@ -209,7 +209,9 @@ async def update_content(ctx, content_id: str, data: dict) -> None:
         pass
     # Fallback: ctx.store (for tests and offline mode)
     try:
-        doc = await ctx.store.get(CONTENT_COL, content_id)
+        page = await ctx.store.query(CONTENT_COL, limit=200)
+        docs = getattr(page, "data", None) or []
+        doc = next((d for d in docs if getattr(d, "id", None) == content_id), None)
         if doc and isinstance(getattr(doc, "data", None), dict):
             merged = {**doc.data, **data}
             await ctx.store.update(CONTENT_COL, content_id, merged)
