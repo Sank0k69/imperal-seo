@@ -272,10 +272,10 @@ async def import_from_wp(ctx, params: ImportFromWpParams) -> ActionResult:
     await save_ui_state(ctx, {"active_view": "editor", "selected_id": item_id, "editor_mode": "edit"})
 
     return ActionResult.success(
-        {"item_id": item_id, "wp_post_id": wp_id, "title": title},
+        {"item_id": item_id, "content_id": item_id, "wp_post_id": wp_id, "title": title},
         summary=(
-            f"✅ Imported '{title}' (WP #{wp_id}) into Content Plan.\n"
+            f"✅ Imported '{title}' (WP #{wp_id}) into Content Plan. item_id={item_id}\n"
             f"Article is now in Review status and open in editor.\n"
-            f"You can now edit, improve, or republish it."
+            f"You can now edit it — use patch_article or improve_article with item_id={item_id}."
         ),
     )

@@ -10,9 +10,20 @@ from params import SaveDraftParams, UpdateStatusParams, DeleteContentParams, AiB
 
 
 async def _resolve_id(ctx, content_id: str, keyword_hint: str = "") -> str:
-    """Return content_id → ui_state selected_id → keyword search → most recent article."""
+    """Return content_id → ctx.prior → ui_state selected_id → keyword search → most recent."""
     if content_id:
         return content_id
+    # Check chain prior step — import_from_wp or open_editor may have set item_id
+    try:
+        for step_name in ("import_from_wp", "open_editor", "new_content"):
+            prior = getattr(getattr(ctx, "prior", None), step_name, None)
+            if prior:
+                for field in ("item_id", "content_id", "id"):
+                    val = getattr(prior, field, None)
+                    if val:
+                        return str(val)
+    except Exception:
+        pass
     # Check ui_state (set when article is opened in editor)
     state = await load_ui_state(ctx)
     if state.get("selected_id"):
