@@ -17,14 +17,20 @@ async def _resolve_id(ctx, content_id: str, keyword_hint: str = "") -> str:
     state = await load_ui_state(ctx)
     if state.get("selected_id"):
         return state["selected_id"]
-    # Search by keyword_hint
+    # Search by keyword_hint or WP post ID
     if keyword_hint:
         items = await list_content(ctx)
-        q = keyword_hint.lower()
+        q = keyword_hint.lower().strip()
+        # WP post ID numeric match
+        if q.isdigit():
+            found = next((i for i in items if str(i.get("wp_post_id", "")) == q), None)
+            if found:
+                return found["id"]
+        # keyword/title match
         for item in items:
             kw    = (item.get("keyword") or "").lower()
             title = (item.get("title") or "").lower()
-            if q in kw or q in title or any(w in kw or w in title for w in q.split()):
+            if q in kw or q in title or any(w in kw or w in title for w in q.split() if len(w) > 3):
                 return item["id"]
     # Fallback: most recently updated article (best guess)
     items = await list_content(ctx)

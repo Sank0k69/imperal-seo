@@ -159,6 +159,8 @@ async def list_content(ctx, status: str | None = None) -> list[dict]:
 
 
 async def get_content(ctx, content_id: str) -> dict | None:
+    if not content_id:
+        return None
     from api_client import mos_content_get
     try:
         result = await mos_content_get(ctx, content_id)
@@ -167,9 +169,18 @@ async def get_content(ctx, content_id: str) -> dict | None:
             return item
     except Exception:
         pass
-    # Fallback: search ctx.store by id
+    # Fallback: search ctx.store by UUID or wp_post_id
     store_items = await _store_list(ctx)
-    return next((i for i in store_items if i.get("id") == content_id), None)
+    # exact UUID match
+    found = next((i for i in store_items if i.get("id") == content_id), None)
+    if found:
+        return found
+    # WP post ID match (e.g. "1902")
+    if content_id.isdigit():
+        found = next((i for i in store_items if str(i.get("wp_post_id", "")) == content_id), None)
+        if found:
+            return found
+    return None
 
 
 async def create_content(ctx, data: dict) -> str:
