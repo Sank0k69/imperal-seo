@@ -85,7 +85,18 @@ async def ser_gaps(ctx, domain: str, competitor: str, source: str, limit: int) -
 
 
 async def fetch_ai_traffic(ctx) -> dict:
-    """Fetch AI referrer traffic from Matomo — current vs previous period."""
+    """Fetch AI referrer traffic — via analytics extension IPC or own Matomo settings."""
+    # Try IPC with analytics extension first (no config needed in WP Blogger)
+    try:
+        result = await ctx.extensions.call("analytics", "ai_referrers", period="month")
+        if result and not getattr(result, "error", None):
+            data = getattr(result, "data", {}) or {}
+            if data.get("sources") is not None:
+                return data
+    except Exception:
+        pass
+
+    # Fallback: own Matomo credentials from Settings
     s = await load_settings(ctx)
     matomo_url   = s.get("matomo_url", "")
     matomo_token = s.get("matomo_token", "")

@@ -315,23 +315,28 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
         ui.Stat(label="Not ranked 🔴", value=str(not_rank),   color="red",    icon="Minus"),
     ])
 
-    # ── Position distribution — multi-color chart ─────────────────────────────
-    # Each bucket has its own key → different color per bar
-    dist_data = [
-        {"label": "Top 3",      "t3": top3,            "t10": 0, "t30": 0, "t100": 0, "nr": 0},
-        {"label": "4–10",       "t3": 0, "t10": top10-top3,       "t30": 0, "t100": 0, "nr": 0},
-        {"label": "11–30",      "t3": 0, "t10": 0, "t30": top30-top10,     "t100": 0, "nr": 0},
-        {"label": "31–100",     "t3": 0, "t10": 0, "t30": 0, "t100": top100-top30,    "nr": 0},
-        {"label": "Not ranked", "t3": 0, "t10": 0, "t30": 0, "t100": 0, "nr": not_rank},
-    ]
+    # ── Position distribution — clean Stats pills (no chart scaling issues) ──
     pos_chart = ui.Section(title="Position Distribution", collapsible=False, children=[
+        ui.Stats(children=[
+            ui.Stat(label="🟢 Top 3",      value=str(top3),          color="green"),
+            ui.Stat(label="🔵 4–10",       value=str(top10-top3),    color="blue"),
+            ui.Stat(label="🟡 11–30",      value=str(top30-top10),   color="yellow"),
+            ui.Stat(label="🟠 31–100",     value=str(top100-top30),  color="gray"),
+            ui.Stat(label="🔴 Not ranked", value=str(not_rank),      color="red"),
+        ]),
         ui.Chart(
             type="bar",
-            data=dist_data,
+            data=[
+                {"label": "Top 3",      "value": top3},
+                {"label": "4–10",       "value": top10 - top3},
+                {"label": "11–30",      "value": top30 - top10},
+                {"label": "31–100",     "value": top100 - top30},
+                {"label": "Not ranked", "value": not_rank},
+            ],
             x_key="label",
-            y2_keys=["t3", "t10", "t30", "t100", "nr"],
-            colors={"t3": "#22c55e", "t10": "#3b82f6", "t30": "#eab308", "t100": "#f97316", "nr": "#ef4444"},
-            height=160,
+            y2_keys=["value"],
+            colors={"value": "#6366f1"},
+            height=120,
         ),
     ])
 
