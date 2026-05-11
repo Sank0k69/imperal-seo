@@ -64,6 +64,16 @@ _STATUS_COLOR = {"idea": "gray", "writing": "blue", "review": "yellow", "publish
 _STATUS_ICON  = {"idea": "Lightbulb", "writing": "PenLine", "review": "Eye", "published": "CheckCircle"}
 
 
+def _back_btn() -> ui.UINode:
+    """Universal back button — returns to Content Plan."""
+    return ui.Button(
+        label="← Back",
+        size="sm",
+        variant="ghost",
+        on_click=ui.Call("__panel__editor", active_view="plan", note_id="board"),
+    )
+
+
 def _vol_str(v: int) -> str:
     if v >= 1_000_000: return f"{v/1_000_000:.1f}M"
     if v >= 1_000: return f"{v/1_000:.0f}K"
@@ -261,7 +271,10 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
     if not rankings:
         return ui.Stack(children=[
             ui.Stack(direction="horizontal", justify="between", children=[
-                ui.Header(text="SEO Rankings", level=3),
+                ui.Stack(direction="horizontal", gap=2, children=[
+                    _back_btn(),
+                    ui.Header(text="📊 SEO Rankings", level=3),
+                ]),
                 refresh_btn,
             ]),
             ui.Alert(message="Нет данных. Нажми ↻ Refresh чтобы загрузить позиции из SE Ranking.", type="info"),
@@ -483,7 +496,10 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
 
     return ui.Stack(children=[
         ui.Stack(direction="horizontal", justify="between", align="center", children=[
-            ui.Header(text="📊 SEO Rankings", level=3),
+            ui.Stack(direction="horizontal", gap=2, children=[
+                _back_btn(),
+                ui.Header(text="📊 SEO Rankings", level=3),
+            ]),
             refresh_btn,
         ]),
         # Good news row
@@ -528,7 +544,10 @@ async def _keywords_view(ctx, state: dict) -> ui.UINode:
 
     if not kws:
         return ui.Stack(children=[
-            ui.Header(text="Keyword Research", level=3),
+            ui.Stack(direction="horizontal", justify="between", align="center", children=[
+                ui.Header(text="🔍 Keyword Research", level=3),
+                _back_btn(),
+            ]),
             search_form,
             ui.Divider(),
             gap_form,
@@ -560,7 +579,10 @@ async def _keywords_view(ctx, state: dict) -> ui.UINode:
     )
 
     return ui.Stack(children=[
-        ui.Header(text="Keyword Research", level=3),
+        ui.Stack(direction="horizontal", justify="between", align="center", children=[
+            ui.Header(text="🔍 Keyword Research", level=3),
+            _back_btn(),
+        ]),
         search_form,
         ui.Divider(),
         gap_form,
