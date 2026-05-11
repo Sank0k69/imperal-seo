@@ -1023,3 +1023,54 @@ async def edit_wp_article(ctx, params: EditWpArticleParams) -> ActionResult:
             f"Takes ~60-90 seconds. Call check_article_job to check — it will auto-save to WordPress."
         ),
     )
+
+
+# ── Delete WP post ─────────────────────────────────────────────────────────────
+
+class DeleteWpPostParams(BaseModel):
+    wp_post_id: str = Field(..., description="WordPress post ID to permanently delete")
+    keyword_hint: str = Field("", description="Post title/keyword to confirm which post")
+
+
+@chat.function(
+    "delete_wp_post",
+    description=(
+        "Permanently delete a WordPress post (moves to trash). "
+        "Use when user says: удали пост, удали черновик, delete this draft, "
+        "delete WP post ID X, убери статью из WordPress, "
+        "удали этот черновик навсегда. "
+        "wp_post_id: WordPress numeric post ID."
+    ),
+    action_type="destructive",
+    chain_callable=True,
+    effects=["delete:post"],
+    event="seo.content.deleted",
+)
+async def delete_wp_post(ctx, params: DeleteWpPostParams) -> ActionResult:
+    """Delete a WordPress post by ID (moves to trash)."""
+    s = await load_settings(ctx)
+    if not s.get("wp_app_password"):
+        return ActionResult.error(error="WordPress not configured.")
+
+    wp_id = int(params.wp_post_id)
+    # First get title for confirmation
+    info = await _post(ctx, "/api/wordpress/get", {
+        "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+        "wp_password": s["wp_app_password"], "post_id": wp_id,
+    })
+    title = info.get("title", f"Post #{wp_id}") if "error" not in info else f"Post #{wp_id}"
+
+    # Delete via WP REST API (DELETE = move to trash)
+    import base64
+    auth = base64.b64encode(f"{s['wp_username']}:{s['wp_app_password']}".encode()).decode()
+    resp = await ctx.http.delete(
+        f"{s['wp_url'].rstrip('/')}/wp-json/wp/v2/posts/{wp_id}",
+        headers={"Authorization": f"Basic {auth}"},
+    )
+    if not resp.ok:
+        return ActionResult.error(error=f"Failed to delete post #{wp_id}: {resp.status_code}")
+
+    return ActionResult.success(
+        {"wp_post_id": wp_id, "title": title, "deleted": True},
+        summary=f"🗑️ Deleted '{title}' (WP #{wp_id}) from WordPress.",
+    )
