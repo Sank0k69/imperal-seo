@@ -75,7 +75,7 @@ async def save_draft(ctx, params: SaveDraftParams) -> ActionResult:
         if updates:
             await update_content(ctx, cid, updates)
         await log_action(ctx, "save_draft", cid, int((time.monotonic() - t0) * 1000), True)
-        return ActionResult.success({"id": cid}, summary=f"Draft saved: {params.title or item.get('title', '...')}")
+        return ActionResult.success({"id": cid}, summary=f"Draft saved: {params.title or item.get('title', '...')}", refresh_panels=["sidebar"])
     except Exception as e:
         await log_action(ctx, "save_draft", cid, int((time.monotonic() - t0) * 1000), False, str(e))
         return ActionResult.error(error=str(e))
@@ -99,7 +99,7 @@ async def update_status(ctx, params: UpdateStatusParams) -> ActionResult:
     if not item:
         return ActionResult.error(error="Content item not found")
     await update_content(ctx, cid, {"status": params.status})
-    return ActionResult.success({"id": cid, "status": params.status}, summary=f"Status → {params.status}: {item.get('keyword', '')}")
+    return ActionResult.success({"id": cid, "status": params.status}, summary=f"Status → {params.status}: {item.get('keyword', '')}", refresh_panels=["sidebar"])
 
 
 @chat.function(
@@ -116,7 +116,7 @@ async def delete_content_fn(ctx, params: DeleteContentParams) -> ActionResult:
     if not item:
         return ActionResult.error(error="Content item not found")
     await delete_content(ctx, params.content_id)
-    return ActionResult.success({"id": params.content_id}, summary=f"Deleted: {item.get('keyword', params.content_id)}")
+    return ActionResult.success({"id": params.content_id}, summary=f"Deleted: {item.get('keyword', params.content_id)}", refresh_panels=["sidebar"])
 
 
 @chat.function(
@@ -178,7 +178,7 @@ async def save_brief(ctx, params: SaveBriefParams) -> ActionResult:
     if not item:
         return ActionResult.error(error="Content item not found")
     await update_content(ctx, cid, {"brief": params.brief_text})
-    return ActionResult.success({"id": cid}, summary="Brief saved.")
+    return ActionResult.success({"id": cid}, summary="Brief saved.", refresh_panels=["sidebar"])
 
 
 @chat.function(

@@ -188,7 +188,7 @@ async def new_content(ctx, params: CreateContentParams) -> ActionResult:
     })
     return ActionResult.success(
         {"id": item_id, "keyword": params.keyword},
-        summary=f"Created '{params.keyword}' ({params.type}) and opened in editor",
+        summary=f"Created '{params.keyword}' ({params.type}) and opened in editor", refresh_panels=["sidebar"],
     )
 
 
