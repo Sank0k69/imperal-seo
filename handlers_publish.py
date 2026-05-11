@@ -538,6 +538,7 @@ async def list_wp_posts(ctx, params: ListWpPostsParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def unpublish_wp(ctx, params: UnpublishWpParams) -> ActionResult:
+    """Set WP post to draft status (unpublish)."""
     s = await load_settings(ctx)
     if not s.get("wp_app_password"):
         return ActionResult.error(error="WordPress not configured. Add credentials in Settings.")
@@ -580,6 +581,7 @@ async def unpublish_wp(ctx, params: UnpublishWpParams) -> ActionResult:
     action_type="read",
 )
 async def get_article_link(ctx, params: GetArticleLinkParams) -> ActionResult:
+    """Find WP post URL by title or keyword."""
     s = await load_settings(ctx)
     if not s.get("wp_app_password"):
         return ActionResult.error(error="WordPress not configured.")
@@ -660,6 +662,7 @@ async def get_article_link(ctx, params: GetArticleLinkParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def rewrite_article(ctx, params: RewriteArticleParams) -> ActionResult:
+    """Start async full article rewrite."""
     import time as _time
     cid = await _resolve_id(ctx, params.content_id)
     item = await get_content(ctx, cid)
@@ -704,6 +707,7 @@ async def rewrite_article(ctx, params: RewriteArticleParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def add_keywords_to_article(ctx, params: AddKeywordsParams) -> ActionResult:
+    """Add secondary keywords to article and update Rank Math."""
     s = await load_settings(ctx)
     cid = await _resolve_id(ctx, params.content_id)
     item = await get_content(ctx, cid)
@@ -758,6 +762,7 @@ async def add_keywords_to_article(ctx, params: AddKeywordsParams) -> ActionResul
     action_type="read",
 )
 async def check_seo_meta(ctx, params: CheckSeoMetaParams) -> ActionResult:
+    """Show Rank Math SEO settings for an article."""
     s = await load_settings(ctx)
 
     # Detect WP post ID (numeric ≤7 digits) — fetch from WP directly

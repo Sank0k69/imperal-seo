@@ -34,6 +34,7 @@ class RemoveTrackedKeywordParams(BaseModel):
     event="seo.nav.changed",
 )
 async def add_tracked_keyword(ctx, params: AddTrackedKeywordParams) -> ActionResult:
+    """Add keyword to SE Ranking position tracking."""
     result = await ser_add_keyword(ctx, params.keyword, params.landing_url)
     if "error" in result:
         return ActionResult.error(error=result["error"])
@@ -59,6 +60,7 @@ async def add_tracked_keyword(ctx, params: AddTrackedKeywordParams) -> ActionRes
     event="seo.nav.changed",
 )
 async def remove_tracked_keyword(ctx, params: RemoveTrackedKeywordParams) -> ActionResult:
+    """Remove keyword from SE Ranking tracking by name or ID."""
     keyword_id = params.keyword_id
 
     if not keyword_id and params.keyword:
@@ -101,6 +103,7 @@ async def remove_tracked_keyword(ctx, params: RemoveTrackedKeywordParams) -> Act
     action_type="read",
 )
 async def list_tracked_keywords(ctx, params: EmptyParams) -> ActionResult:
+    """List all keywords tracked in SE Ranking with IDs."""
     data = await ser_list_site_keywords(ctx)
     if "error" in data:
         return ActionResult.error(error=data["error"])
