@@ -1027,7 +1027,7 @@ async def edit_wp_article(ctx, params: EditWpArticleParams) -> ActionResult:
 
 # ── Delete WP post ─────────────────────────────────────────────────────────────
 
-class DeleteWpPostParams(BaseModel):
+class DeleteWpPostParams(_BaseModel):
     wp_post_id: str = Field(..., description="WordPress post ID to permanently delete")
     keyword_hint: str = Field("", description="Post title/keyword to confirm which post")
 
