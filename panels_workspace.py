@@ -194,7 +194,11 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
     ) if items else None
 
     header = ui.Stack(direction="horizontal", justify="between", align="center", children=[
-        ui.Header(text=title, level=3),
+        ui.Stack(direction="horizontal", gap=2, children=[
+            ui.Button(label="← Webbee", size="sm", variant="ghost",
+                      on_click=ui.Navigate("/")),
+            ui.Header(text=title, level=3),
+        ]),
         ui.Stack(direction="horizontal", gap=2, children=[
             ui.Button(label="🔍 Keywords", size="sm", variant="ghost",
                       on_click=ui.Call("__panel__editor", active_view="keywords", note_id="board")),
