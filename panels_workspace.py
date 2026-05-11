@@ -195,9 +195,56 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
 
     build_btn = ui.Form(action="build_content_plan", submit_label="✨ Build Content Plan (AI)", children=[])
 
-    children = [header, stats, build_btn, ui.Divider(), filter_row, table]
+    # ── SEO Potential block — top keywords by volume ──────────────────────────
+    top_by_vol = sorted([i for i in items if i.get("volume", 0) > 0],
+                        key=lambda x: -(x.get("volume") or 0))[:5]
+    potential_section = ui.Section(
+        title=f"🎯 SEO Potential — top {len(top_by_vol)} by search volume",
+        collapsible=True,
+        children=[
+            ui.DataTable(
+                columns=[
+                    ui.DataColumn(key="kw",     label="Keyword",  width="45%"),
+                    ui.DataColumn(key="vol",    label="Vol/mo",   width="15%"),
+                    ui.DataColumn(key="diff",   label="Diff",     width="10%"),
+                    ui.DataColumn(key="status", label="Status",   width="15%"),
+                    ui.DataColumn(key="type",   label="Type",     width="15%"),
+                ],
+                rows=[
+                    {
+                        "kw":     i.get("keyword","")[:40],
+                        "vol":    f"{i.get('volume',0):,}",
+                        "diff":   str(i.get("difficulty","—")),
+                        "status": i.get("status","idea"),
+                        "type":   i.get("type","blog"),
+                    }
+                    for i in top_by_vol
+                ],
+            ),
+        ],
+    ) if top_by_vol else None
+
+    # ── Progress overview ─────────────────────────────────────────────────────
+    written = counts["writing"] + counts["review"] + counts["published"]
+    total   = len(items)
+    pct     = int(written / total * 100) if total else 0
+    progress_stats = ui.Stats(children=[
+        ui.Stat(label="Written",        value=f"{written}/{total}", color="blue",  icon="PenLine"),
+        ui.Stat(label="Published in WP", value=str(in_wp),          color="green", icon="Globe"),
+        ui.Stat(label="Total words",    value=f"{total_words:,}",   icon="Hash"),
+        ui.Stat(label="SEO volume",     value=_vol_str(total_volume), color="yellow", icon="TrendingUp"),
+        ui.Stat(label="Progress",       value=f"{pct}%",            color="green" if pct > 50 else "yellow", icon="BarChart2"),
+    ]) if items else None
+
+    children = [header, stats]
+    if progress_stats:
+        children.append(progress_stats)
+    children += [build_btn, ui.Divider(), filter_row]
     if pipeline_chart:
-        children.insert(2, pipeline_chart)
+        children.append(pipeline_chart)
+    children.append(table)
+    if potential_section:
+        children.append(potential_section)
     if open_form:
         children += [ui.Divider(), open_form]
 
