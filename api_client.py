@@ -153,9 +153,24 @@ async def content_plan(ctx, competitor: str = "", language: str = "en",
         pass
 
     if not growing_pages:
-        matomo_url    = s.get("matomo_url", "")
-        matomo_token  = s.get("matomo_token", "")
-        matomo_site_id = s.get("matomo_site_id", 1)
+        # Try analytics extension IPC for Matomo config first
+        matomo_url = matomo_token = ""
+        matomo_site_id = 1
+        try:
+            mc = await ctx.extensions.call("analytics", "matomo_config")
+            if mc and not getattr(mc, "error", None):
+                d = getattr(mc, "data", {}) or {}
+                if d.get("configured"):
+                    matomo_url     = d.get("matomo_url", "")
+                    matomo_token   = d.get("matomo_token", "")
+                    matomo_site_id = d.get("matomo_site_id", 1)
+        except Exception:
+            pass
+        # Fallback to own settings
+        if not matomo_url:
+            matomo_url     = s.get("matomo_url", "")
+            matomo_token   = s.get("matomo_token", "")
+            matomo_site_id = s.get("matomo_site_id", 1)
 
     return await _post(ctx, "/api/content/plan", {
         "user_key":      "",
