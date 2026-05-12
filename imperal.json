@@ -27,19 +27,19 @@
     },
     {
       "name": "skeleton_refresh_current_article",
-      "description": "Currently open article in editor — keyword, title, word count, status, id",
+      "description": "Currently open article in editor — keyword, title, word count, status, article_id",
       "scopes": [],
       "parameters": {}
     },
     {
       "name": "skeleton_refresh_content_overview",
-      "description": "Content plan summary — total items, counts by status",
+      "description": "Content plan totals: ideas, writing, review, published counts",
       "scopes": [],
       "parameters": {}
     },
     {
       "name": "skeleton_refresh_wp_config",
-      "description": "WordPress and SE Ranking connection status",
+      "description": "WordPress + SE Ranking connection status and domain",
       "scopes": [],
       "parameters": {}
     },
@@ -1028,7 +1028,7 @@
     },
     {
       "name": "fetch_rankings",
-      "description": "Show Google keyword positions and rankings from SE Ranking (blog/SEO tool). ALWAYS use this — not analytics — when user asks about Google positions. позиции в Google, SEO позиции, покажи мои позиции, на каком месте сайт, keyword rankings, где ранжируется сайт, SEO Rankings для блога, рейтинг в поисковике.",
+      "description": "Show ORGANIC Google search positions from SE Ranking — NOT Microsoft Ads, NOT paid advertising. Use for SEO keyword ranking positions only. покажи мои позиции, позиции в Google, SEO позиции, мои позиции в поиске, покажи SEO Rankings, на каком месте сайт в Google, keyword rankings, органические позиции.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1841,6 +1841,40 @@
       },
       "return_schema": {},
       "event": "seo.content.updated",
+      "scopes": [],
+      "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "delete_wp_post",
+      "description": "Permanently delete a WordPress post (moves to trash). Use when user says: удали пост, удали черновик, delete this draft, delete WP post ID X, убери статью из WordPress, удали этот черновик навсегда. wp_post_id: WordPress numeric post ID.",
+      "action_type": "destructive",
+      "chain_callable": true,
+      "effects": [
+        "delete:post"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "wp_post_id": {
+            "description": "WordPress post ID to permanently delete",
+            "title": "Wp Post Id",
+            "type": "string"
+          },
+          "keyword_hint": {
+            "default": "",
+            "description": "Post title/keyword to confirm which post",
+            "title": "Keyword Hint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wp_post_id"
+        ],
+        "title": "DeleteWpPostParams",
+        "type": "object"
+      },
+      "return_schema": {},
+      "event": "seo.content.deleted",
       "scopes": [],
       "owner_chat_tool": "wp_blogger"
     },
