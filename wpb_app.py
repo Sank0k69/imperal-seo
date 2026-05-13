@@ -57,6 +57,9 @@ DEFAULT_SETTINGS: dict = {
     "wp_username": "",
     "wp_app_password": "",
     "wp_author_id": 1,
+    # Google Search Console
+    "gsc_site_url": "",
+    "gsc_service_account": "",
     "company_name": "",
     "brand_description": "",
     "brand_voice": "Direct and smart. Short punchy sentences. Bold without being arrogant. No corporate fluff.",
@@ -240,3 +243,6 @@ def ser_ready(s: dict) -> bool:
 
 def wp_ready(s: dict) -> bool:
     return bool(s.get("wp_app_password"))
+
+def gsc_ready(s: dict) -> bool:
+    return bool(s.get("gsc_site_url") and s.get("gsc_service_account"))

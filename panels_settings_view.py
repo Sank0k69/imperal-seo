@@ -122,6 +122,29 @@ async def _settings_view(ctx) -> ui.UINode:
         ],
     )
 
+    # ── Google Search Console ──────────────────────────────────────────────────
+    gsc_form = ui.Form(
+        action="save_settings",
+        submit_label="Save GSC",
+        children=[
+            ui.Text(
+                content="Create a Service Account in Google Cloud → enable Search Console API → "
+                        "add the SA email as User in GSC property → paste JSON here.",
+                variant="caption",
+            ),
+            ui.Input(
+                param_name="gsc_site_url",
+                value=s.get("gsc_site_url", ""),
+                placeholder="GSC property URL — https://webhostmost.com or sc-domain:webhostmost.com",
+            ),
+            ui.TextArea(
+                param_name="gsc_service_account",
+                placeholder=f"Service Account JSON{' (set ✓)' if s.get('gsc_service_account') else ' — paste full JSON from Google Cloud'}",
+                rows=3,
+            ),
+        ],
+    )
+
     return ui.Stack(children=[
         ui.Stack(children=[
             ui.Header(text="Settings", level=3),
@@ -135,4 +158,6 @@ async def _settings_view(ctx) -> ui.UINode:
         ui.Section(title="SE Ranking", collapsible=True, children=[ser_form]),
         ui.Divider(),
         ui.Section(title="WordPress", collapsible=True, children=[wp_form]),
+        ui.Divider(),
+        ui.Section(title="Google Search Console", collapsible=True, children=[gsc_form]),
     ])

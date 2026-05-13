@@ -409,3 +409,50 @@ async def ser_list_site_keywords(ctx) -> dict:
     return await _post(ctx, "/api/seranking/list-site-keywords", {
         "seranking_project_key": key, "project_id": pid,
     })
+
+
+# ── Google Search Console ──────────────────────────────────────────────────────
+
+async def gsc_verify(ctx) -> dict:
+    from wpb_app import load_settings
+    s = await load_settings(ctx)
+    if not s.get("gsc_site_url") or not s.get("gsc_service_account"):
+        return {"ok": False, "error": "GSC not configured"}
+    return await _post(ctx, "/api/gsc/verify", {
+        "site_url": s["gsc_site_url"],
+        "service_account_json": s["gsc_service_account"],
+    })
+
+
+async def gsc_pages(ctx) -> dict:
+    from wpb_app import load_settings
+    s = await load_settings(ctx)
+    if not s.get("gsc_site_url") or not s.get("gsc_service_account"):
+        return {"pages": []}
+    return await _post(ctx, "/api/gsc/pages", {
+        "site_url": s["gsc_site_url"],
+        "service_account_json": s["gsc_service_account"],
+    })
+
+
+async def gsc_page_detail(ctx, page_url: str) -> dict:
+    from wpb_app import load_settings
+    s = await load_settings(ctx)
+    if not s.get("gsc_site_url") or not s.get("gsc_service_account"):
+        return {}
+    return await _post(ctx, "/api/gsc/page-detail", {
+        "site_url": s["gsc_site_url"],
+        "service_account_json": s["gsc_service_account"],
+        "page_url": page_url,
+    })
+
+
+async def gsc_top_queries(ctx) -> dict:
+    from wpb_app import load_settings
+    s = await load_settings(ctx)
+    if not s.get("gsc_site_url") or not s.get("gsc_service_account"):
+        return {"queries": []}
+    return await _post(ctx, "/api/gsc/top-queries", {
+        "site_url": s["gsc_site_url"],
+        "service_account_json": s["gsc_service_account"],
+    })

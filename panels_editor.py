@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from imperal_sdk import ui
 
-from wpb_app import get_content, load_settings
+from wpb_app import get_content, load_settings, gsc_ready
 from panels_editor_helpers import _brief_html, _article_html
 from panels_editor_newsletter import _newsletter_editor
 
@@ -31,12 +31,22 @@ async def editor_view(ctx, state: dict) -> ui.UINode:
 
     s = await load_settings(ctx)
     wp_base_url = s.get("wp_url", "").rstrip("/")
-    return _blog_editor(item, mode, wp_base_url, show_editor=state.get("show_editor", False))
+
+    gsc_data = {}
+    target_url = item.get("target_url", "")
+    if gsc_ready(s) and target_url:
+        try:
+            from api_client import gsc_page_detail
+            gsc_data = await gsc_page_detail(ctx, target_url)
+        except Exception:
+            pass
+
+    return _blog_editor(item, mode, wp_base_url, show_editor=state.get("show_editor", False), gsc_data=gsc_data)
 
 
 # ── Blog editor ───────────────────────────────────────────────────────────────
 
-def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool = False) -> ui.UINode:
+def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool = False, gsc_data: dict = None) -> ui.UINode:
     kw           = item.get("keyword", "")
     title        = item.get("title", "")
     content_html = item.get("content", "")
@@ -266,6 +276,35 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool
         ],
     )
 
+    # ── GSC stats section ─────────────────────────────────────────────────────
+    gsc_children = []
+    if gsc_data and gsc_data.get("stats") and gsc_data["stats"].get("clicks", 0) >= 0:
+        stats = gsc_data["stats"]
+        kws = (gsc_data.get("keywords") or [])[:8]
+        gsc_children = [
+            ui.Stack(direction="horizontal", gap=16, children=[
+                ui.Stat(label="Clicks (90d)",  value=str(stats.get("clicks", 0)),        color="blue",   icon="MousePointerClick"),
+                ui.Stat(label="Impressions",   value=f"{stats.get('impressions', 0):,}", color="gray",   icon="Eye"),
+                ui.Stat(label="CTR",           value=f"{stats.get('ctr', 0):.1f}%",      color="green",  icon="TrendingUp"),
+                ui.Stat(label="Avg Position",  value=str(stats.get("position", "—")),    color="purple", icon="Hash"),
+            ]),
+            *([ ui.DataTable(
+                columns=[
+                    ui.DataColumn(key="query",    label="Query",    width="50%"),
+                    ui.DataColumn(key="clicks",   label="Clicks",   width="15%"),
+                    ui.DataColumn(key="impr",     label="Impr.",    width="15%"),
+                    ui.DataColumn(key="position", label="Position", width="20%"),
+                ],
+                rows=[{"query": k.get("query",""), "clicks": str(k.get("clicks",0)),
+                       "impr": str(k.get("impressions",0)), "position": str(k.get("position",0))}
+                      for k in kws],
+            ) ] if kws else [ ui.Text(content="No queries data yet.", variant="caption") ]),
+        ]
+    elif wp_url:
+        gsc_children = [ ui.Text(content="Connect GSC in Settings to see organic clicks, impressions, and top queries for this page.", variant="caption") ]
+
+    gsc_section = ui.Section(title="📊 Google Search Console", collapsible=True, children=gsc_children) if wp_url else None
+
     return ui.Stack(children=[
         header,
         meta,
@@ -278,5 +317,6 @@ def _blog_editor(item: dict, mode: str, wp_base_url: str = "", show_editor: bool
         publish_section,
         ui.Divider(),
         status_section,
+        *([ ui.Divider(), gsc_section ] if gsc_section else []),
     ])
 

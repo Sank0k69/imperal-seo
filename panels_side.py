@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from imperal_sdk import ui
 
-from wpb_app import ext, load_settings, load_ui_state, list_content, ser_ready, wp_ready
+from wpb_app import ext, load_settings, load_ui_state, list_content, ser_ready, wp_ready, gsc_ready
 
 
 def _nav_btn(label: str, view: str) -> ui.UINode:
@@ -38,6 +38,8 @@ async def sidebar_panel(ctx):
                      color="green" if ser_ready(s) else "orange"),
             ui.Badge(label=f"WordPress {'✓' if wp_ready(s) else '— add URL+password in Settings'}",
                      color="green" if wp_ready(s) else "orange"),
+            ui.Badge(label=f"GSC {'✓' if gsc_ready(s) else '— add SA key in Settings'}",
+                     color="green" if gsc_ready(s) else "gray"),
         ], gap=4),
         *([] if not not_configured else [
             ui.Alert(

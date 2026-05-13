@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from imperal_sdk import ui
 
-from wpb_app import ext, load_settings, load_ui_state, save_ui_state, list_content, ser_ready, wp_ready
+from wpb_app import ext, load_settings, load_ui_state, save_ui_state, list_content, ser_ready, wp_ready, gsc_ready
 from panels_editor import editor_view
 from panels_docs import _docs_view
 from panels_settings_view import _settings_view
@@ -81,6 +81,18 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
     plan_filter = state.get("plan_filter") or "all"
     filtered = [i for i in items if i.get("status") == plan_filter] if plan_filter not in ("all", "") else items
 
+    # GSC pages index (url → stats) — fetched once, used per row
+    gsc_index = {}
+    _settings = await load_settings(ctx)
+    if gsc_ready(_settings):
+        try:
+            from api_client import gsc_pages
+            _gsc_resp = await gsc_pages(ctx)
+            for _p in _gsc_resp.get("pages", []):
+                gsc_index[_p["url"].rstrip("/")] = _p
+        except Exception:
+            pass
+
     # ── Metrics ───────────────────────────────────────────────────────────────
     counts = {s: sum(1 for i in items if i.get("status") == s)
               for s in ("idea", "writing", "review", "published")}
@@ -148,6 +160,17 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
         vol        = f"{item.get('volume', 0):,}" if item.get("volume") else "—"
         diff       = f"{item.get('difficulty', 0):.0f}" if item.get("difficulty") else "—"
         wp_badge   = "  WP✓" if item.get("wp_post_id") else ""
+
+        gsc_badge_node = None
+        url = (item.get("target_url") or "").rstrip("/")
+        if url and gsc_index:
+            g = gsc_index.get(url)
+            if g and g.get("clicks", 0) > 0:
+                gsc_badge_node = ui.Badge(
+                    label=f"🔍 {g['clicks']} clicks · pos {g.get('position', 0):.0f}",
+                    color="blue",
+                )
+
         return ui.Stack(direction="horizontal", gap=2, align="center", children=[
             ui.Stack(children=[
                 ui.Text(content=item.get("keyword", "—")[:50]),
@@ -157,6 +180,7 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
                 ),
             ]),
             ui.Badge(label=status, color=_STATUS_COLOR.get(status, "gray")),
+            *([ gsc_badge_node ] if gsc_badge_node else []),
             ui.Button(
                 label="Open →",
                 size="sm",
