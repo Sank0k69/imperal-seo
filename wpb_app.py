@@ -3,6 +3,10 @@ from __future__ import annotations
 
 from imperal_sdk import Extension, ChatExtension
 from params import UIStateModel
+from api_client import (
+    mos_content_list, mos_content_get,
+    mos_content_create, mos_content_update, mos_content_delete,
+)
 
 ext = Extension(
     "wp-blogger",
@@ -48,18 +52,15 @@ CONTENT_COL = "seo_content"
 UI_STATE_COL = "seo_ui_state"
 
 DEFAULT_SETTINGS: dict = {
-    # SE Ranking
     "seranking_data_key": "",
     "seranking_project_key": "",
     "seranking_project_id": "",
     "seranking_domain": "",
     "seranking_source": "us",
-    # WordPress
     "wp_url": "",
     "wp_username": "",
     "wp_app_password": "",
     "wp_author_id": 1,
-    # Brand identity — used in newsletter generation
     "company_name": "",
     "brand_description": "",
     "brand_voice": "Direct and smart. Short punchy sentences. Bold without being arrogant. No corporate fluff.",
@@ -73,7 +74,7 @@ DEFAULT_SETTINGS: dict = {
 DEFAULT_UI_STATE: dict = {
     "active_view": "plan",
     "selected_id": None,
-    "editor_mode": "edit",  # "edit" | "preview"
+    "editor_mode": "edit",
     "kw_results": [],
     "rankings_results": [],
 }
@@ -132,10 +133,9 @@ async def save_ui_state(ctx, values: dict, persist: bool = False) -> dict:
     return merged
 
 
-# ── Content store — MOS primary, ctx.store fallback + silent auto-migrate ─────
+# ── Content store — MOS primary, ctx.store fallback ───────────────────────────
 
 async def _store_list(ctx) -> list[dict]:
-    """Read legacy ctx.store content items."""
     try:
         page = await ctx.store.query(CONTENT_COL, limit=200)
         docs = getattr(page, "data", None) or []
@@ -151,13 +151,11 @@ async def _store_list(ctx) -> list[dict]:
 
 
 async def list_content(ctx, status: str | None = None) -> list[dict]:
-    from api_client import mos_content_list
     try:
         items = await mos_content_list(ctx)
     except Exception:
         items = []
 
-    # MOS empty → fall back to ctx.store directly, no background tasks
     if not items:
         items = await _store_list(ctx)
 
@@ -169,7 +167,6 @@ async def list_content(ctx, status: str | None = None) -> list[dict]:
 async def get_content(ctx, content_id: str) -> dict | None:
     if not content_id:
         return None
-    from api_client import mos_content_get
     try:
         result = await mos_content_get(ctx, content_id)
         item = result.get("item") or None
@@ -177,13 +174,10 @@ async def get_content(ctx, content_id: str) -> dict | None:
             return item
     except Exception:
         pass
-    # Fallback: search ctx.store by UUID or wp_post_id
     store_items = await _store_list(ctx)
-    # exact UUID match
     found = next((i for i in store_items if i.get("id") == content_id), None)
     if found:
         return found
-    # WP post ID match (e.g. "1902")
     if content_id.isdigit():
         found = next((i for i in store_items if str(i.get("wp_post_id", "")) == content_id), None)
         if found:
@@ -192,7 +186,6 @@ async def get_content(ctx, content_id: str) -> dict | None:
 
 
 async def create_content(ctx, data: dict) -> str:
-    from api_client import mos_content_create
     try:
         result = await mos_content_create(ctx, data)
         item_id = result.get("id", "")
@@ -200,7 +193,6 @@ async def create_content(ctx, data: dict) -> str:
             return item_id
     except Exception:
         pass
-    # Fallback: ctx.store (for tests and offline mode)
     try:
         doc = await ctx.store.create(CONTENT_COL, data)
         return doc.id
@@ -209,13 +201,11 @@ async def create_content(ctx, data: dict) -> str:
 
 
 async def update_content(ctx, content_id: str, data: dict) -> None:
-    from api_client import mos_content_update
     try:
         await mos_content_update(ctx, content_id, data)
         return
     except Exception:
         pass
-    # Fallback: ctx.store (for tests and offline mode)
     try:
         page = await ctx.store.query(CONTENT_COL, limit=200)
         docs = getattr(page, "data", None) or []
@@ -228,7 +218,6 @@ async def update_content(ctx, content_id: str, data: dict) -> None:
 
 
 async def delete_content(ctx, content_id: str) -> None:
-    from api_client import mos_content_delete
     await mos_content_delete(ctx, content_id)
 
 
@@ -236,7 +225,6 @@ async def delete_content(ctx, content_id: str) -> None:
 
 @ext.health_check
 async def health_check(ctx):
-    """Verify extension is alive; returns degraded if no APIs are configured."""
     s = await load_settings(ctx)
     if not ser_ready(s) and not wp_ready(s):
         return {"status": "degraded", "reason": "No API keys configured — open Settings."}
