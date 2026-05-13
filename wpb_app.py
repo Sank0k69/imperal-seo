@@ -4,6 +4,14 @@ from __future__ import annotations
 from imperal_sdk import Extension, ChatExtension
 from params import UIStateModel
 
+# Top-level imports bound at module load time.
+# main.py force-registers the correct api_client before importing this module,
+# so these bindings always point to our own MOS client functions.
+from api_client import (
+    mos_content_list, mos_content_get,
+    mos_content_create, mos_content_update, mos_content_delete,
+)
+
 ext = Extension(
     "wp-blogger",
     version="1.3.0",
@@ -148,7 +156,6 @@ async def _store_list(ctx) -> list[dict]:
 
 async def list_content(ctx, status: str | None = None) -> list[dict]:
     try:
-        from api_client import mos_content_list
         items = await mos_content_list(ctx)
     except Exception:
         items = []
@@ -165,7 +172,6 @@ async def get_content(ctx, content_id: str) -> dict | None:
     if not content_id:
         return None
     try:
-        from api_client import mos_content_get
         result = await mos_content_get(ctx, content_id)
         item = result.get("item") or None
         if item:
@@ -185,7 +191,6 @@ async def get_content(ctx, content_id: str) -> dict | None:
 
 async def create_content(ctx, data: dict) -> str:
     try:
-        from api_client import mos_content_create
         result = await mos_content_create(ctx, data)
         item_id = result.get("id", "")
         if item_id:
@@ -201,7 +206,6 @@ async def create_content(ctx, data: dict) -> str:
 
 async def update_content(ctx, content_id: str, data: dict) -> None:
     try:
-        from api_client import mos_content_update
         await mos_content_update(ctx, content_id, data)
         return
     except Exception:
@@ -219,7 +223,6 @@ async def update_content(ctx, content_id: str, data: dict) -> None:
 
 async def delete_content(ctx, content_id: str) -> None:
     try:
-        from api_client import mos_content_delete
         await mos_content_delete(ctx, content_id)
     except Exception:
         pass
