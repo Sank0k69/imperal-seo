@@ -18,12 +18,10 @@ REFRESH = (
 @ext.panel("editor", slot="center", title="SEO & Content", icon="FileText",
            refresh=REFRESH, center_overlay=True)
 async def workspace_panel(ctx, active_view: str = "", plan_filter: str = "", content_id: str = "", **_kw):
-    # note_id="board" → undeclared kwarg (Vikunja/Notes pattern for claiming center slot)
     note_id = _kw.get("note_id", "")
     if note_id == "board" and not active_view and not content_id:
         active_view = "plan"
 
-    # No explicit trigger → return None so platform doesn't pre-load into right slot.
     if not content_id and not active_view:
         return None
 
@@ -65,7 +63,6 @@ _STATUS_ICON  = {"idea": "Lightbulb", "writing": "PenLine", "review": "Eye", "pu
 
 
 def _back_btn() -> ui.UINode:
-    """Universal back button — returns to Content Plan."""
     return ui.Button(
         label="← Back",
         size="sm",
@@ -100,7 +97,7 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
         ui.Stat(label="Published",      value=str(counts["published"]),  color="green",  icon="CheckCircle"),
         ui.Stat(label="Words written",  value=f"{total_words:,}",        icon="Hash"),
         ui.Stat(label="In WordPress",   value=str(in_wp),                icon="Globe"),
-        ui.Stat(label="Total volume",   value=_vol_str(total_volume), icon="TrendingUp"),
+        ui.Stat(label="Total volume",   value=_vol_str(total_volume),    icon="TrendingUp"),
     ]) if items else ui.Alert(message="No content yet. Build a content plan or add items from the left sidebar.", type="info")
 
     # ── Pipeline funnel chart ─────────────────────────────────────────────────
@@ -141,58 +138,38 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
         _filter_btn("Published", "published", counts["published"]),
     ])
 
-    # ── Table ─────────────────────────────────────────────────────────────────
+    # ── Article list — each row has direct "Open →" button (no Form/Save) ────
     _filter_label = {"idea": "Ideas", "writing": "Writing", "review": "Review", "published": "Published"}
     title = f"Content — {_filter_label.get(plan_filter, 'All')}" if plan_filter not in ("all", "") else f"All Content ({len(items)})"
 
-    rows = [
-        {
-            "keyword":  item.get("keyword", "—"),
-            "type":     item.get("type", "blog"),
-            "status":   item.get("status", "idea"),
-            "priority": item.get("priority", "—"),
-            "volume":   f"{item.get('volume', 0):,}" if item.get("volume") else "—",
-            "diff":     str(item.get("difficulty", "—")),
-            "wp":       "✓" if item.get("wp_post_id") else "—",
-            "words":    str(len((item.get("content") or "").split())) if item.get("content") else "—",
-            "id":       item.get("id", ""),
-        }
-        for item in filtered
-    ]
+    def _article_row(item: dict) -> ui.UINode:
+        status     = item.get("status", "idea")
+        word_count = len((item.get("content") or "").split())
+        vol        = f"{item.get('volume', 0):,}" if item.get("volume") else "—"
+        diff       = f"{item.get('difficulty', 0):.0f}" if item.get("difficulty") else "—"
+        wp_badge   = "  WP✓" if item.get("wp_post_id") else ""
+        return ui.Stack(direction="horizontal", gap=2, align="center", children=[
+            ui.Stack(children=[
+                ui.Text(content=item.get("keyword", "—")[:50]),
+                ui.Text(
+                    content=f"{item.get('type','blog')} · {word_count}w · Vol:{vol} · Diff:{diff}{wp_badge}",
+                    variant="caption",
+                ),
+            ]),
+            ui.Badge(label=status, color=_STATUS_COLOR.get(status, "gray")),
+            ui.Button(
+                label="Open →",
+                size="sm",
+                variant="secondary",
+                on_click=ui.Call("__panel__editor", content_id=item.get("id", ""), note_id="board"),
+            ),
+        ])
 
-    table = ui.DataTable(
-        columns=[
-            ui.DataColumn(key="keyword",  label="Keyword / Topic",  width="26%"),
-            ui.DataColumn(key="type",     label="Type",             width="9%"),
-            ui.DataColumn(key="status",   label="Status",           width="10%"),
-            ui.DataColumn(key="priority", label="Priority",         width="11%"),
-            ui.DataColumn(key="volume",   label="Vol",              width="9%"),
-            ui.DataColumn(key="diff",     label="Diff",             width="7%"),
-            ui.DataColumn(key="words",    label="Words",            width="8%"),
-            ui.DataColumn(key="wp",       label="WP",               width="5%"),
-            ui.DataColumn(key="id",       label="ID",               width="15%"),
-        ],
-        rows=rows,
-    ) if rows else ui.Empty(
+    table = ui.Stack(children=[_article_row(i) for i in filtered]) if filtered else ui.Empty(
         message=f"No {_filter_label.get(plan_filter,'').lower()} items." if plan_filter not in ("all","") else "No content yet — build a plan or add items."
     )
 
-    # ── Actions ───────────────────────────────────────────────────────────────
-    open_form = ui.Form(
-        action="open_editor",
-        submit_label="Open in editor →",
-        children=[
-            ui.Select(
-                param_name="content_id",
-                placeholder="Select item to edit...",
-                options=[
-                    {"value": i.get("id",""), "label": f"{i.get('keyword','')[:40]} · {i.get('status','')}"}
-                    for i in (filtered if filtered else items)
-                ],
-            ),
-        ],
-    ) if items else None
-
+    # ── Header ────────────────────────────────────────────────────────────────
     header = ui.Stack(direction="horizontal", justify="between", align="center", children=[
         ui.Stack(direction="horizontal", gap=2, children=[
             ui.Button(label="← Webbee", size="sm", variant="ghost",
@@ -243,11 +220,11 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
     total   = len(items)
     pct     = int(written / total * 100) if total else 0
     progress_stats = ui.Stats(children=[
-        ui.Stat(label="Written",        value=f"{written}/{total}", color="blue",  icon="PenLine"),
-        ui.Stat(label="Published in WP", value=str(in_wp),          color="green", icon="Globe"),
-        ui.Stat(label="Total words",    value=f"{total_words:,}",   icon="Hash"),
-        ui.Stat(label="SEO volume",     value=_vol_str(total_volume), color="yellow", icon="TrendingUp"),
-        ui.Stat(label="Progress",       value=f"{pct}%",            color="green" if pct > 50 else "yellow", icon="BarChart2"),
+        ui.Stat(label="Written",         value=f"{written}/{total}", color="blue",  icon="PenLine"),
+        ui.Stat(label="Published in WP", value=str(in_wp),           color="green", icon="Globe"),
+        ui.Stat(label="Total words",     value=f"{total_words:,}",   icon="Hash"),
+        ui.Stat(label="SEO volume",      value=_vol_str(total_volume), color="yellow", icon="TrendingUp"),
+        ui.Stat(label="Progress",        value=f"{pct}%",             color="green" if pct > 50 else "yellow", icon="BarChart2"),
     ]) if items else None
 
     children = [header, stats]
@@ -259,8 +236,6 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
     children.append(table)
     if potential_section:
         children.append(potential_section)
-    if open_form:
-        children += [ui.Divider(), open_form]
 
     return ui.Stack(children=children)
 
@@ -310,7 +285,6 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
     net_gain  = len(gainers) - len(losers)
     net_arrow = "▲" if net_gain > 0 else ("▼" if net_gain < 0 else "—")
     net_color = "green" if net_gain > 0 else ("red" if net_gain < 0 else "gray")
-    best_str  = " · ".join(f"#{r['position']} {r['keyword']}" for r in best_kws) if best_kws else "—"
 
     good_news = ui.Stats(children=[
         ui.Stat(label="Best position",   value=best_kws[0]["keyword"][:25] if best_kws else "—",
@@ -332,7 +306,6 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
         ui.Stat(label="Not ranked 🔴", value=str(not_rank),   color="red",    icon="Minus"),
     ])
 
-    # ── Position distribution — clean Stats pills (no chart scaling issues) ──
     pos_chart = ui.Section(title="Position Distribution", collapsible=False, children=[
         ui.Stats(children=[
             ui.Stat(label="🟢 Top 3",      value=str(top3),          color="green"),
@@ -379,18 +352,10 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
             title=f"🤖 AI Traffic — {ai_total} visits ({ai_sign}{ai_change_pct}% vs last month)",
             collapsible=False,
             children=[
-                ui.Text(
-                    content=f"Traffic from ChatGPT, Perplexity, Gemini, Claude and other AI sources.",
-                    variant="caption",
-                ),
-                ui.Chart(
-                    type="bar",
-                    data=ai_chart_data,
-                    x_key="label",
-                    y2_keys=["value"],
-                    colors={"value": "#8b5cf6"},
-                    height=140,
-                ) if ai_chart_data else ui.Empty(message="No chart data"),
+                ui.Text(content="Traffic from ChatGPT, Perplexity, Gemini, Claude and other AI sources.", variant="caption"),
+                ui.Chart(type="bar", data=ai_chart_data, x_key="label",
+                         y2_keys=["value"], colors={"value": "#8b5cf6"}, height=140)
+                if ai_chart_data else ui.Empty(message="No chart data"),
                 ui.DataTable(
                     columns=[
                         ui.DataColumn(key="source", label="AI Source", width="30%"),
@@ -415,26 +380,18 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
             ],
         )
 
-    # ── Top movers — green/red colored ───────────────────────────────────────
+    # ── Top movers ────────────────────────────────────────────────────────────
     def _gainer_rows(items: list) -> list:
         return [
-            {
-                "pos":     str(r.get("position", "—")),
-                "chg":     f"▲ +{r['_change']}",
-                "keyword": r.get("keyword", "—")[:35],
-                "vol":     f"{r.get('volume', 0):,}" if r.get("volume") else "—",
-            }
+            {"pos": str(r.get("position","—")), "chg": f"▲ +{r['_change']}",
+             "keyword": r.get("keyword","—")[:35], "vol": f"{r.get('volume',0):,}" if r.get("volume") else "—"}
             for r in items
         ]
 
     def _loser_rows(items: list) -> list:
         return [
-            {
-                "pos":     str(r.get("position", "—")),
-                "chg":     f"▼ -{abs(r['_change'])}",
-                "keyword": r.get("keyword", "—")[:35],
-                "vol":     f"{r.get('volume', 0):,}" if r.get("volume") else "—",
-            }
+            {"pos": str(r.get("position","—")), "chg": f"▼ -{abs(r['_change'])}",
+             "keyword": r.get("keyword","—")[:35], "vol": f"{r.get('volume',0):,}" if r.get("volume") else "—"}
             for r in items
         ]
 
@@ -445,7 +402,6 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
         ui.DataColumn(key="vol",     label="Vol",     width="20%"),
     ]
 
-    # Gainer chart (sparkline-style)
     gainer_chart_data = [{"label": r.get("keyword","")[:15], "gain": r["_change"]} for r in gainers[:6] if r["_change"] > 0]
     loser_chart_data  = [{"label": r.get("keyword","")[:15], "loss": abs(r["_change"])} for r in losers[:6]]
 
@@ -506,17 +462,11 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
             ]),
             refresh_btn,
         ]),
-        # Good news row
         good_news,
-        # Detailed stats
         stats,
-        # Multi-color position chart
         pos_chart,
-        # AI traffic
         ai_section,
-        # Green gainers + Red losers with mini charts
         movers,
-        # Full table
         full_table,
     ])
 
@@ -605,4 +555,3 @@ async def _keywords_view(ctx, state: dict) -> ui.UINode:
         ui.Divider(),
         add_form,
     ])
-
