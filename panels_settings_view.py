@@ -81,6 +81,21 @@ async def _settings_view(ctx) -> ui.UINode:
                 placeholder=f"Application Password{' (set)' if s.get('wp_app_password') else ' — WP Admin → Users → Profile → Application Passwords'}",
             ),
             ui.Divider(),
+            ui.Header(text="Google Search Console", level=5),
+            ui.Text(
+                content="Connect GSC to see clicks, impressions, CTR and ranking per article. "
+                        "Create a Service Account in Google Cloud Console → give it 'Viewer' access in GSC.",
+                variant="caption",
+            ),
+            ui.Input(param_name="gsc_site_url",
+                     value=s.get("gsc_site_url", ""),
+                     placeholder="GSC site URL — https://yourdomain.com or sc-domain:yourdomain.com"),
+            ui.TextArea(
+                param_name="gsc_service_account",
+                placeholder=f"Service Account JSON{' (set)' if s.get('gsc_service_account') else ' — paste full JSON from Google Cloud Console'}",
+                rows=3,
+            ),
+            ui.Divider(),
             ui.Header(text="Matomo Analytics (fallback)", level=5),
             ui.Text(content="If Matomo Analytics extension is installed — data is pulled from there automatically. Fill this only if you don't use that extension.", variant="caption"),
             ui.Input(param_name="matomo_url",

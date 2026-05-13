@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from imperal_sdk import ui
 
-from wpb_app import ext, load_settings, load_ui_state, save_ui_state, list_content, ser_ready, wp_ready
+from wpb_app import ext, load_settings, load_ui_state, save_ui_state, list_content, ser_ready, wp_ready, gsc_ready
 from panels_editor import editor_view
 from panels_docs import _docs_view
 from panels_settings_view import _settings_view
@@ -84,6 +84,18 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
     plan_filter = state.get("plan_filter") or "all"
     filtered = [i for i in items if i.get("status") == plan_filter] if plan_filter not in ("all", "") else items
 
+    # Fetch GSC pages data and build URL→stats index
+    gsc_index = {}
+    s = await load_settings(ctx)
+    if gsc_ready(s):
+        try:
+            from api_client import gsc_pages
+            gsc_resp = await gsc_pages(ctx)
+            for p in gsc_resp.get("pages", []):
+                gsc_index[p["url"].rstrip("/")] = p
+        except Exception:
+            pass
+
     # ── Metrics ───────────────────────────────────────────────────────────────
     counts = {s: sum(1 for i in items if i.get("status") == s)
               for s in ("idea", "writing", "review", "published")}
@@ -145,53 +157,53 @@ async def _plan_view(ctx, state: dict) -> ui.UINode:
     _filter_label = {"idea": "Ideas", "writing": "Writing", "review": "Review", "published": "Published"}
     title = f"Content — {_filter_label.get(plan_filter, 'All')}" if plan_filter not in ("all", "") else f"All Content ({len(items)})"
 
-    rows = [
-        {
-            "keyword":  item.get("keyword", "—"),
-            "type":     item.get("type", "blog"),
-            "status":   item.get("status", "idea"),
-            "priority": item.get("priority", "—"),
-            "volume":   f"{item.get('volume', 0):,}" if item.get("volume") else "—",
-            "diff":     str(item.get("difficulty", "—")),
-            "wp":       "✓" if item.get("wp_post_id") else "—",
-            "words":    str(len((item.get("content") or "").split())) if item.get("content") else "—",
-            "id":       item.get("id", ""),
-        }
-        for item in filtered
-    ]
+    # ── Article list — each row has direct "Open →" button (no Form/Save) ────
+    def _row(item: dict) -> ui.UINode:
+        status     = item.get("status", "idea")
+        word_count = len((item.get("content") or "").split())
+        vol        = f"{item.get('volume', 0):,}" if item.get("volume") else "—"
+        diff       = f"{item.get('difficulty', 0):.0f}" if item.get("difficulty") else "—"
+        wp_badge   = "  WP✓" if item.get("wp_post_id") else ""
 
-    table = ui.DataTable(
-        columns=[
-            ui.DataColumn(key="keyword",  label="Keyword / Topic",  width="26%"),
-            ui.DataColumn(key="type",     label="Type",             width="9%"),
-            ui.DataColumn(key="status",   label="Status",           width="10%"),
-            ui.DataColumn(key="priority", label="Priority",         width="11%"),
-            ui.DataColumn(key="volume",   label="Vol",              width="9%"),
-            ui.DataColumn(key="diff",     label="Diff",             width="7%"),
-            ui.DataColumn(key="words",    label="Words",            width="8%"),
-            ui.DataColumn(key="wp",       label="WP",               width="5%"),
-            ui.DataColumn(key="id",       label="ID",               width="15%"),
-        ],
-        rows=rows,
-    ) if rows else ui.Empty(
+        # GSC enrichment
+        gsc_badge = ""
+        gsc_detail = None
+        url = (item.get("target_url") or "").rstrip("/")
+        if url and gsc_index:
+            g = gsc_index.get(url)
+            if g:
+                clicks = g.get("clicks", 0)
+                pos    = g.get("position", 0)
+                gsc_badge = f"  🔍{clicks}clicks·pos{pos:.0f}"
+                trend = "↑" if clicks > 0 else ""
+                gsc_detail = ui.Badge(
+                    label=f"GSC: {clicks} clicks · pos {pos:.0f} {trend}",
+                    color="blue" if clicks > 10 else "gray",
+                )
+
+        row_children = [
+            ui.Stack(children=[
+                ui.Text(content=item.get("keyword", "—")[:50]),
+                ui.Text(
+                    content=f"{item.get('type','blog')} · {word_count}w · Vol:{vol} · Diff:{diff}{wp_badge}{gsc_badge}",
+                    variant="caption",
+                ),
+            ]),
+            ui.Badge(label=status, color=_STATUS_COLOR.get(status, "gray")),
+            *([ gsc_detail ] if gsc_detail else []),
+            ui.Button(
+                label="Open →",
+                size="sm",
+                variant="secondary",
+                on_click=ui.Call("__panel__editor", content_id=item.get("id", ""), note_id="board"),
+            ),
+        ]
+        return ui.Stack(direction="horizontal", gap=2, align="center", children=row_children)
+
+    table = ui.Stack(children=[_row(i) for i in filtered]) if filtered else ui.Empty(
         message=f"No {_filter_label.get(plan_filter,'').lower()} items." if plan_filter not in ("all","") else "No content yet — build a plan or add items."
     )
-
-    # ── Actions ───────────────────────────────────────────────────────────────
-    open_form = ui.Form(
-        action="open_editor",
-        submit_label="Open in editor →",
-        children=[
-            ui.Select(
-                param_name="content_id",
-                placeholder="Select item to edit...",
-                options=[
-                    {"value": i.get("id",""), "label": f"{i.get('keyword','')[:40]} · {i.get('status','')}"}
-                    for i in (filtered if filtered else items)
-                ],
-            ),
-        ],
-    ) if items else None
+    open_form = None
 
     header = ui.Stack(direction="horizontal", justify="between", align="center", children=[
         ui.Stack(direction="horizontal", gap=2, children=[
