@@ -10,6 +10,10 @@ REFRESH = (
     "seo.content.deleted,seo.content.published,seo.nav.changed"
 )
 
+_STATUS_COLOR = {
+    "idea": "gray", "writing": "blue", "review": "orange", "published": "green",
+}
+
 
 @ext.panel("article_info", slot="right", title="Article Info", icon="Info",
            default_width=260, refresh=REFRESH)
@@ -41,10 +45,6 @@ async def right_panel(ctx):
     content_html = item.get("content", "")
     word_count   = len(content_html.split()) if content_html else 0
 
-    status_color = {
-        "idea": "gray", "writing": "blue", "review": "orange", "published": "green",
-    }.get(status, "gray")
-
     overview_items = [
         {"key": "Keyword",  "value": keyword},
         {"key": "Type",     "value": article_type},
@@ -56,7 +56,7 @@ async def right_panel(ctx):
     overview_children = [
         ui.Stack(direction="h", gap=2, align="center", children=[
             ui.Text(content="Status"),
-            ui.Badge(label=status, color=status_color),
+            ui.Badge(label=status, color=_STATUS_COLOR.get(status, "gray")),
         ]),
         ui.KeyValue(items=overview_items),
     ]
@@ -74,7 +74,15 @@ async def right_panel(ctx):
             ui.KeyValue(items=[{"key": "Post ID", "value": f"#{wp_post_id}"}]),
         ]
         if target_url:
-            wp_children.append(ui.Link(label="↗ View post", href=target_url))
+            # Use Button+Navigate instead of Link to avoid SDK version conflicts
+            wp_children.append(
+                ui.Button(
+                    label="↗ View post",
+                    variant="ghost",
+                    size="sm",
+                    on_click=ui.Navigate(target_url),
+                )
+            )
     else:
         wp_children = [ui.Text(content="Not published yet", variant="caption")]
 
