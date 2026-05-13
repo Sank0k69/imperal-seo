@@ -12,8 +12,8 @@ for _m in list(sys.modules):
         "wpb_app", "params", "api_client", "api_seranking", "api_wordpress",
         "handlers_nav", "handlers_content", "handlers_ai_write", "handlers_ai_extra",
         "handlers_seo", "handlers_publish", "handlers_docs", "handlers_keywords",
-        "panels_side", "panels_right", "panels_workspace", "panels_editor",
-        "panels_editor_helpers", "panels_editor_newsletter",
+        "panels_side", "panels_right", "panels_article_info", "panels_workspace",
+        "panels_editor", "panels_editor_helpers", "panels_editor_newsletter",
         "panels_settings_view", "panels_docs", "skeleton",
     ):
         del sys.modules[_m]
@@ -30,5 +30,5 @@ import handlers_docs       # noqa: E402, F401
 import handlers_keywords   # noqa: E402, F401
 import skeleton            # noqa: E402, F401
 import panels_side         # noqa: E402, F401
-import panels_right        # noqa: E402, F401
+import panels_article_info # noqa: E402, F401
 import panels_workspace    # noqa: E402, F401
