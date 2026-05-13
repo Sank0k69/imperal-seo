@@ -38,7 +38,6 @@ async def right_panel(ctx):
     meta_desc    = item.get("meta_description", "")
     generating   = item.get("generating", False)
 
-    # Word count from HTML content
     content_html = item.get("content", "")
     word_count   = len(content_html.split()) if content_html else 0
 
@@ -46,7 +45,6 @@ async def right_panel(ctx):
         "idea": "gray", "writing": "blue", "review": "orange", "published": "green",
     }.get(status, "gray")
 
-    # ── Overview ──────────────────────────────────────────────────────────────
     overview_items = [
         {"key": "Keyword",  "value": keyword},
         {"key": "Type",     "value": article_type},
@@ -65,14 +63,12 @@ async def right_panel(ctx):
     if generating:
         overview_children.append(ui.Alert(message="Generating...", type="info"))
 
-    # ── SE Ranking ────────────────────────────────────────────────────────────
     se_items = [
         {"key": "Volume",     "value": volume},
         {"key": "Difficulty", "value": difficulty},
         {"key": "Priority",   "value": str(priority)},
     ]
 
-    # ── WordPress ─────────────────────────────────────────────────────────────
     if wp_post_id:
         wp_children = [
             ui.KeyValue(items=[{"key": "Post ID", "value": f"#{wp_post_id}"}]),
@@ -82,7 +78,6 @@ async def right_panel(ctx):
     else:
         wp_children = [ui.Text(content="Not published yet", variant="caption")]
 
-    # ── SEO Meta ──────────────────────────────────────────────────────────────
     seo_items = [{"key": "Focus KW", "value": focus_kw}]
     if secondary:
         seo_items.append({"key": "Secondary", "value": ", ".join(secondary[:4])})
