@@ -3,13 +3,21 @@ from __future__ import annotations
 
 import sys
 import os
+import importlib.util
 
 _dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _dir)
 
+# Force-register OUR api_client from absolute path before any imports.
+# This prevents shared Python env from picking up another extension's api_client.
+_ac_spec = importlib.util.spec_from_file_location("api_client", os.path.join(_dir, "api_client.py"))
+_ac_mod = importlib.util.module_from_spec(_ac_spec)
+_ac_spec.loader.exec_module(_ac_mod)
+sys.modules["api_client"] = _ac_mod
+
 for _m in list(sys.modules):
     if _m in (
-        "wpb_app", "params", "api_client", "api_seranking", "api_wordpress",
+        "wpb_app", "params", "api_seranking", "api_wordpress",
         "handlers_nav", "handlers_content", "handlers_ai_write", "handlers_ai_extra",
         "handlers_seo", "handlers_publish", "handlers_docs", "handlers_keywords",
         "panels_side", "panels_right", "panels_article_info", "panels_workspace",
