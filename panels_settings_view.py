@@ -123,24 +123,41 @@ async def _settings_view(ctx) -> ui.UINode:
     )
 
     # ── Google Search Console ──────────────────────────────────────────────────
+    gsc_connected = bool(s.get("gsc_service_account") or s.get("gsc_oauth_refresh_token"))
     gsc_form = ui.Form(
         action="save_settings",
         submit_label="Save GSC",
         children=[
             ui.Text(
-                content="Create a Service Account in Google Cloud → enable Search Console API → "
-                        "add the SA email as User in GSC property → paste JSON here.",
+                content=(
+                    "Connect Google Search Console to see organic clicks, impressions, positions, anomalies and growth opportunities.\n\n"
+                    "Method A (Service Account): Google Cloud → Create SA → Enable Search Console API → Add SA email as Viewer in GSC → Download JSON.\n"
+                    "Method B (OAuth2 — your Gmail account): Google Cloud → OAuth2 Client ID (Desktop) → copy Client ID + Secret → ask Webbee 'give me GSC auth link' to get refresh_token."
+                ),
                 variant="caption",
             ),
             ui.Input(
                 param_name="gsc_site_url",
                 value=s.get("gsc_site_url", ""),
-                placeholder="GSC property URL — https://webhostmost.com or sc-domain:webhostmost.com",
+                placeholder="GSC property — https://webhostmost.com or sc-domain:webhostmost.com",
             ),
             ui.TextArea(
                 param_name="gsc_service_account",
-                placeholder=f"Service Account JSON{' (set ✓)' if s.get('gsc_service_account') else ' — paste full JSON from Google Cloud'}",
+                placeholder=f"Method A: Service Account JSON{' (set ✓)' if s.get('gsc_service_account') else ' — paste full JSON from Google Cloud'}",
                 rows=3,
+            ),
+            ui.Input(
+                param_name="gsc_oauth_client_id",
+                value=s.get("gsc_oauth_client_id", ""),
+                placeholder="Method B: OAuth2 Client ID (from Google Cloud → APIs → Credentials)",
+            ),
+            ui.Input(
+                param_name="gsc_oauth_client_secret",
+                placeholder=f"Method B: Client Secret{' (set ✓)' if s.get('gsc_oauth_client_secret') else ''}",
+            ),
+            ui.Input(
+                param_name="gsc_oauth_refresh_token",
+                placeholder=f"Method B: Refresh Token{' (set ✓)' if s.get('gsc_oauth_refresh_token') else ' — ask Webbee to generate auth link'}",
             ),
         ],
     )

@@ -161,7 +161,7 @@ async def list_ser_projects(ctx, params: ListProjectsParams) -> ActionResult:
     event="seo.content.created",
 )
 async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
-    """AI-generate a 5-article content plan from SE Ranking data."""
+    """AI-generate a 5-article content plan from SE Ranking + GSC data."""
     s = await load_settings(ctx)
     if not s.get("seranking_data_key"):
         return ActionResult.error(error="SE Ranking Data API key not configured. Go to Settings.")
@@ -170,6 +170,31 @@ async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
 
     language = params.language or "en"
     competitor = params.competitor or s.get("seranking_competitor", "")
+
+    # Fetch GSC growth opportunities to inform content plan
+    gsc_context = ""
+    from wpb_app import gsc_ready
+    if gsc_ready(s):
+        try:
+            from api_client import gsc_growth_opportunities, gsc_top_queries
+            import asyncio as _asyncio
+            opps_data, queries_data = await _asyncio.gather(
+                gsc_growth_opportunities(ctx),
+                gsc_top_queries(ctx),
+                return_exceptions=True,
+            )
+            opps = opps_data.get("opportunities", [])[:10] if not isinstance(opps_data, Exception) else []
+            queries = queries_data.get("queries", [])[:20] if not isinstance(queries_data, Exception) else []
+            if opps:
+                gsc_context += "\nGSC GROWTH OPPORTUNITIES (pages with high impressions, low CTR — optimize or expand):\n"
+                for o in opps:
+                    gsc_context += f"- {o['url']} | impr:{o['impressions']} | pos:{o['position']:.0f} | ctr:{o['ctr']:.1f}%\n"
+            if queries:
+                gsc_context += "\nGSC TOP QUERIES (real search terms bringing traffic — use for new article angles):\n"
+                for q in queries[:15]:
+                    gsc_context += f"- '{q['query']}' | clicks:{q['clicks']} | pos:{q['position']:.1f}\n"
+        except Exception:
+            pass
 
     existing_items = await list_content(ctx)
     # Only hard-block written/published content — ideas don't block new suggestions
@@ -290,4 +315,208 @@ async def setup_blog_style(ctx, params: SetupBlogStyleParams) -> ActionResult:
             ),
             ui.Text(content=profile_text[:600] + "...", variant="caption"),
         ]),
+    )
+
+
+# ── Google Search Console handlers ────────────────────────────────────────────
+
+from pydantic import BaseModel as _BM
+
+
+class EmptyGSCParams(_BM):
+    pass
+
+
+class GSCPageParams(_BM):
+    page_url: str = ""
+
+
+@chat.function(
+    "gsc_report",
+    description=(
+        "Show Google Search Console report for the site: total clicks, impressions, CTR, avg position, "
+        "top pages, top queries, anomalies (traffic spikes/drops), growth opportunities (high impressions low CTR). "
+        "Use when user asks: GSC данные, покажи кликов, аномалии трафика, что падает, что растет, GSC отчет."
+    ),
+    action_type="read",
+    event="gsc.report",
+)
+async def gsc_report(ctx, params: EmptyGSCParams) -> ActionResult:
+    from wpb_app import load_settings, gsc_ready
+    from api_client import gsc_verify, gsc_pages, gsc_top_queries, gsc_anomalies, gsc_growth_opportunities, _post, _gsc_auth_payload
+    import asyncio
+
+    s = await load_settings(ctx)
+    if not gsc_ready(s):
+        return ActionResult.error(
+            error="GSC not connected. Open Settings → Google Search Console and add credentials."
+        )
+
+    verify = await gsc_verify(ctx)
+    if not verify.get("ok"):
+        return ActionResult.error(error=f"GSC connection failed: {verify.get('error', 'unknown')}")
+
+    payload = _gsc_auth_payload(s)
+    pages_data, queries_data, anomalies_data, opps_data = await asyncio.gather(
+        _post(ctx, "/api/gsc/pages", payload),
+        _post(ctx, "/api/gsc/top-queries", payload),
+        _post(ctx, "/api/gsc/anomalies", payload),
+        _post(ctx, "/api/gsc/growth-opportunities", payload),
+        return_exceptions=True,
+    )
+
+    def safe(r):
+        return r if not isinstance(r, Exception) else {}
+
+    pages     = safe(pages_data).get("pages", [])[:10]
+    queries   = safe(queries_data).get("queries", [])[:10]
+    anomalies = safe(anomalies_data).get("anomalies", [])[:8]
+    opps      = safe(opps_data).get("opportunities", [])[:8]
+
+    total_clicks = sum(p.get("clicks", 0) for p in pages)
+    total_impr   = sum(p.get("impressions", 0) for p in pages)
+
+    pages_table = ui.DataTable(
+        columns=[
+            ui.DataColumn(key="url",    label="Page URL",   width="50%"),
+            ui.DataColumn(key="clicks", label="Clicks",     width="12%"),
+            ui.DataColumn(key="impr",   label="Impr.",      width="12%"),
+            ui.DataColumn(key="ctr",    label="CTR%",       width="12%"),
+            ui.DataColumn(key="pos",    label="Avg Pos",    width="14%"),
+        ],
+        rows=[{
+            "url":    p["url"].replace("https://blog.webhostmost.com", "").replace("https://webhostmost.com", "") or "/",
+            "clicks": str(p.get("clicks", 0)),
+            "impr":   str(p.get("impressions", 0)),
+            "ctr":    f"{p.get('ctr', 0):.1f}%",
+            "pos":    f"{p.get('position', 0):.1f}",
+        } for p in pages],
+    ) if pages else None
+
+    anomaly_items = [
+        ui.Stack(direction="horizontal", gap=8, children=[
+            ui.Badge(
+                label=f"{'↑' if a['type']=='spike' else '↓'} {abs(int(a['change_pct']))}%",
+                color="green" if a["type"] == "spike" else "red",
+            ),
+            ui.Text(content=a["url"].replace("https://blog.webhostmost.com","")[:60], variant="caption"),
+        ])
+        for a in anomalies
+    ] if anomalies else [ui.Text(content="No significant anomalies detected.", variant="caption")]
+
+    opp_items = [
+        ui.Text(
+            content=f"{o['url'].replace('https://blog.webhostmost.com','')[:50]}  — {o['impressions']} impr, pos {o['position']:.0f}, CTR {o['ctr']:.1f}% → {o['recommendation']}",
+            variant="caption",
+        )
+        for o in opps
+    ] if opps else [ui.Text(content="No opportunities found (GSC data may be limited).", variant="caption")]
+
+    report_ui = ui.Stack(children=[
+        ui.Stack(direction="horizontal", gap=16, children=[
+            ui.Stat(label="Total Clicks (90d)", value=f"{total_clicks:,}", color="blue",  icon="MousePointerClick"),
+            ui.Stat(label="Impressions",        value=f"{total_impr:,}",  color="gray",  icon="Eye"),
+        ]),
+        ui.Section(title="Top Pages by Clicks", collapsible=False, children=[pages_table] if pages_table else [ui.Text(content="No data.", variant="caption")]),
+        ui.Section(title="⚡ Anomalies (traffic spikes/drops vs baseline)", collapsible=True, children=anomaly_items),
+        ui.Section(title="🎯 Growth Opportunities (high impr, low CTR)", collapsible=True, children=opp_items),
+    ])
+
+    anomaly_summary = f"{len(anomalies)} anomalies detected" if anomalies else "no anomalies"
+    opp_summary = f"{len(opps)} growth opportunities" if opps else "no quick wins"
+
+    return ActionResult.success(
+        {"total_clicks": total_clicks, "total_impressions": total_impr, "anomalies": len(anomalies), "opportunities": len(opps)},
+        summary=(
+            f"GSC Report — {s.get('gsc_site_url', '')}\n"
+            f"Clicks: {total_clicks:,} | Impressions: {total_impr:,}\n"
+            f"{anomaly_summary} | {opp_summary}"
+        ),
+        ui=report_ui,
+    )
+
+
+@chat.function(
+    "gsc_auth_link",
+    description=(
+        "Generate a Google OAuth2 authorization link for connecting GSC via Gmail/Google account (Method B). "
+        "Use when user says 'give me GSC auth link', 'хочу подключить GSC через гугл аккаунт', 'OAuth GSC'. "
+        "Requires gsc_oauth_client_id and gsc_oauth_client_secret to be set in Settings first."
+    ),
+    action_type="read",
+)
+async def gsc_auth_link(ctx, params: EmptyGSCParams) -> ActionResult:
+    from wpb_app import load_settings
+    from api_client import _post
+
+    s = await load_settings(ctx)
+    cid = s.get("gsc_oauth_client_id", "")
+    secret = s.get("gsc_oauth_client_secret", "")
+
+    if not cid or not secret:
+        return ActionResult.error(
+            error="Add OAuth2 Client ID and Client Secret in Settings → Google Search Console (Method B) first."
+        )
+
+    result = await _post(ctx, "/api/gsc/auth-url", {
+        "client_id": cid,
+        "client_secret": secret,
+        "redirect_uri": "urn:ietf:wg:oauth:2.0:oob",
+    })
+
+    if "auth_url" not in result:
+        return ActionResult.error(error=f"Failed to generate auth URL: {result}")
+
+    return ActionResult.success(
+        {"auth_url": result["auth_url"]},
+        summary=(
+            "OAuth2 authorization steps:\n"
+            f"1. Open this link: {result['auth_url']}\n"
+            "2. Sign in with alex.c@webhostmost.com\n"
+            "3. Authorize access to Search Console\n"
+            "4. Copy the auth code\n"
+            "5. Tell me: 'exchange GSC code: <paste code here>'"
+        ),
+    )
+
+
+class GSCExchangeParams(_BM):
+    auth_code: str
+
+
+@chat.function(
+    "gsc_exchange_code",
+    description="Exchange Google OAuth2 auth code for refresh_token and save to GSC settings. Use after gsc_auth_link.",
+    action_type="write",
+)
+async def gsc_exchange_code(ctx, params: GSCExchangeParams) -> ActionResult:
+    from wpb_app import load_settings, save_settings
+    from api_client import _post
+
+    s = await load_settings(ctx)
+    cid = s.get("gsc_oauth_client_id", "")
+    secret = s.get("gsc_oauth_client_secret", "")
+
+    if not cid or not secret:
+        return ActionResult.error(error="OAuth2 Client ID and Secret not configured in Settings.")
+
+    result = await _post(ctx, "/api/gsc/exchange-token", {
+        "client_id": cid,
+        "client_secret": secret,
+        "auth_code": params.auth_code.strip(),
+        "redirect_uri": "urn:ietf:wg:oauth:2.0:oob",
+    })
+
+    if not result.get("ok"):
+        return ActionResult.error(error=f"Token exchange failed: {result.get('error', 'unknown')}")
+
+    refresh_token = result.get("refresh_token", "")
+    if not refresh_token:
+        return ActionResult.error(error="No refresh_token returned. Try auth flow again.")
+
+    await save_settings(ctx, {"gsc_oauth_refresh_token": refresh_token})
+    return ActionResult.success(
+        {"connected": True},
+        summary="GSC connected via OAuth2. Refresh token saved. You can now run gsc_report.",
+        refresh_panels=["sidebar"],
     )

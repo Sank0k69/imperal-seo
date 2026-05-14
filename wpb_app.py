@@ -57,9 +57,13 @@ DEFAULT_SETTINGS: dict = {
     "wp_username": "",
     "wp_app_password": "",
     "wp_author_id": 1,
-    # Google Search Console
+    # Google Search Console — Method A: Service Account
     "gsc_site_url": "",
     "gsc_service_account": "",
+    # Google Search Console — Method B: OAuth2 (use with personal Google account)
+    "gsc_oauth_client_id": "",
+    "gsc_oauth_client_secret": "",
+    "gsc_oauth_refresh_token": "",
     "company_name": "",
     "brand_description": "",
     "brand_voice": "Direct and smart. Short punchy sentences. Bold without being arrogant. No corporate fluff.",
@@ -245,4 +249,6 @@ def wp_ready(s: dict) -> bool:
     return bool(s.get("wp_app_password"))
 
 def gsc_ready(s: dict) -> bool:
-    return bool(s.get("gsc_site_url") and s.get("gsc_service_account"))
+    has_sa = bool(s.get("gsc_site_url") and s.get("gsc_service_account"))
+    has_oauth = bool(s.get("gsc_site_url") and s.get("gsc_oauth_refresh_token") and s.get("gsc_oauth_client_id"))
+    return has_sa or has_oauth

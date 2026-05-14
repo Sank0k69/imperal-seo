@@ -413,46 +413,61 @@ async def ser_list_site_keywords(ctx) -> dict:
 
 # ── Google Search Console ──────────────────────────────────────────────────────
 
+def _gsc_auth_payload(s: dict) -> dict:
+    """Build auth fields for GSC API call from settings. Supports SA JSON or OAuth2."""
+    base = {"site_url": s.get("gsc_site_url", "")}
+    if s.get("gsc_service_account"):
+        base["service_account_json"] = s["gsc_service_account"]
+    elif s.get("gsc_oauth_refresh_token"):
+        base["oauth_client_id"] = s.get("gsc_oauth_client_id", "")
+        base["oauth_client_secret"] = s.get("gsc_oauth_client_secret", "")
+        base["oauth_refresh_token"] = s["gsc_oauth_refresh_token"]
+    return base
+
+
 async def gsc_verify(ctx) -> dict:
-    from wpb_app import load_settings
+    from wpb_app import load_settings, gsc_ready
     s = await load_settings(ctx)
-    if not s.get("gsc_site_url") or not s.get("gsc_service_account"):
+    if not gsc_ready(s):
         return {"ok": False, "error": "GSC not configured"}
-    return await _post(ctx, "/api/gsc/verify", {
-        "site_url": s["gsc_site_url"],
-        "service_account_json": s["gsc_service_account"],
-    })
+    return await _post(ctx, "/api/gsc/verify", _gsc_auth_payload(s))
 
 
 async def gsc_pages(ctx) -> dict:
-    from wpb_app import load_settings
+    from wpb_app import load_settings, gsc_ready
     s = await load_settings(ctx)
-    if not s.get("gsc_site_url") or not s.get("gsc_service_account"):
+    if not gsc_ready(s):
         return {"pages": []}
-    return await _post(ctx, "/api/gsc/pages", {
-        "site_url": s["gsc_site_url"],
-        "service_account_json": s["gsc_service_account"],
-    })
+    return await _post(ctx, "/api/gsc/pages", _gsc_auth_payload(s))
 
 
 async def gsc_page_detail(ctx, page_url: str) -> dict:
-    from wpb_app import load_settings
+    from wpb_app import load_settings, gsc_ready
     s = await load_settings(ctx)
-    if not s.get("gsc_site_url") or not s.get("gsc_service_account"):
+    if not gsc_ready(s):
         return {}
-    return await _post(ctx, "/api/gsc/page-detail", {
-        "site_url": s["gsc_site_url"],
-        "service_account_json": s["gsc_service_account"],
-        "page_url": page_url,
-    })
+    return await _post(ctx, "/api/gsc/page-detail", {**_gsc_auth_payload(s), "page_url": page_url})
 
 
 async def gsc_top_queries(ctx) -> dict:
-    from wpb_app import load_settings
+    from wpb_app import load_settings, gsc_ready
     s = await load_settings(ctx)
-    if not s.get("gsc_site_url") or not s.get("gsc_service_account"):
+    if not gsc_ready(s):
         return {"queries": []}
-    return await _post(ctx, "/api/gsc/top-queries", {
-        "site_url": s["gsc_site_url"],
-        "service_account_json": s["gsc_service_account"],
-    })
+    return await _post(ctx, "/api/gsc/top-queries", _gsc_auth_payload(s))
+
+
+async def gsc_anomalies(ctx) -> dict:
+    from wpb_app import load_settings, gsc_ready
+    s = await load_settings(ctx)
+    if not gsc_ready(s):
+        return {"anomalies": []}
+    return await _post(ctx, "/api/gsc/anomalies", _gsc_auth_payload(s))
+
+
+async def gsc_growth_opportunities(ctx) -> dict:
+    from wpb_app import load_settings, gsc_ready
+    s = await load_settings(ctx)
+    if not gsc_ready(s):
+        return {"opportunities": []}
+    return await _post(ctx, "/api/gsc/growth-opportunities", _gsc_auth_payload(s))
