@@ -497,3 +497,26 @@ async def gsc_connect_oauth(ctx, params: GSCOAuthParams) -> ActionResult:
             "gsc_connect_oauth credentials_json=<same JSON> auth_code=<code from Google>"
         ),
     )
+
+
+class _GSCCredsParams(_BM):
+    site_url: str
+    credentials_json: str
+
+
+@chat.function(
+    "save_gsc_credentials",
+    description="Save GSC credentials directly to settings. Use: site_url=URL credentials_json=JSON",
+    action_type="write",
+)
+async def save_gsc_credentials(ctx, params: _GSCCredsParams) -> ActionResult:
+    from wpb_app import save_settings as _save
+    await _save(ctx, {
+        "gsc_site_url": params.site_url,
+        "gsc_credentials_json": params.credentials_json,
+    })
+    return ActionResult.success(
+        {"saved": True},
+        summary=f"GSC connected for {params.site_url}. Run 'gsc_report' to test.",
+        refresh_panels=["sidebar"],
+    )
