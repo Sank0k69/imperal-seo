@@ -808,7 +808,7 @@
     },
     {
       "name": "ai_write",
-      "description": "Generate a full SEO + AI-optimized article. Phase 1: enrich keyword set (secondary KWs, LSI, FAQ questions). Phase 2: write via MOS content engine with structured output. section: full | improve",
+      "description": "Generate a full SEO + AI-optimized article. Runs in background — result auto-delivered to chat when done (~60-90s), no need to call check_article_job. Phase 1: enrich keyword set (secondary KWs, LSI, FAQ). Phase 2: write via MOS content engine. section: full | improve",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -846,7 +846,7 @@
     },
     {
       "name": "check_article_job",
-      "description": "Check if background article generation has completed. Call after ai_write to retrieve the finished article. Returns 'pending' if still generating, saves and shows article when done.",
+      "description": "Fallback: retrieve a completed article generation job started in a PREVIOUS SESSION or interrupted run. Do NOT call after normal ai_write — ai_write runs in background and auto-delivers the result. Only use if ai_write was interrupted before delivering its result.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
