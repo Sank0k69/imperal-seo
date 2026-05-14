@@ -103,7 +103,7 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
             return ActionResult.success(
                 {"length": len(draft_html)},
                 summary=f"Newsletter draft written for '{kw}'",
-                refresh_panels=["sidebar"],
+                refresh_panels=["sidebar", "editor"],
             )
 
         # ── Improve path ──────────────────────────────────────────────────────
@@ -128,7 +128,7 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
             return ActionResult.success(
                 {"length": len(draft_html)},
                 summary=f"Article improved for '{kw}'",
-                refresh_panels=["sidebar"],
+                refresh_panels=["sidebar", "editor"],
             )
 
         # ── Full article path — job-based ─────────────────────────────────────
@@ -220,7 +220,7 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
                 + (f"✅ Saved to WP post #{updates.get('wp_post_id', '')}.\n" if wp_saved else "")
                 + f"Secondary KWs: {', '.join(secondary[:3])}{'...' if len(secondary) > 3 else ''}"
             ),
-            refresh_panels=["sidebar"],
+            refresh_panels=["sidebar", "editor"],
         )
 
     except Exception as e:
@@ -288,7 +288,7 @@ async def check_article_job(ctx, params: AiBriefParams) -> ActionResult:
                 + (f"✅ Saved to WP.\n" if wp_saved else "")
                 + f"Secondary KWs: {', '.join(secondary[:3])}{'...' if len(secondary) > 3 else ''}"
             ),
-            refresh_panels=["sidebar"],
+            refresh_panels=["sidebar", "editor"],
         )
     except Exception as e:
         await log_action(ctx, "check_article_job", cid, int((time.monotonic() - t0) * 1000), False, str(e))

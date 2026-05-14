@@ -226,6 +226,7 @@ async def publish_wp(ctx, params: PublishWpParams) -> ActionResult:
         return ActionResult.success(
             {"wp_id": post["id"], "link": post.get("link", ""), "wp_status": params.status},
             summary=f"Post {wp_action} on WordPress (ID {post['id']}, status: {params.status}). Rank Math SEO set. {post.get('link', '')}",
+            refresh_panels=["sidebar"],
         )
     except Exception as e:
         await log_action(ctx, action_name, cid, int((time.monotonic() - t0) * 1000), False, str(e))
@@ -660,6 +661,8 @@ async def get_article_link(ctx, params: GetArticleLinkParams) -> ActionResult:
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
+    background=True,
+    long_running=False,
 )
 async def rewrite_article(ctx, params: RewriteArticleParams) -> ActionResult:
     """Start async full article rewrite."""
@@ -900,6 +903,8 @@ class PatchWpArticleParams(_BaseModel):
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
+    background=True,
+    long_running=False,
 )
 async def patch_wp_article(ctx, params: PatchWpArticleParams) -> ActionResult:
     """Fetch WP post, patch a section, save back to WP — no content plan needed."""
@@ -928,8 +933,8 @@ async def patch_wp_article(ctx, params: PatchWpArticleParams) -> ActionResult:
     job_id = data.get("job_id", "") if "error" not in data else ""
     if job_id:
         return ActionResult.success(
-            {"job_id": job_id, "wp_post_id": wp_id_str},
-            summary=f"✏️ Rewrite started for WP #{wp_id_str}. Job: {job_id}. Call check_article_job in ~60s.",
+            {"job_id": job_id, "wp_post_id": str(wp_id)},
+            summary=f"✏️ Rewrite started for WP #{wp_id}. Job: {job_id}. Call check_article_job in ~60s.",
         )
     # Fall through if job start fails
     data = {"content": ""}
