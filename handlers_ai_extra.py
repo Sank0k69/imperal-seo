@@ -1,11 +1,11 @@
 """AI improvement and newsletter handlers."""
+import asyncio
 import time
 
 from imperal_sdk import ActionResult
-from imperal_sdk.types import ActionResult  # noqa: F811
 
 from wpb_app import chat, get_content, update_content, save_ui_state
-from api_client import start_refine_article, generate_newsletter_mos as _mos_newsletter, log_action
+from api_client import start_refine_article, poll_article_job, generate_newsletter_mos as _mos_newsletter, log_action
 from handlers_content import _resolve_id
 from params import ImproveArticleParams, GenerateNewsletterParams
 
@@ -23,6 +23,8 @@ from params import ImproveArticleParams, GenerateNewsletterParams
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
+    background=True,
+    long_running=False,
 )
 async def improve_article(ctx, params: ImproveArticleParams) -> ActionResult:
     """Start async article improvement via MOS refine endpoint."""
@@ -60,13 +62,30 @@ async def improve_article(ctx, params: ImproveArticleParams) -> ActionResult:
 
         job_id = job.get("job_id", "")
         await update_content(ctx, cid, {"generating": True, "job_id": job_id})
+
+        await ctx.progress(20, "Improving article with AI...")
+        data = {}
+        for i in range(80):
+            await asyncio.sleep(1.5)
+            data = await poll_article_job(ctx, job_id)
+            if data.get("status", "pending") != "pending":
+                break
+            await ctx.progress(min(88, 20 + i), f"Improving... ({int(time.monotonic()-t0)}s)")
+
+        if data.get("status") in ("not_found", "error"):
+            await update_content(ctx, cid, {"generating": False, "job_id": None})
+            err = data.get("error", "Improvement failed.")
+            await log_action(ctx, "improve_article", cid, int((time.monotonic() - t0) * 1000), False, err)
+            return ActionResult.error(error=err)
+
+        result     = data.get("result", {})
+        draft_html = result.get("content", "")
+        await update_content(ctx, cid, {"content": draft_html, "generating": False, "job_id": None})
         await log_action(ctx, "improve_article", cid, int((time.monotonic() - t0) * 1000), True)
         return ActionResult.success(
-            {"job_id": job_id, "status": "pending"},
-            summary=(
-                f"Article improvement started for '{kw}' (job: {job_id}).\n"
-                "Takes ~60 seconds. Use check_article_job to retrieve the result."
-            ),
+            {"length": len(draft_html), "word_count": result.get("word_count", 0)},
+            summary=f"Article improved for '{kw}' (~{result.get('word_count', 0)} words).",
+            refresh_panels=["sidebar"],
         )
     except Exception as e:
         await log_action(ctx, "improve_article", cid, int((time.monotonic() - t0) * 1000), False, str(e))

@@ -1,9 +1,8 @@
-"""AI article writing handlers (ai_write, check_article_job)."""
+"""AI article writing handlers — background generation with auto-delivery."""
 import asyncio
 import time
 
 from imperal_sdk import ActionResult
-from imperal_sdk.types import ActionResult  # noqa: F811
 
 from wpb_app import chat, get_content, update_content, load_settings, save_ui_state, load_ui_state
 from api_client import (keywords_for_article, start_generate_article,
@@ -14,27 +13,68 @@ from handlers_docs import build_docs_context
 from params import AiWriteParams, AiBriefParams
 
 
+async def _save_job_result(ctx, cid: str, item: dict, data: dict) -> tuple[dict, bool]:
+    """Save completed job result to content store. Returns (updates_dict, wp_saved)."""
+    result     = data.get("result", {})
+    draft_html = result.get("content", "")
+    final_title = result.get("title", "")
+    meta_desc  = result.get("meta_description", "")
+    faq_schema = result.get("faq_schema", "")
+
+    updates: dict = {"content": draft_html, "status": "review", "generating": False, "job_id": None}
+    if meta_desc:  updates["meta_description"] = meta_desc
+    if faq_schema: updates["faq_schema"]        = faq_schema
+    if final_title and final_title != item.get("keyword", ""):
+        updates["title"] = final_title
+
+    await update_content(ctx, cid, updates)
+
+    # Patch WP post if this job was triggered by edit_wp_article / import_from_wp
+    wp_saved = False
+    ui_state = await load_ui_state(ctx)
+    pending_wp  = ui_state.get("pending_wp_edit", "")
+    pending_job = ui_state.get("pending_wp_edit_job", "")
+    if pending_wp and pending_job == data.get("job_id", "") and draft_html:
+        s = await load_settings(ctx)
+        if s.get("wp_app_password"):
+            try:
+                await _post(ctx, "/api/wordpress/update", {
+                    "wp_url": s["wp_url"], "wp_user": s["wp_username"],
+                    "wp_password": s["wp_app_password"],
+                    "post_id": int(pending_wp), "content": draft_html,
+                })
+                await save_ui_state(ctx, {"pending_wp_edit": "", "pending_wp_edit_job": ""})
+                wp_saved = True
+            except Exception:
+                pass
+
+    await save_ui_state(ctx, {"editor_mode": "preview"})
+    return updates, wp_saved
+
+
 @chat.function(
     "ai_write",
     description=(
         "Generate a full SEO + AI-optimized article. "
         "Phase 1: enrich keyword set (secondary KWs, LSI, FAQ questions). "
         "Phase 2: write via MOS content engine with structured output. "
+        "Runs in background — result auto-delivered to chat when done (~60-90s). "
         "section: full | improve"
     ),
     action_type="write",
     chain_callable=True,
     effects=["update:content"],
     event="seo.content.updated",
+    background=True,
+    long_running=False,
 )
 async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
-    """Start AI article generation (async job via MOS)."""
+    """Background AI article generation — polls MOS job and delivers result to chat."""
     t0 = time.monotonic()
     cid = await _resolve_id(ctx, params.content_id)
     try:
         item = await get_content(ctx, cid)
         if not item:
-            await log_action(ctx, "ai_write", cid, int((time.monotonic() - t0) * 1000), False, "Content item not found")
             return ActionResult.error(error="Content item not found")
 
         kw           = item.get("keyword", "")
@@ -45,7 +85,9 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
         s            = await load_settings(ctx)
         language     = s.get("language", "en")
 
+        # ── Newsletter path ───────────────────────────────────────────────────
         if content_type == "newsletter":
+            await ctx.progress(20, "Writing newsletter draft...")
             news_text = existing or item.get("subject", kw) or kw
             data = await _mos_newsletter(ctx, news_text=news_text)
             if "error" in data:
@@ -58,12 +100,17 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
             if subject_line and not item.get("title"):   updates["title"]   = subject_line
             await update_content(ctx, cid, updates)
             await log_action(ctx, "ai_write", cid, int((time.monotonic() - t0) * 1000), True)
-            return ActionResult.success({"length": len(draft_html)}, summary=f"Newsletter draft written for '{kw}'")
+            return ActionResult.success(
+                {"length": len(draft_html)},
+                summary=f"Newsletter draft written for '{kw}'",
+                refresh_panels=["sidebar"],
+            )
 
+        # ── Improve path ──────────────────────────────────────────────────────
         if params.section == "improve":
             if not existing:
-                await log_action(ctx, "ai_write_improve", cid, int((time.monotonic() - t0) * 1000), False, "No content to improve")
                 return ActionResult.error(error="No content to improve. Run AI Write first.")
+            await ctx.progress(20, "Improving article with AI...")
             data = await _post(ctx, "/api/content/refine", {
                 "user_key":    "",
                 "content":     existing,
@@ -78,8 +125,14 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
             draft_html = data.get("content", existing)
             await update_content(ctx, cid, {"content": draft_html})
             await log_action(ctx, "ai_write_improve", cid, int((time.monotonic() - t0) * 1000), True)
-            return ActionResult.success({"length": len(draft_html)}, summary=f"Article improved for '{kw}'")
+            return ActionResult.success(
+                {"length": len(draft_html)},
+                summary=f"Article improved for '{kw}'",
+                refresh_panels=["sidebar"],
+            )
 
+        # ── Full article path — job-based ─────────────────────────────────────
+        await ctx.progress(5, "Enriching keywords...")
         kw_data, brand_context = await asyncio.gather(
             keywords_for_article(ctx, kw),
             build_docs_context(ctx),
@@ -102,6 +155,7 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
         if brief:
             ser_context = f"CONTENT BRIEF (follow this outline):\n{brief}\n\n{ser_context}".strip()
 
+        await ctx.progress(15, "Starting article generation...")
         job = await start_generate_article(
             ctx,
             topic=best_title or kw,
@@ -127,14 +181,48 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
             "secondary_keywords": secondary,
             "title":              best_title or kw,
         })
+
+        # ── Poll until done (max ~150s) ───────────────────────────────────────
+        await ctx.progress(20, "AI is writing the article...")
+        data = {}
+        for i in range(100):
+            await asyncio.sleep(1.5)
+            data = await poll_article_job(ctx, job_id)
+            status = data.get("status", "pending")
+            if status != "pending":
+                break
+            pct = min(88, 20 + int(i * 0.7))
+            elapsed = int(time.monotonic() - t0)
+            await ctx.progress(pct, f"Generating... ({elapsed}s elapsed)")
+
+        status = data.get("status", "not_found")
+        if status in ("not_found", "error"):
+            await update_content(ctx, cid, {"generating": False, "job_id": None})
+            err = data.get("error", "Generation failed — please try again.")
+            await log_action(ctx, "ai_write", cid, int((time.monotonic() - t0) * 1000), False, err)
+            return ActionResult.error(error=err)
+
+        await ctx.progress(92, "Saving article...")
+        # Stash job_id in data for WP-edit detection in _save_job_result
+        data["job_id"] = job_id
+        updates, wp_saved = await _save_job_result(ctx, cid, item, data)
+
+        result    = data.get("result", {})
+        kw_used   = result.get("word_count", 0)
+        final_ttl = result.get("title", "")
+
         await log_action(ctx, "ai_write", cid, int((time.monotonic() - t0) * 1000), True)
         return ActionResult.success(
-            {"job_id": job_id, "status": "pending"},
+            {"length": len(result.get("content", "")), "word_count": kw_used},
             summary=(
-                f"Article generation started for '{kw}' (job: {job_id}).\n"
-                f"Takes ~60-90 seconds. Use check_article_job to retrieve the result."
+                f"Article ready for '{kw}' (~{kw_used} words).\n"
+                f"Title: {final_ttl}\n"
+                + (f"✅ Saved to WP post #{updates.get('wp_post_id', '')}.\n" if wp_saved else "")
+                + f"Secondary KWs: {', '.join(secondary[:3])}{'...' if len(secondary) > 3 else ''}"
             ),
+            refresh_panels=["sidebar"],
         )
+
     except Exception as e:
         await log_action(ctx, "ai_write", cid, int((time.monotonic() - t0) * 1000), False, str(e))
         return ActionResult.error(error=str(e))
@@ -143,9 +231,9 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
 @chat.function(
     "check_article_job",
     description=(
-        "Check if background article generation has completed. "
-        "Call after ai_write to retrieve the finished article. "
-        "Returns 'pending' if still generating, saves and shows article when done."
+        "Fallback: retrieve a completed article generation job started in a previous session. "
+        "Only needed if ai_write was interrupted or started before background support. "
+        "Returns 'pending' if still generating."
     ),
     action_type="write",
     chain_callable=True,
@@ -153,24 +241,22 @@ async def ai_write(ctx, params: AiWriteParams) -> ActionResult:
     event="seo.content.updated",
 )
 async def check_article_job(ctx, params: AiBriefParams) -> ActionResult:
-    """Poll for a completed article generation job."""
+    """Fallback poll for a completed article job (previous session / interrupted run)."""
     t0 = time.monotonic()
     cid = await _resolve_id(ctx, params.content_id)
     try:
         item = await get_content(ctx, cid)
         if not item:
-            await log_action(ctx, "check_article_job", cid, int((time.monotonic() - t0) * 1000), False, "Content item not found")
             return ActionResult.error(error="Content item not found")
 
         job_id = item.get("job_id", "")
         if not job_id:
-            # Check ui_state for pending WP edit job (from edit_wp_article / import_from_wp)
-            ui_st = await load_ui_state(ctx)
+            ui_st  = await load_ui_state(ctx)
             job_id = ui_st.get("pending_wp_edit_job", "")
         if not job_id:
-            return ActionResult.error(error="No active generation job. Run 'Write Full Article' or 'edit_wp_article' first.")
+            return ActionResult.error(error="No active generation job.")
 
-        data = await poll_article_job(ctx, job_id)
+        data   = await poll_article_job(ctx, job_id)
         status = data.get("status", "not_found")
 
         if status == "pending":
@@ -182,57 +268,27 @@ async def check_article_job(ctx, params: AiBriefParams) -> ActionResult:
         if status in ("not_found", "error"):
             await update_content(ctx, cid, {"generating": False, "job_id": None})
             err = data.get("error", "Generation failed — please try again.")
-            await log_action(ctx, "check_article_job", cid, int((time.monotonic() - t0) * 1000), False, err)
             return ActionResult.error(error=err)
 
-        result      = data.get("result", {})
-        draft_html  = result.get("content", "")
-        final_title = result.get("title", "")
-        meta_desc   = result.get("meta_description", "")
-        faq_schema  = result.get("faq_schema", "")
-        kw_used     = result.get("word_count", 0)
-        secondary   = item.get("secondary_keywords", [])
+        data["job_id"] = job_id
+        _, wp_saved = await _save_job_result(ctx, cid, item, data)
 
-        updates = {"content": draft_html, "status": "review", "generating": False, "job_id": None}
-        if meta_desc:   updates["meta_description"] = meta_desc
-        if faq_schema:  updates["faq_schema"]        = faq_schema
-        if final_title and final_title != item.get("keyword", ""):
-            updates["title"] = final_title
+        result    = data.get("result", {})
+        kw_used   = result.get("word_count", 0)
+        final_ttl = result.get("title", "")
+        secondary = item.get("secondary_keywords", [])
+        kw        = item.get("keyword", "")
 
-        await update_content(ctx, cid, updates)
-
-        # If this was a WP edit job, save patched content back to WordPress
-        ui_state = await load_ui_state(ctx)
-        pending_wp = ui_state.get("pending_wp_edit", "")
-        pending_job = ui_state.get("pending_wp_edit_job", "")
-        wp_saved = False
-        if pending_wp and pending_job == job_id and draft_html:
-            s = await load_settings(ctx)
-            if s.get("wp_app_password"):
-                try:
-                    from api_client import _post as _api_post
-                    await _api_post(ctx, "/api/wordpress/update", {
-                        "wp_url": s["wp_url"], "wp_user": s["wp_username"],
-                        "wp_password": s["wp_app_password"],
-                        "post_id": int(pending_wp), "content": draft_html,
-                    })
-                    await save_ui_state(ctx, {"pending_wp_edit": "", "pending_wp_edit_job": ""})
-                    wp_saved = True
-                except Exception:
-                    pass
-
-        await save_ui_state(ctx, {"editor_mode": "preview"})
-
-        kw = item.get("keyword", "")
         await log_action(ctx, "check_article_job", cid, int((time.monotonic() - t0) * 1000), True)
         return ActionResult.success(
-            {"length": len(draft_html), "word_count": kw_used, "saved_to_wp": wp_saved},
+            {"length": len(result.get("content", "")), "word_count": kw_used, "saved_to_wp": wp_saved},
             summary=(
                 f"Article ready for '{kw}' (~{kw_used} words).\n"
-                f"Title: {final_title}\n"
-                + (f"✅ Saved to WP post #{pending_wp}.\n" if wp_saved else "")
+                f"Title: {final_ttl}\n"
+                + (f"✅ Saved to WP.\n" if wp_saved else "")
                 + f"Secondary KWs: {', '.join(secondary[:3])}{'...' if len(secondary) > 3 else ''}"
             ),
+            refresh_panels=["sidebar"],
         )
     except Exception as e:
         await log_action(ctx, "check_article_job", cid, int((time.monotonic() - t0) * 1000), False, str(e))
