@@ -1972,17 +1972,23 @@
     {
       "name": "gsc_report",
       "description": "Show Google Search Console report: clicks, impressions, positions, anomalies, growth opportunities.",
-      "action_type": "read"
+      "action_type": "read",
+      "scopes": [],
+      "parameters": {}
     },
     {
       "name": "save_gsc_credentials",
       "description": "Save GSC OAuth2 credentials to settings.",
-      "action_type": "write"
+      "action_type": "write",
+      "scopes": [],
+      "parameters": {}
     },
     {
       "name": "gsc_connect_oauth",
       "description": "Connect GSC via Google OAuth2 flow using credentials.json.",
-      "action_type": "write"
+      "action_type": "write",
+      "scopes": [],
+      "parameters": {}
     }
   ],
   "signals": [],
