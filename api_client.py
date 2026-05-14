@@ -85,8 +85,7 @@ async def ser_gaps(ctx, domain: str, competitor: str, source: str, limit: int) -
 
 
 async def fetch_ai_traffic(ctx) -> dict:
-    """Fetch AI referrer traffic — via analytics extension IPC or own Matomo settings."""
-    # Try IPC with analytics extension first (no config needed in WP Blogger)
+    """Fetch AI referrer traffic via Matomo Analytics extension IPC."""
     try:
         result = await ctx.extensions.call("analytics", "ai_referrers", period="month")
         if result and not getattr(result, "error", None):
@@ -95,21 +94,7 @@ async def fetch_ai_traffic(ctx) -> dict:
                 return data
     except Exception:
         pass
-
-    # Fallback: own Matomo credentials from Settings
-    s = await load_settings(ctx)
-    matomo_url   = s.get("matomo_url", "")
-    matomo_token = s.get("matomo_token", "")
-    matomo_site  = s.get("matomo_site_id", 1)
-    if not matomo_url or not matomo_token:
-        return {"sources": [], "total_visits": 0, "prev_total_visits": 0, "total_change_pct": 0}
-    return await _post(ctx, "/api/analytics/ai-referrers", {
-        "matomo_url":     matomo_url,
-        "matomo_token":   matomo_token,
-        "matomo_site_id": matomo_site,
-        "period":         "month",
-        "date":           "today",
-    }, timeout=20)
+    return {"sources": [], "total_visits": 0, "prev_total_visits": 0, "total_change_pct": 0}
 
 
 async def ser_rankings(ctx) -> dict:
@@ -140,7 +125,7 @@ async def content_plan(ctx, competitor: str = "", language: str = "en",
                        existing_keywords: list = None) -> dict:
     s = await load_settings(ctx)
 
-    # Try imperal-analytics IPC first; fall back to own Matomo credentials
+    # Growing pages via Matomo Analytics extension IPC only
     growing_pages = []
     matomo_url = matomo_token = ""
     matomo_site_id = 1
@@ -153,9 +138,7 @@ async def content_plan(ctx, competitor: str = "", language: str = "en",
         pass
 
     if not growing_pages:
-        # Try analytics extension IPC for Matomo config first
-        matomo_url = matomo_token = ""
-        matomo_site_id = 1
+        # Get Matomo config from analytics extension IPC
         try:
             mc = await ctx.extensions.call("analytics", "matomo_config")
             if mc and not getattr(mc, "error", None):
@@ -166,11 +149,6 @@ async def content_plan(ctx, competitor: str = "", language: str = "en",
                     matomo_site_id = d.get("matomo_site_id", 1)
         except Exception:
             pass
-        # Fallback to own settings
-        if not matomo_url:
-            matomo_url     = s.get("matomo_url", "")
-            matomo_token   = s.get("matomo_token", "")
-            matomo_site_id = s.get("matomo_site_id", 1)
 
     return await _post(ctx, "/api/content/plan", {
         "user_key":      "",
