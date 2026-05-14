@@ -334,9 +334,12 @@ class GSCPageParams(_BM):
 @chat.function(
     "gsc_report",
     description=(
-        "Show Google Search Console report for the site: total clicks, impressions, CTR, avg position, "
-        "top pages, top queries, anomalies (traffic spikes/drops), growth opportunities (high impressions low CTR). "
-        "Use when user asks: GSC данные, покажи кликов, аномалии трафика, что падает, что растет, GSC отчет."
+        "Show Google Search Console (GSC) report: clicks, impressions, CTR, avg position, "
+        "top pages, top queries, anomalies (traffic spikes/drops), growth opportunities. "
+        "ALWAYS use for: GSC отчёт, покажи GSC, клики из Google, позиции в поиске, "
+        "аномалии трафика, что падает, что растёт, трафик из поиска, "
+        "google search console, покажи органику, gsc данные, "
+        "какие страницы теряют трафик, где теряю клики, SEO трафик отчёт."
     ),
     action_type="read",
     event="gsc.report",
