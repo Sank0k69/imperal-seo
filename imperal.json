@@ -20,7 +20,7 @@
   "tools": [
     {
       "name": "wp_blogger",
-      "description": "WP Blogger — SEO and blog content tool. ALWAYS use for: Google search positions/rankings (покажи позиции в Google, какие позиции сайта, SEO rankings, где ранжируется), keyword research (найди ключевые слова), content plan (придумай контент план для блога), write/rewrite articles (напиши статью, перепиши вступление), WordPress: publish, draft, show posts, SEO settings, Rank Math, SE Ranking tracking (добавь кейворд в трекинг).",
+      "description": "WP Blogger \u2014 SEO and blog content tool. ALWAYS use for: Google search positions/rankings (\u043f\u043e\u043a\u0430\u0436\u0438 \u043f\u043e\u0437\u0438\u0446\u0438\u0438 \u0432 Google, \u043a\u0430\u043a\u0438\u0435 \u043f\u043e\u0437\u0438\u0446\u0438\u0438 \u0441\u0430\u0439\u0442\u0430, SEO rankings, \u0433\u0434\u0435 \u0440\u0430\u043d\u0436\u0438\u0440\u0443\u0435\u0442\u0441\u044f), keyword research (\u043d\u0430\u0439\u0434\u0438 \u043a\u043b\u044e\u0447\u0435\u0432\u044b\u0435 \u0441\u043b\u043e\u0432\u0430), content plan (\u043f\u0440\u0438\u0434\u0443\u043c\u0430\u0439 \u043a\u043e\u043d\u0442\u0435\u043d\u0442 \u043f\u043b\u0430\u043d \u0434\u043b\u044f \u0431\u043b\u043e\u0433\u0430), write/rewrite articles (\u043d\u0430\u043f\u0438\u0448\u0438 \u0441\u0442\u0430\u0442\u044c\u044e, \u043f\u0435\u0440\u0435\u043f\u0438\u0448\u0438 \u0432\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u0435), WordPress: publish, draft, show posts, SEO settings, Rank Math, SE Ranking tracking (\u0434\u043e\u0431\u0430\u0432\u044c \u043a\u0435\u0439\u0432\u043e\u0440\u0434 \u0432 \u0442\u0440\u0435\u043a\u0438\u043d\u0433).",
       "scopes": [],
       "parameters": {
         "message": {
@@ -35,7 +35,7 @@
     },
     {
       "name": "skeleton_refresh_current_article",
-      "description": "Currently open article in editor — keyword, title, word count, status, article_id",
+      "description": "Currently open article in editor \u2014 keyword, title, word count, status, article_id",
       "scopes": [],
       "parameters": {}
     },
@@ -395,7 +395,7 @@
     },
     {
       "name": "import_from_wp",
-      "description": "Import a WordPress post and optionally edit it in one step. Use when user mentions editing/rewriting a specific WordPress post. If instruction is provided (rewrite intro, add section, etc.), applies the edit immediately after import — NO second tool call needed. Use for: перепиши вступление поста 1902, edit WP post 1902, import and rewrite, import and improve, измени статью из WP. post_id: WP post ID. instruction: what to change (optional).",
+      "description": "Import a WordPress post and optionally edit it in one step. Use when user mentions editing/rewriting a specific WordPress post. If instruction is provided (rewrite intro, add section, etc.), applies the edit immediately after import \u2014 NO second tool call needed. Use for: \u043f\u0435\u0440\u0435\u043f\u0438\u0448\u0438 \u0432\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u0435 \u043f\u043e\u0441\u0442\u0430 1902, edit WP post 1902, import and rewrite, import and improve, \u0438\u0437\u043c\u0435\u043d\u0438 \u0441\u0442\u0430\u0442\u044c\u044e \u0438\u0437 WP. post_id: WP post ID. instruction: what to change (optional).",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -465,7 +465,7 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -509,7 +509,7 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -571,7 +571,7 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -603,7 +603,7 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -624,7 +624,7 @@
     },
     {
       "name": "patch_article",
-      "description": "Edit or rewrite a specific part of an article. CALL THIS DIRECTLY — do NOT navigate to content plan first. Use keyword_hint to find the article by name if none is open. Use when user says: rewrite intro/paragraph/conclusion, fix this section, make it more engaging, перепиши абзац/вступление/заключение, сделай цепляющим, улучши начало, измени этот раздел, перепиши статью про X, add a section about X. keyword_hint: article name/keyword (e.g. 'infinityfree', 'affordable hosting'). Can work without an open article — just provide keyword_hint.",
+      "description": "Edit or rewrite a specific part of an article. CALL THIS DIRECTLY \u2014 do NOT navigate to content plan first. Use keyword_hint to find the article by name if none is open. Use when user says: rewrite intro/paragraph/conclusion, fix this section, make it more engaging, \u043f\u0435\u0440\u0435\u043f\u0438\u0448\u0438 \u0430\u0431\u0437\u0430\u0446/\u0432\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u0435/\u0437\u0430\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435, \u0441\u0434\u0435\u043b\u0430\u0439 \u0446\u0435\u043f\u043b\u044f\u044e\u0449\u0438\u043c, \u0443\u043b\u0443\u0447\u0448\u0438 \u043d\u0430\u0447\u0430\u043b\u043e, \u0438\u0437\u043c\u0435\u043d\u0438 \u044d\u0442\u043e\u0442 \u0440\u0430\u0437\u0434\u0435\u043b, \u043f\u0435\u0440\u0435\u043f\u0438\u0448\u0438 \u0441\u0442\u0430\u0442\u044c\u044e \u043f\u0440\u043e X, add a section about X. keyword_hint: article name/keyword (e.g. 'infinityfree', 'affordable hosting'). Can work without an open article \u2014 just provide keyword_hint.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -639,7 +639,7 @@
           },
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -663,7 +663,7 @@
     },
     {
       "name": "check_article_quality",
-      "description": "Script-based article quality audit — zero AI tokens. Checks: word count, H2/H3 structure, comparison table, FAQ, outbound links, keyword density, em dashes, placeholders, bold text, lists. Returns score 0-100 and specific issues to fix.",
+      "description": "Script-based article quality audit \u2014 zero AI tokens. Checks: word count, H2/H3 structure, comparison table, FAQ, outbound links, keyword density, em dashes, placeholders, bold text, lists. Returns score 0-100 and specific issues to fix.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -672,7 +672,7 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -710,7 +710,7 @@
     },
     {
       "name": "migrate_from_store",
-      "description": "Migrate content items from old ctx.store to MOS server storage. One-time migration — use if articles are missing after storage upgrade.",
+      "description": "Migrate content items from old ctx.store to MOS server storage. One-time migration \u2014 use if articles are missing after storage upgrade.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -808,7 +808,7 @@
     },
     {
       "name": "ai_write",
-      "description": "Generate a full SEO + AI-optimized article. Runs in background — result auto-delivered to chat when done (~60-90s), no need to call check_article_job. Phase 1: enrich keyword set (secondary KWs, LSI, FAQ). Phase 2: write via MOS content engine. section: full | improve",
+      "description": "Generate a full SEO + AI-optimized article. Runs in background \u2014 result auto-delivered to chat when done (~60-90s), no need to call check_article_job. Phase 1: enrich keyword set (secondary KWs, LSI, FAQ). Phase 2: write via MOS content engine. section: full | improve",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -819,7 +819,7 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -831,7 +831,7 @@
           },
           "article_type": {
             "default": "",
-            "description": "blog | comparison | tutorial | pillar | news | review — overrides item type",
+            "description": "blog | comparison | tutorial | pillar | news | review \u2014 overrides item type",
             "title": "Article Type",
             "type": "string"
           }
@@ -846,7 +846,7 @@
     },
     {
       "name": "check_article_job",
-      "description": "Fallback: retrieve a completed article generation job started in a PREVIOUS SESSION or interrupted run. Do NOT call after normal ai_write — ai_write runs in background and auto-delivers the result. Only use if ai_write was interrupted before delivering its result.",
+      "description": "Fallback: retrieve a completed article generation job started in a PREVIOUS SESSION or interrupted run. Do NOT call after normal ai_write \u2014 ai_write runs in background and auto-delivers the result. Only use if ai_write was interrupted before delivering its result.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -857,7 +857,7 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -878,7 +878,7 @@
     },
     {
       "name": "improve_article",
-      "description": "Fully improve/rewrite the current article for SEO and quality. Use when user says: improve article, make it better, full rewrite, улучши статью, перепиши полностью, сделай лучше, SEO улучшение, добавь FAQ, оптимизируй под SEO. Adds FAQ, sharpens structure, improves keyword density. Async — ~60s.",
+      "description": "Fully improve/rewrite the current article for SEO and quality. Use when user says: improve article, make it better, full rewrite, \u0443\u043b\u0443\u0447\u0448\u0438 \u0441\u0442\u0430\u0442\u044c\u044e, \u043f\u0435\u0440\u0435\u043f\u0438\u0448\u0438 \u043f\u043e\u043b\u043d\u043e\u0441\u0442\u044c\u044e, \u0441\u0434\u0435\u043b\u0430\u0439 \u043b\u0443\u0447\u0448\u0435, SEO \u0443\u043b\u0443\u0447\u0448\u0435\u043d\u0438\u0435, \u0434\u043e\u0431\u0430\u0432\u044c FAQ, \u043e\u043f\u0442\u0438\u043c\u0438\u0437\u0438\u0440\u0443\u0439 \u043f\u043e\u0434 SEO. Adds FAQ, sharpens structure, improves keyword density. Async \u2014 ~60s.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -889,7 +889,7 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -921,7 +921,7 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Newsletter content item ID — leave empty to use currently open item",
+            "description": "Newsletter content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -950,7 +950,7 @@
     },
     {
       "name": "fetch_keywords",
-      "description": "Find keywords using SE Ranking — keyword research, volume, difficulty, positions. Use when user asks: find keywords, what keywords to target, keyword ideas for topic X, show me keywords for [topic], поиск ключевых слов, найди ключевые слова, какие ключевики взять, keywords for [topic/niche]. Uses configured domain by default. All params optional.",
+      "description": "Find keywords using SE Ranking \u2014 keyword research, volume, difficulty, positions. Use when user asks: find keywords, what keywords to target, keyword ideas for topic X, show me keywords for [topic], \u043f\u043e\u0438\u0441\u043a \u043a\u043b\u044e\u0447\u0435\u0432\u044b\u0445 \u0441\u043b\u043e\u0432, \u043d\u0430\u0439\u0434\u0438 \u043a\u043b\u044e\u0447\u0435\u0432\u044b\u0435 \u0441\u043b\u043e\u0432\u0430, \u043a\u0430\u043a\u0438\u0435 \u043a\u043b\u044e\u0447\u0435\u0432\u0438\u043a\u0438 \u0432\u0437\u044f\u0442\u044c, keywords for [topic/niche]. Uses configured domain by default. All params optional.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -959,13 +959,13 @@
         "properties": {
           "domain": {
             "default": "",
-            "description": "Domain to analyse — leave empty to use domain from Settings",
+            "description": "Domain to analyse \u2014 leave empty to use domain from Settings",
             "title": "Domain",
             "type": "string"
           },
           "source": {
             "default": "",
-            "description": "Regional database code, e.g. 'us', 'gb' — empty = use Settings",
+            "description": "Regional database code, e.g. 'us', 'gb' \u2014 empty = use Settings",
             "title": "Source",
             "type": "string"
           },
@@ -998,7 +998,7 @@
     },
     {
       "name": "fetch_gaps",
-      "description": "Find keyword gaps vs competitor — keywords competitor ranks for but we don't. Use when user asks: what keywords am I missing, gap analysis, competitor keywords, что я упускаю по ключевым словам, анализ конкурентов, keyword gaps.",
+      "description": "Find keyword gaps vs competitor \u2014 keywords competitor ranks for but we don't. Use when user asks: what keywords am I missing, gap analysis, competitor keywords, \u0447\u0442\u043e \u044f \u0443\u043f\u0443\u0441\u043a\u0430\u044e \u043f\u043e \u043a\u043b\u044e\u0447\u0435\u0432\u044b\u043c \u0441\u043b\u043e\u0432\u0430\u043c, \u0430\u043d\u0430\u043b\u0438\u0437 \u043a\u043e\u043d\u043a\u0443\u0440\u0435\u043d\u0442\u043e\u0432, keyword gaps.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1036,7 +1036,7 @@
     },
     {
       "name": "fetch_rankings",
-      "description": "Show ORGANIC Google search positions from SE Ranking — NOT Microsoft Ads, NOT paid advertising. Use for SEO keyword ranking positions only. покажи мои позиции, позиции в Google, SEO позиции, мои позиции в поиске, покажи SEO Rankings, на каком месте сайт в Google, keyword rankings, органические позиции.",
+      "description": "Show ORGANIC Google search positions from SE Ranking \u2014 NOT Microsoft Ads, NOT paid advertising. Use for SEO keyword ranking positions only. \u043f\u043e\u043a\u0430\u0436\u0438 \u043c\u043e\u0438 \u043f\u043e\u0437\u0438\u0446\u0438\u0438, \u043f\u043e\u0437\u0438\u0446\u0438\u0438 \u0432 Google, SEO \u043f\u043e\u0437\u0438\u0446\u0438\u0438, \u043c\u043e\u0438 \u043f\u043e\u0437\u0438\u0446\u0438\u0438 \u0432 \u043f\u043e\u0438\u0441\u043a\u0435, \u043f\u043e\u043a\u0430\u0436\u0438 SEO Rankings, \u043d\u0430 \u043a\u0430\u043a\u043e\u043c \u043c\u0435\u0441\u0442\u0435 \u0441\u0430\u0439\u0442 \u0432 Google, keyword rankings, \u043e\u0440\u0433\u0430\u043d\u0438\u0447\u0435\u0441\u043a\u0438\u0435 \u043f\u043e\u0437\u0438\u0446\u0438\u0438.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1053,7 +1053,7 @@
     },
     {
       "name": "list_ser_projects",
-      "description": "List SE Ranking projects — use this to find the project_id for settings.",
+      "description": "List SE Ranking projects \u2014 use this to find the project_id for settings.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1089,7 +1089,7 @@
               }
             ],
             "default": "",
-            "description": "Competitor domain for gap analysis — empty = use Settings",
+            "description": "Competitor domain for gap analysis \u2014 empty = use Settings",
             "title": "Competitor"
           },
           "language": {
@@ -1152,13 +1152,13 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
           "keyword_hint": {
             "default": "",
-            "description": "Keyword or title of the article — server resolves ID automatically",
+            "description": "Keyword or title of the article \u2014 server resolves ID automatically",
             "title": "Keyword Hint",
             "type": "string"
           },
@@ -1190,13 +1190,13 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
           "keyword_hint": {
             "default": "",
-            "description": "Keyword or title of the article — server resolves ID automatically",
+            "description": "Keyword or title of the article \u2014 server resolves ID automatically",
             "title": "Keyword Hint",
             "type": "string"
           },
@@ -1228,13 +1228,13 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
           "keyword_hint": {
             "default": "",
-            "description": "Keyword or title of the article — server resolves ID automatically",
+            "description": "Keyword or title of the article \u2014 server resolves ID automatically",
             "title": "Keyword Hint",
             "type": "string"
           },
@@ -1266,25 +1266,25 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
           "keyword_hint": {
             "default": "",
-            "description": "Keyword or title of the article to update — server resolves ID automatically",
+            "description": "Keyword or title of the article to update \u2014 server resolves ID automatically",
             "title": "Keyword Hint",
             "type": "string"
           },
           "meta_description": {
             "default": "",
-            "description": "SEO meta description (120-155 chars) — leave empty to auto-generate",
+            "description": "SEO meta description (120-155 chars) \u2014 leave empty to auto-generate",
             "title": "Meta Description",
             "type": "string"
           },
           "focus_keyword": {
             "default": "",
-            "description": "Rank Math focus keyword — leave empty to use item's keyword",
+            "description": "Rank Math focus keyword \u2014 leave empty to use item's keyword",
             "title": "Focus Keyword",
             "type": "string"
           }
@@ -1571,7 +1571,7 @@
     },
     {
       "name": "get_settings",
-      "description": "Show WP Blogger extension settings — SE Ranking and WordPress API keys (masked). Use ONLY for: SE Ranking keys configured, WordPress credentials check, какие ключи SE Ranking настроены, есть ли ключ SE Ranking, WP Blogger настройки, seranking_data_key, wp_app_password configured. NOT for Matomo/analytics stats — only API key presence check.",
+      "description": "Show WP Blogger extension settings \u2014 SE Ranking and WordPress API keys (masked). Use ONLY for: SE Ranking keys configured, WordPress credentials check, \u043a\u0430\u043a\u0438\u0435 \u043a\u043b\u044e\u0447\u0438 SE Ranking \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d\u044b, \u0435\u0441\u0442\u044c \u043b\u0438 \u043a\u043b\u044e\u0447 SE Ranking, WP Blogger \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438, seranking_data_key, wp_app_password configured. NOT for Matomo/analytics stats \u2014 only API key presence check.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1588,7 +1588,7 @@
     },
     {
       "name": "list_wp_posts",
-      "description": "List posts from WordPress — published AND drafts. Use when user asks: show WP posts, show drafts, what's in WordPress, show published articles, list blog drafts. Shows title, status, date, URL. Use status='draft' for only drafts, 'publish' for published, leave empty for all.",
+      "description": "List posts from WordPress \u2014 published AND drafts. Use when user asks: show WP posts, show drafts, what's in WordPress, show published articles, list blog drafts. Shows title, status, date, URL. Use status='draft' for only drafts, 'publish' for published, leave empty for all.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1632,7 +1632,7 @@
     },
     {
       "name": "unpublish_wp",
-      "description": "Set a WordPress post back to draft (unpublish). Use when user says: unpublish, снять с публикации, перевести в черновик, скрыть статью, убрать с сайта, set to draft.",
+      "description": "Set a WordPress post back to draft (unpublish). Use when user says: unpublish, \u0441\u043d\u044f\u0442\u044c \u0441 \u043f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u0438, \u043f\u0435\u0440\u0435\u0432\u0435\u0441\u0442\u0438 \u0432 \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a, \u0441\u043a\u0440\u044b\u0442\u044c \u0441\u0442\u0430\u0442\u044c\u044e, \u0443\u0431\u0440\u0430\u0442\u044c \u0441 \u0441\u0430\u0439\u0442\u0430, set to draft.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -1643,7 +1643,7 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -1664,7 +1664,7 @@
     },
     {
       "name": "get_article_link",
-      "description": "Find the URL of a specific article on OUR WordPress blog — NOT a Google search. Use for internal blog post lookups: 'найди ссылку на статью', 'где статья про X', 'дай ссылку на пост', 'url статьи X', 'можешь найти где статья', 'link to our article about X', 'permalink нашей статьи'. Searches WordPress drafts and published posts directly. Do NOT use Google or web search — use this tool instead.",
+      "description": "Find the URL of a specific article on OUR WordPress blog \u2014 NOT a Google search. Use for internal blog post lookups: '\u043d\u0430\u0439\u0434\u0438 \u0441\u0441\u044b\u043b\u043a\u0443 \u043d\u0430 \u0441\u0442\u0430\u0442\u044c\u044e', '\u0433\u0434\u0435 \u0441\u0442\u0430\u0442\u044c\u044f \u043f\u0440\u043e X', '\u0434\u0430\u0439 \u0441\u0441\u044b\u043b\u043a\u0443 \u043d\u0430 \u043f\u043e\u0441\u0442', 'url \u0441\u0442\u0430\u0442\u044c\u0438 X', '\u043c\u043e\u0436\u0435\u0448\u044c \u043d\u0430\u0439\u0442\u0438 \u0433\u0434\u0435 \u0441\u0442\u0430\u0442\u044c\u044f', 'link to our article about X', 'permalink \u043d\u0430\u0448\u0435\u0439 \u0441\u0442\u0430\u0442\u044c\u0438'. Searches WordPress drafts and published posts directly. Do NOT use Google or web search \u2014 use this tool instead.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1690,7 +1690,7 @@
     },
     {
       "name": "rewrite_article",
-      "description": "Fully rewrite the current article from scratch with improved structure and quality. Use when user says: rewrite completely, полностью перепиши, перепиши статью заново, новая версия статьи, full rewrite, rewrite from scratch. Different from improve_article (which adds sections) — this regenerates the whole article.",
+      "description": "Fully rewrite the current article from scratch with improved structure and quality. Use when user says: rewrite completely, \u043f\u043e\u043b\u043d\u043e\u0441\u0442\u044c\u044e \u043f\u0435\u0440\u0435\u043f\u0438\u0448\u0438, \u043f\u0435\u0440\u0435\u043f\u0438\u0448\u0438 \u0441\u0442\u0430\u0442\u044c\u044e \u0437\u0430\u043d\u043e\u0432\u043e, \u043d\u043e\u0432\u0430\u044f \u0432\u0435\u0440\u0441\u0438\u044f \u0441\u0442\u0430\u0442\u044c\u0438, full rewrite, rewrite from scratch. Different from improve_article (which adds sections) \u2014 this regenerates the whole article.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -1701,7 +1701,7 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -1722,7 +1722,7 @@
     },
     {
       "name": "add_keywords_to_article",
-      "description": "Add keywords to the current article and update Rank Math SEO. Use when user says: add keywords, добавь ключевые слова, добавь кейворды, add these keywords to the article, track these keywords in Rank Math, добавь в Rank Math.",
+      "description": "Add keywords to the current article and update Rank Math SEO. Use when user says: add keywords, \u0434\u043e\u0431\u0430\u0432\u044c \u043a\u043b\u044e\u0447\u0435\u0432\u044b\u0435 \u0441\u043b\u043e\u0432\u0430, \u0434\u043e\u0431\u0430\u0432\u044c \u043a\u0435\u0439\u0432\u043e\u0440\u0434\u044b, add these keywords to the article, track these keywords in Rank Math, \u0434\u043e\u0431\u0430\u0432\u044c \u0432 Rank Math.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -1738,7 +1738,7 @@
           },
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           }
@@ -1756,7 +1756,7 @@
     },
     {
       "name": "check_seo_meta",
-      "description": "Show SEO settings for an article — Rank Math focus keyword, secondary keywords, meta description, keyword density, word count, WP status. Use when user asks about SEO of an article — 'покажи rank math', 'seo настройки статьи', 'как настроено seo', 'keyword density', 'какой focus keyword', 'meta description статьи', 'check seo', 'seo audit article', 'посмотреть настройки статьи'. Works with content plan ID or WP post ID (numeric).",
+      "description": "Show SEO settings for an article \u2014 Rank Math focus keyword, secondary keywords, meta description, keyword density, word count, WP status. Use when user asks about SEO of an article \u2014 '\u043f\u043e\u043a\u0430\u0436\u0438 rank math', 'seo \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u0441\u0442\u0430\u0442\u044c\u0438', '\u043a\u0430\u043a \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d\u043e seo', 'keyword density', '\u043a\u0430\u043a\u043e\u0439 focus keyword', 'meta description \u0441\u0442\u0430\u0442\u044c\u0438', 'check seo', 'seo audit article', '\u043f\u043e\u0441\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u0441\u0442\u0430\u0442\u044c\u0438'. Works with content plan ID or WP post ID (numeric).",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1765,7 +1765,7 @@
         "properties": {
           "content_id": {
             "default": "",
-            "description": "Content item ID — leave empty to use currently open item",
+            "description": "Content item ID \u2014 leave empty to use currently open item",
             "title": "Content Id",
             "type": "string"
           },
@@ -1786,7 +1786,7 @@
     },
     {
       "name": "patch_wp_article",
-      "description": "Edit/rewrite a specific part of a WordPress post by WP post ID. Use when user says: rewrite intro of post 1902, edit article wp 1902, перепиши вступление поста 1902, измени статью WP #1902, edit WP article, rewrite part of published post. Fetches content directly from WordPress, patches, saves back. No need to open article in editor first.",
+      "description": "Edit/rewrite a specific part of a WordPress post by WP post ID. Use when user says: rewrite intro of post 1902, edit article wp 1902, \u043f\u0435\u0440\u0435\u043f\u0438\u0448\u0438 \u0432\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u0435 \u043f\u043e\u0441\u0442\u0430 1902, \u0438\u0437\u043c\u0435\u043d\u0438 \u0441\u0442\u0430\u0442\u044c\u044e WP #1902, edit WP article, rewrite part of published post. Fetches content directly from WordPress, patches, saves back. No need to open article in editor first.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -1820,7 +1820,7 @@
     },
     {
       "name": "edit_wp_article",
-      "description": "Import a WordPress post and immediately edit/rewrite a part of it — all in one step. PREFER this over patch_article when user mentions a WordPress post ID or title. Use when user says: перепиши вступление поста 1902, edit post 1902, измени статью wp 1902, rewrite intro of WP article, перепиши вступление/абзац/заключение поста, edit/improve specific WP post. wp_post_id: numeric WordPress ID (e.g. '1902'). instruction: what to change (e.g. 'rewrite intro mentioning WebHostMost as alternative').",
+      "description": "Import a WordPress post and immediately edit/rewrite a part of it \u2014 all in one step. PREFER this over patch_article when user mentions a WordPress post ID or title. Use when user says: \u043f\u0435\u0440\u0435\u043f\u0438\u0448\u0438 \u0432\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u0435 \u043f\u043e\u0441\u0442\u0430 1902, edit post 1902, \u0438\u0437\u043c\u0435\u043d\u0438 \u0441\u0442\u0430\u0442\u044c\u044e wp 1902, rewrite intro of WP article, \u043f\u0435\u0440\u0435\u043f\u0438\u0448\u0438 \u0432\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u0435/\u0430\u0431\u0437\u0430\u0446/\u0437\u0430\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u043f\u043e\u0441\u0442\u0430, edit/improve specific WP post. wp_post_id: numeric WordPress ID (e.g. '1902'). instruction: what to change (e.g. 'rewrite intro mentioning WebHostMost as alternative').",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -1854,7 +1854,7 @@
     },
     {
       "name": "delete_wp_post",
-      "description": "Permanently delete a WordPress post (moves to trash). Use when user says: удали пост, удали черновик, delete this draft, delete WP post ID X, убери статью из WordPress, удали этот черновик навсегда. wp_post_id: WordPress numeric post ID.",
+      "description": "Permanently delete a WordPress post (moves to trash). Use when user says: \u0443\u0434\u0430\u043b\u0438 \u043f\u043e\u0441\u0442, \u0443\u0434\u0430\u043b\u0438 \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a, delete this draft, delete WP post ID X, \u0443\u0431\u0435\u0440\u0438 \u0441\u0442\u0430\u0442\u044c\u044e \u0438\u0437 WordPress, \u0443\u0434\u0430\u043b\u0438 \u044d\u0442\u043e\u0442 \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a \u043d\u0430\u0432\u0441\u0435\u0433\u0434\u0430. wp_post_id: WordPress numeric post ID.",
       "action_type": "destructive",
       "chain_callable": true,
       "effects": [
@@ -1888,7 +1888,7 @@
     },
     {
       "name": "add_tracked_keyword",
-      "description": "Add a keyword to SE Ranking position tracking. Use when user wants to track a new keyword — 'добавь в трекинг', 'начать отслеживать кейворд', 'track this keyword', 'хочу отслеживать позицию по слову X', 'add to SE Ranking', 'мониторить позицию', 'add keyword tracking for X'.",
+      "description": "Add a keyword to SE Ranking position tracking. Use when user wants to track a new keyword \u2014 '\u0434\u043e\u0431\u0430\u0432\u044c \u0432 \u0442\u0440\u0435\u043a\u0438\u043d\u0433', '\u043d\u0430\u0447\u0430\u0442\u044c \u043e\u0442\u0441\u043b\u0435\u0436\u0438\u0432\u0430\u0442\u044c \u043a\u0435\u0439\u0432\u043e\u0440\u0434', 'track this keyword', '\u0445\u043e\u0447\u0443 \u043e\u0442\u0441\u043b\u0435\u0436\u0438\u0432\u0430\u0442\u044c \u043f\u043e\u0437\u0438\u0446\u0438\u044e \u043f\u043e \u0441\u043b\u043e\u0432\u0443 X', 'add to SE Ranking', '\u043c\u043e\u043d\u0438\u0442\u043e\u0440\u0438\u0442\u044c \u043f\u043e\u0437\u0438\u0446\u0438\u044e', 'add keyword tracking for X'.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -1922,7 +1922,7 @@
     },
     {
       "name": "remove_tracked_keyword",
-      "description": "Remove a keyword from SE Ranking position tracking. Use when user says: stop tracking keyword, remove keyword from SE Ranking, удали кейворд из трекинга, убери ключевое слово из SE Ranking, перестань отслеживать X.",
+      "description": "Remove a keyword from SE Ranking position tracking. Use when user says: stop tracking keyword, remove keyword from SE Ranking, \u0443\u0434\u0430\u043b\u0438 \u043a\u0435\u0439\u0432\u043e\u0440\u0434 \u0438\u0437 \u0442\u0440\u0435\u043a\u0438\u043d\u0433\u0430, \u0443\u0431\u0435\u0440\u0438 \u043a\u043b\u044e\u0447\u0435\u0432\u043e\u0435 \u0441\u043b\u043e\u0432\u043e \u0438\u0437 SE Ranking, \u043f\u0435\u0440\u0435\u0441\u0442\u0430\u043d\u044c \u043e\u0442\u0441\u043b\u0435\u0436\u0438\u0432\u0430\u0442\u044c X.",
       "action_type": "write",
       "chain_callable": true,
       "effects": [
@@ -1939,7 +1939,7 @@
           },
           "keyword": {
             "default": "",
-            "description": "Keyword name to remove — system will find ID automatically",
+            "description": "Keyword name to remove \u2014 system will find ID automatically",
             "title": "Keyword",
             "type": "string"
           }
@@ -1954,7 +1954,7 @@
     },
     {
       "name": "list_tracked_keywords",
-      "description": "List all keywords tracked in SE Ranking with IDs and positions. Use when user wants to see tracked keywords — 'какие ключевые слова я отслеживаю', 'список трекинга', 'сколько кейвордов в трекинге', 'show tracked keywords', 'what am I tracking in SE Ranking', 'покажи все мои ключевые слова'.",
+      "description": "List all keywords tracked in SE Ranking with IDs and positions. Use when user wants to see tracked keywords \u2014 '\u043a\u0430\u043a\u0438\u0435 \u043a\u043b\u044e\u0447\u0435\u0432\u044b\u0435 \u0441\u043b\u043e\u0432\u0430 \u044f \u043e\u0442\u0441\u043b\u0435\u0436\u0438\u0432\u0430\u044e', '\u0441\u043f\u0438\u0441\u043e\u043a \u0442\u0440\u0435\u043a\u0438\u043d\u0433\u0430', '\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u043a\u0435\u0439\u0432\u043e\u0440\u0434\u043e\u0432 \u0432 \u0442\u0440\u0435\u043a\u0438\u043d\u0433\u0435', 'show tracked keywords', 'what am I tracking in SE Ranking', '\u043f\u043e\u043a\u0430\u0436\u0438 \u0432\u0441\u0435 \u043c\u043e\u0438 \u043a\u043b\u044e\u0447\u0435\u0432\u044b\u0435 \u0441\u043b\u043e\u0432\u0430'.",
       "action_type": "read",
       "chain_callable": false,
       "effects": [],
@@ -1968,6 +1968,21 @@
       "event": "",
       "scopes": [],
       "owner_chat_tool": "wp_blogger"
+    },
+    {
+      "name": "gsc_report",
+      "description": "Show Google Search Console report: clicks, impressions, positions, anomalies, growth opportunities.",
+      "action_type": "read"
+    },
+    {
+      "name": "save_gsc_credentials",
+      "description": "Save GSC OAuth2 credentials to settings.",
+      "action_type": "write"
+    },
+    {
+      "name": "gsc_connect_oauth",
+      "description": "Connect GSC via Google OAuth2 flow using credentials.json.",
+      "action_type": "write"
     }
   ],
   "signals": [],
