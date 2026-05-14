@@ -57,10 +57,11 @@ DEFAULT_SETTINGS: dict = {
     "wp_username": "",
     "wp_app_password": "",
     "wp_author_id": 1,
-    # Google Search Console — Method A: Service Account
+    # Google Search Console — paste any Google JSON key here (SA or authorized_user)
     "gsc_site_url": "",
+    "gsc_credentials_json": "",
+    # Legacy fields kept for backwards compat
     "gsc_service_account": "",
-    # Google Search Console — Method B: OAuth2 (use with personal Google account)
     "gsc_oauth_client_id": "",
     "gsc_oauth_client_secret": "",
     "gsc_oauth_refresh_token": "",
@@ -249,6 +250,10 @@ def wp_ready(s: dict) -> bool:
     return bool(s.get("wp_app_password"))
 
 def gsc_ready(s: dict) -> bool:
-    has_sa = bool(s.get("gsc_site_url") and s.get("gsc_service_account"))
-    has_oauth = bool(s.get("gsc_site_url") and s.get("gsc_oauth_refresh_token") and s.get("gsc_oauth_client_id"))
-    return has_sa or has_oauth
+    if not s.get("gsc_site_url"):
+        return False
+    return bool(
+        s.get("gsc_credentials_json") or
+        s.get("gsc_service_account") or
+        (s.get("gsc_oauth_refresh_token") and s.get("gsc_oauth_client_id"))
+    )

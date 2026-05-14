@@ -436,87 +436,64 @@ async def gsc_report(ctx, params: EmptyGSCParams) -> ActionResult:
     )
 
 
+class GSCOAuthParams(_BM):
+    credentials_json: str  # contents of client_secrets.json / credentials.json
+    auth_code: str = ""
+
+
 @chat.function(
-    "gsc_auth_link",
+    "gsc_connect_oauth",
     description=(
-        "Generate a Google OAuth2 authorization link for connecting GSC via Gmail/Google account (Method B). "
-        "Use when user says 'give me GSC auth link', 'хочу подключить GSC через гугл аккаунт', 'OAuth GSC'. "
-        "Requires gsc_oauth_client_id and gsc_oauth_client_secret to be set in Settings first."
+        "Connect GSC via Google OAuth2 using credentials.json from Google Cloud. "
+        "Step 1: user pastes contents of credentials.json file, gets auth URL. "
+        "Step 2: user visits URL, authorizes, pastes auth code — system saves authorized credentials. "
+        "Use when: 'подключи GSC через гугл аккаунт', 'OAuth GSC', 'give me GSC auth link'. "
+        "If auth_code is empty — returns auth URL. If auth_code is provided — exchanges and saves."
     ),
-    action_type="read",
+    action_type="write",
 )
-async def gsc_auth_link(ctx, params: EmptyGSCParams) -> ActionResult:
-    from wpb_app import load_settings
+async def gsc_connect_oauth(ctx, params: GSCOAuthParams) -> ActionResult:
+    from wpb_app import load_settings, save_settings
     from api_client import _post
 
-    s = await load_settings(ctx)
-    cid = s.get("gsc_oauth_client_id", "")
-    secret = s.get("gsc_oauth_client_secret", "")
+    creds_json = params.credentials_json.strip()
+    if not creds_json:
+        return ActionResult.error(error="Paste your credentials.json content from Google Cloud Console.")
 
-    if not cid or not secret:
-        return ActionResult.error(
-            error="Add OAuth2 Client ID and Client Secret in Settings → Google Search Console (Method B) first."
+    # Step 2: exchange code if provided
+    if params.auth_code.strip():
+        result = await _post(ctx, "/api/gsc/oauth-exchange", {
+            "credentials_json": creds_json,
+            "auth_code": params.auth_code.strip(),
+        })
+        if not result.get("ok"):
+            return ActionResult.error(error=f"Token exchange failed: {result.get('error', 'unknown')}")
+
+        authorized = result.get("authorized_credentials", "")
+        if not authorized:
+            return ActionResult.error(error="No credentials returned. Try again.")
+
+        await save_settings(ctx, {"gsc_credentials_json": authorized})
+        return ActionResult.success(
+            {"connected": True},
+            summary="GSC connected! Authorized credentials saved. Run 'gsc report' to see your data.",
+            refresh_panels=["sidebar"],
         )
 
-    result = await _post(ctx, "/api/gsc/auth-url", {
-        "client_id": cid,
-        "client_secret": secret,
-        "redirect_uri": "urn:ietf:wg:oauth:2.0:oob",
+    # Step 1: generate auth URL
+    result = await _post(ctx, "/api/gsc/oauth-authorize", {
+        "site_url": (await load_settings(ctx)).get("gsc_site_url", ""),
+        "credentials_json": creds_json,
     })
-
-    if "auth_url" not in result:
-        return ActionResult.error(error=f"Failed to generate auth URL: {result}")
+    if not result.get("ok"):
+        return ActionResult.error(error=f"Failed: {result.get('error', result)}")
 
     return ActionResult.success(
         {"auth_url": result["auth_url"]},
         summary=(
-            "OAuth2 authorization steps:\n"
-            f"1. Open this link: {result['auth_url']}\n"
-            "2. Sign in with alex.c@webhostmost.com\n"
-            "3. Authorize access to Search Console\n"
-            "4. Copy the auth code\n"
-            "5. Tell me: 'exchange GSC code: <paste code here>'"
+            "Step 2 — open this link and authorize:\n"
+            f"{result['auth_url']}\n\n"
+            "Then tell me:\n"
+            "gsc_connect_oauth credentials_json=<same JSON> auth_code=<code from Google>"
         ),
-    )
-
-
-class GSCExchangeParams(_BM):
-    auth_code: str
-
-
-@chat.function(
-    "gsc_exchange_code",
-    description="Exchange Google OAuth2 auth code for refresh_token and save to GSC settings. Use after gsc_auth_link.",
-    action_type="write",
-)
-async def gsc_exchange_code(ctx, params: GSCExchangeParams) -> ActionResult:
-    from wpb_app import load_settings, save_settings
-    from api_client import _post
-
-    s = await load_settings(ctx)
-    cid = s.get("gsc_oauth_client_id", "")
-    secret = s.get("gsc_oauth_client_secret", "")
-
-    if not cid or not secret:
-        return ActionResult.error(error="OAuth2 Client ID and Secret not configured in Settings.")
-
-    result = await _post(ctx, "/api/gsc/exchange-token", {
-        "client_id": cid,
-        "client_secret": secret,
-        "auth_code": params.auth_code.strip(),
-        "redirect_uri": "urn:ietf:wg:oauth:2.0:oob",
-    })
-
-    if not result.get("ok"):
-        return ActionResult.error(error=f"Token exchange failed: {result.get('error', 'unknown')}")
-
-    refresh_token = result.get("refresh_token", "")
-    if not refresh_token:
-        return ActionResult.error(error="No refresh_token returned. Try auth flow again.")
-
-    await save_settings(ctx, {"gsc_oauth_refresh_token": refresh_token})
-    return ActionResult.success(
-        {"connected": True},
-        summary="GSC connected via OAuth2. Refresh token saved. You can now run gsc_report.",
-        refresh_panels=["sidebar"],
     )

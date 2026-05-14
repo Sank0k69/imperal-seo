@@ -414,9 +414,11 @@ async def ser_list_site_keywords(ctx) -> dict:
 # ── Google Search Console ──────────────────────────────────────────────────────
 
 def _gsc_auth_payload(s: dict) -> dict:
-    """Build auth fields for GSC API call from settings. Supports SA JSON or OAuth2."""
+    """Build auth fields for GSC API call. Supports smart JSON, SA JSON, OAuth2."""
     base = {"site_url": s.get("gsc_site_url", "")}
-    if s.get("gsc_service_account"):
+    if s.get("gsc_credentials_json"):
+        base["credentials_json"] = s["gsc_credentials_json"]
+    elif s.get("gsc_service_account"):
         base["service_account_json"] = s["gsc_service_account"]
     elif s.get("gsc_oauth_refresh_token"):
         base["oauth_client_id"] = s.get("gsc_oauth_client_id", "")
