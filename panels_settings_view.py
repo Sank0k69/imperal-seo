@@ -124,36 +124,41 @@ async def _settings_view(ctx) -> ui.UINode:
 
     # ── Google Search Console ──────────────────────────────────────────────────
     gsc_creds_set = bool(s.get("gsc_credentials_json") or s.get("gsc_service_account") or s.get("gsc_oauth_refresh_token"))
-    gsc_status = ui.Badge(label="Connected ✓", color="green") if gsc_creds_set else ui.Badge(label="Not connected", color="gray")
+    gsc_site = s.get("gsc_site_url", "")
+    gsc_status = ui.Badge(label=f"✓ Connected — {gsc_site}", color="green") if gsc_creds_set else ui.Badge(label="Not connected", color="gray")
 
     gsc_steps = (
-        "How to connect (one-time setup, ~5 min):\n\n"
-        "1. Open: console.cloud.google.com → your project → APIs & Services → Library\n"
-        "   Search 'Search Console API' → Enable\n\n"
-        "2. IAM & Admin → Service Accounts → Create Service Account\n"
-        "   Name anything → Done → click the SA → Keys tab → Add Key → JSON → Create\n"
-        "   (a .json file will download)\n\n"
-        "3. Open Google Search Console → your property → Settings → Users and permissions\n"
-        "   → Add user → paste the email from the JSON file (field 'client_email') → Full → Add\n\n"
-        "4. Open the downloaded .json file → Select All → Copy → paste below"
+        "Подключение занимает ~5 минут. Нужен Google-аккаунт с доступом к Search Console.\n\n"
+        "Шаг 1. Включите API:\n"
+        "  → Открой: console.cloud.google.com/apis/library/searchconsole.googleapis.com\n"
+        "  → Нажми Enable\n\n"
+        "Шаг 2. Создай Service Account (робот-пользователь для API):\n"
+        "  → console.cloud.google.com/iam-admin/serviceaccounts → Create Service Account\n"
+        "  → Имя любое → Done → открой созданный аккаунт → вкладка Keys → Add Key → JSON → Create\n"
+        "  → Файл .json скачается автоматически\n\n"
+        "Шаг 3. Дай доступ к своему сайту в GSC:\n"
+        "  → search.google.com/search-console → Settings → Users and permissions → Add user\n"
+        "  → Вставь email из JSON-файла (поле 'client_email') → Full → Add\n\n"
+        "Шаг 4. Вставь JSON-файл ниже:\n"
+        "  → Открой скачанный .json → Выдели всё → Скопируй → Вставь в поле ниже"
     )
     gsc_form = ui.Form(
         action="save_settings",
         submit_label="Save GSC",
         children=[
             ui.Stack(direction="horizontal", align="center", gap=8, children=[
-                ui.Text(content="Status:", variant="caption"),
+                ui.Text(content="Статус:", variant="caption"),
                 gsc_status,
             ]),
             ui.Text(content=gsc_steps, variant="caption"),
             ui.Input(
                 param_name="gsc_site_url",
-                value=s.get("gsc_site_url", ""),
-                placeholder="Your site URL — e.g. https://webhostmost.com",
+                value=gsc_site,
+                placeholder="URL вашего сайта — например https://webhostmost.com",
             ),
             ui.TextArea(
                 param_name="gsc_credentials_json",
-                placeholder="Paste the contents of the downloaded .json file here",
+                placeholder=f"{'Credentials set ✓ — вставьте новый JSON чтобы обновить' if gsc_creds_set else 'Вставьте содержимое скачанного .json файла'}",
                 rows=5,
             ),
         ],
@@ -164,14 +169,17 @@ async def _settings_view(ctx) -> ui.UINode:
             ui.Header(text="Settings", level=3),
             ui.Button(label="← Back", on_click=ui.Call("__panel__editor", active_view="plan", note_id="board")),
         ], direction="horizontal", justify="between"),
-        ui.Alert(message="API keys stored encrypted per user.", type="info"),
+        ui.Alert(
+            message="Все интеграции опциональны. Можно писать статьи без SE Ranking, GSC и WordPress. API ключи хранятся зашифровано.",
+            type="info",
+        ),
         blog_style_section,
         ui.Divider(),
         ui.Section(title="Brand & Newsletter", collapsible=False, children=[brand_form]),
         ui.Divider(),
-        ui.Section(title="SE Ranking", collapsible=True, children=[ser_form]),
+        ui.Section(title="SE Ranking (optional — keyword research & position tracking)", collapsible=True, children=[ser_form]),
         ui.Divider(),
-        ui.Section(title="WordPress", collapsible=True, children=[wp_form]),
+        ui.Section(title="WordPress (optional — one-click publishing)", collapsible=True, children=[wp_form]),
         ui.Divider(),
-        ui.Section(title="Google Search Console", collapsible=True, children=[gsc_form]),
+        ui.Section(title="Google Search Console (optional — clicks, positions, anomalies)", collapsible=True, children=[gsc_form]),
     ])

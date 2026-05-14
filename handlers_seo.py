@@ -161,12 +161,10 @@ async def list_ser_projects(ctx, params: ListProjectsParams) -> ActionResult:
     event="seo.content.created",
 )
 async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
-    """AI-generate a 5-article content plan from SE Ranking + GSC data."""
+    """AI-generate a 5-article content plan. SE Ranking and GSC are optional enrichments."""
     s = await load_settings(ctx)
-    if not s.get("seranking_data_key"):
-        return ActionResult.error(error="SE Ranking Data API key not configured. Go to Settings.")
-    if not s.get("seranking_domain"):
-        return ActionResult.error(error="Domain not configured. Go to Settings → SE Ranking.")
+    # SE Ranking is optional — if not configured, AI uses blog URL + GSC data + topic context
+    has_ser = bool(s.get("seranking_data_key") and s.get("seranking_domain"))
 
     language = params.language or "en"
     competitor = params.competitor or s.get("seranking_competitor", "")
@@ -206,16 +204,16 @@ async def build_content_plan(ctx, params: BuildPlanParams) -> ActionResult:
     ]
 
     data = await content_plan(ctx, competitor=competitor, language=language, existing_keywords=existing_kws)
-    if "error" in data:
-        return ActionResult.error(error=f"Content plan failed: {data['error']}")
+    if "error" in data or not data.get("articles"):
+        # Retry without filters
+        data = await content_plan(ctx, competitor=competitor, language=language, existing_keywords=[])
 
     articles = data.get("articles", [])
     if not articles:
-        # Retry with no duplicate filter — maybe SE Ranking data is sparse
-        data = await content_plan(ctx, competitor=competitor, language=language, existing_keywords=[])
-        articles = data.get("articles", [])
-    if not articles:
-        return ActionResult.error(error="AI returned no articles. Check SE Ranking Data API key and domain in Settings.")
+        return ActionResult.error(
+            error="Could not generate content plan. "
+                  + ("Connect SE Ranking in Settings for better results." if not has_ser else "Try again.")
+        )
 
     # Dedup: skip if keyword already exists in MOS storage
     existing_all = await list_content(ctx)

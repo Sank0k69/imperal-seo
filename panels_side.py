@@ -26,27 +26,19 @@ async def sidebar_panel(ctx):
         "published": sum(1 for i in items if i.get("status") == "published"),
     }
 
-    # Show setup warning if not configured
-    not_configured = not ser_ready(s) or not wp_ready(s)
-    missing = []
-    if not ser_ready(s): missing.append("SE Ranking")
-    if not wp_ready(s):  missing.append("WordPress")
+    # All integrations are optional — show what's connected, no blocking warnings
+    badges = []
+    if ser_ready(s):
+        badges.append(ui.Badge(label="SE Ranking ✓", color="green"))
+    if wp_ready(s):
+        badges.append(ui.Badge(label="WordPress ✓", color="green"))
+    if gsc_ready(s):
+        badges.append(ui.Badge(label="GSC ✓", color="green"))
+    if not badges:
+        badges.append(ui.Badge(label="No integrations — open ⚙️ Settings", color="gray"))
 
     status_badges = ui.Stack(children=[
-        ui.Stack(children=[
-            ui.Badge(label=f"SE Ranking {'✓' if ser_ready(s) else '— add key in Settings'}",
-                     color="green" if ser_ready(s) else "orange"),
-            ui.Badge(label=f"WordPress {'✓' if wp_ready(s) else '— add URL+password in Settings'}",
-                     color="green" if wp_ready(s) else "orange"),
-            ui.Badge(label=f"GSC {'✓' if gsc_ready(s) else '— add SA key in Settings'}",
-                     color="green" if gsc_ready(s) else "gray"),
-        ], gap=4),
-        *([] if not not_configured else [
-            ui.Alert(
-                message=f"Setup needed: {', '.join(missing)}. Open ⚙️ Settings to connect.",
-                type="warning",
-            )
-        ]),
+        ui.Stack(children=badges, gap=4, direction="horizontal"),
     ])
 
     selected_id = state.get("selected_id")
