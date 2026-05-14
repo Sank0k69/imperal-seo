@@ -647,6 +647,67 @@ async def get_article_link(ctx, params: GetArticleLinkParams) -> ActionResult:
     )
 
 
+@chat.function(
+    "get_wp_post_content",
+    description=(
+        "Show the full text/content of a specific WordPress post or draft. "
+        "Use when user asks: покажи текст статьи, покажи содержание черновика, "
+        "что написано в статье X, покажи пост, покажи текст черновика, "
+        "show me the article text, what does the article say, read the post."
+    ),
+    action_type="read",
+)
+async def get_wp_post_content(ctx, params: GetArticleLinkParams) -> ActionResult:
+    """Fetch full content of a WP post by title or keyword."""
+    from api_wordpress import get_post, search_posts
+    s = await load_settings(ctx)
+    if not s.get("wp_app_password"):
+        return ActionResult.error(error="WordPress not configured.")
+
+    query = params.title_or_keyword.strip()
+    wp_url = s["wp_url"]
+    wp_user = s["wp_username"]
+    wp_pw   = s["wp_app_password"]
+
+    # Check MOS content items first for a WP post ID
+    items = await list_content(ctx)
+    ql = query.lower()
+    match = next(
+        (i for i in items if ql in (i.get("keyword") or "").lower() or ql in (i.get("title") or "").lower()),
+        None,
+    )
+    post_id = int(match["wp_post_id"]) if match and match.get("wp_post_id") else None
+
+    # If no ID from store, search WP directly
+    if not post_id:
+        results = await search_posts(ctx, wp_url, wp_user, wp_pw, query)
+        if not results:
+            return ActionResult.error(error=f"No post found for '{query}'. Try list_wp_posts to see all posts.")
+        post_id = results[0].get("id")
+        if not post_id:
+            return ActionResult.error(error=f"Post found but no ID returned.")
+
+    post = await get_post(ctx, wp_url, wp_user, wp_pw, post_id)
+    if post.get("_wp_error"):
+        return ActionResult.error(error=post["_wp_error"])
+
+    title   = post.get("title", "")
+    status  = post.get("status", "")
+    link    = post.get("link", "")
+    # Strip HTML tags from content for readable display
+    import re
+    raw_html = post.get("content", "")
+    text = re.sub(r"<[^>]+>", " ", raw_html).strip()
+    text = re.sub(r"\s{2,}", " ", text)
+    word_count = len(text.split())
+
+    summary = f"**{title}** ({status})\n{link}\n\n{text[:3000]}{'...' if len(text) > 3000 else ''}"
+    return ActionResult.success(
+        {"title": title, "status": status, "link": link, "word_count": word_count, "content": text[:5000]},
+        summary=summary,
+    )
+
+
 # ── Rewrite article ───────────────────────────────────────────────────────────
 
 @chat.function(

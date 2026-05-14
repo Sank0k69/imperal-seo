@@ -1989,6 +1989,13 @@
       "action_type": "write",
       "scopes": [],
       "parameters": {}
+    },
+    {
+      "name": "get_wp_post_content",
+      "description": "Show full text of a WordPress post or draft.",
+      "action_type": "read",
+      "scopes": [],
+      "parameters": {}
     }
   ],
   "signals": [],

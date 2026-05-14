@@ -125,7 +125,6 @@ async def verify_connection(
 def _parse_post(resp) -> dict:
     if not isinstance(resp, dict):
         return {}
-    # WP REST API returns error dicts with "code" key (no "id")
     if resp.get("code") and not resp.get("id"):
         return {"_wp_error": resp.get("message", str(resp))}
     title = resp.get("title", {})
@@ -137,3 +136,53 @@ def _parse_post(resp) -> dict:
         "link": resp.get("link", ""),
         "date": resp.get("date", ""),
     }
+
+
+async def get_post(
+    ctx,
+    wp_url: str,
+    username: str,
+    app_password: str,
+    post_id: int,
+) -> dict:
+    """Fetch a single post with full content."""
+    resp = await ctx.http.get(
+        f"{_base(wp_url)}/posts/{post_id}",
+        headers=_headers(username, app_password),
+    )
+    data = _unwrap(resp)
+    if not isinstance(data, dict) or data.get("_wp_error"):
+        return data or {}
+    title = data.get("title", {})
+    content = data.get("content", {})
+    excerpt = data.get("excerpt", {})
+    return {
+        "id": data.get("id"),
+        "status": data.get("status"),
+        "title": title.get("rendered", "") if isinstance(title, dict) else title,
+        "content": content.get("rendered", "") if isinstance(content, dict) else content,
+        "excerpt": excerpt.get("rendered", "") if isinstance(excerpt, dict) else excerpt,
+        "link": data.get("link", ""),
+        "date": data.get("date", ""),
+        "slug": data.get("slug", ""),
+    }
+
+
+async def search_posts(
+    ctx,
+    wp_url: str,
+    username: str,
+    app_password: str,
+    query: str,
+    per_page: int = 5,
+) -> list[dict]:
+    """Search posts by title keyword."""
+    resp = await ctx.http.get(
+        f"{_base(wp_url)}/posts",
+        headers=_headers(username, app_password),
+        params={"search": query, "per_page": per_page, "status": "draft,publish"},
+    )
+    data = _unwrap(resp)
+    if isinstance(data, list):
+        return [_parse_post(p) for p in data]
+    return []
