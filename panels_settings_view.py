@@ -124,26 +124,37 @@ async def _settings_view(ctx) -> ui.UINode:
 
     # ── Google Search Console ──────────────────────────────────────────────────
     gsc_creds_set = bool(s.get("gsc_credentials_json") or s.get("gsc_service_account") or s.get("gsc_oauth_refresh_token"))
+    gsc_status = ui.Badge(label="Connected ✓", color="green") if gsc_creds_set else ui.Badge(label="Not connected", color="gray")
+
+    gsc_steps = (
+        "How to connect (one-time setup, ~5 min):\n\n"
+        "1. Open: console.cloud.google.com → your project → APIs & Services → Library\n"
+        "   Search 'Search Console API' → Enable\n\n"
+        "2. IAM & Admin → Service Accounts → Create Service Account\n"
+        "   Name anything → Done → click the SA → Keys tab → Add Key → JSON → Create\n"
+        "   (a .json file will download)\n\n"
+        "3. Open Google Search Console → your property → Settings → Users and permissions\n"
+        "   → Add user → paste the email from the JSON file (field 'client_email') → Full → Add\n\n"
+        "4. Open the downloaded .json file → Select All → Copy → paste below"
+    )
     gsc_form = ui.Form(
         action="save_settings",
         submit_label="Save GSC",
         children=[
-            ui.Text(
-                content=(
-                    "Paste your Google credentials JSON here — the system detects the type automatically.\n"
-                    "Fastest option: Google Cloud Console → IAM → Service Accounts → Create → Download JSON → Add SA email as Viewer in GSC property."
-                ),
-                variant="caption",
-            ),
+            ui.Stack(direction="horizontal", align="center", gap=8, children=[
+                ui.Text(content="Status:", variant="caption"),
+                gsc_status,
+            ]),
+            ui.Text(content=gsc_steps, variant="caption"),
             ui.Input(
                 param_name="gsc_site_url",
                 value=s.get("gsc_site_url", ""),
-                placeholder="GSC property — https://webhostmost.com or sc-domain:webhostmost.com",
+                placeholder="Your site URL — e.g. https://webhostmost.com",
             ),
             ui.TextArea(
                 param_name="gsc_credentials_json",
-                placeholder=f"{'✓ Credentials set — paste new JSON to replace' if gsc_creds_set else 'Paste Service Account JSON or authorized_user JSON here'}",
-                rows=4,
+                placeholder="Paste the contents of the downloaded .json file here",
+                rows=5,
             ),
         ],
     )
