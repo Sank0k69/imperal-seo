@@ -440,8 +440,9 @@ async def gsc_report(ctx, params: EmptyGSCParams) -> ActionResult:
 
 
 class GSCOAuthParams(_BM):
-    credentials_json: str  # contents of client_secrets.json / credentials.json
+    credentials_json: str  # authorized_user JSON or client_secrets.json
     auth_code: str = ""
+    site_url: str = ""
 
 
 @chat.function(
@@ -462,6 +463,24 @@ async def gsc_connect_oauth(ctx, params: GSCOAuthParams) -> ActionResult:
     creds_json = params.credentials_json.strip()
     if not creds_json:
         return ActionResult.error(error="Paste your credentials.json content from Google Cloud Console.")
+
+    # Direct save: if credentials_json is already authorized_user type, save immediately
+    import json as _json
+    try:
+        _parsed = _json.loads(creds_json)
+        if _parsed.get("type") == "authorized_user" and _parsed.get("refresh_token"):
+            s = await load_settings(ctx)
+            await save_settings(ctx, {
+                "gsc_credentials_json": creds_json,
+                "gsc_site_url": params.site_url or s.get("gsc_site_url", "https://webhostmost.com"),
+            })
+            return ActionResult.success(
+                {"connected": True},
+                summary=f"GSC connected for {params.site_url or s.get('gsc_site_url', 'webhostmost.com')}. Run 'покажи GSC отчёт' to see data.",
+                refresh_panels=["sidebar"],
+            )
+    except Exception:
+        pass
 
     # Step 2: exchange code if provided
     if params.auth_code.strip():
