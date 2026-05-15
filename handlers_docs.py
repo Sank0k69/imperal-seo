@@ -113,27 +113,3 @@ async def build_docs_context(ctx) -> str:
         content = (doc.get("content") or "")[:MAX_CONTEXT_CHARS]
         parts.append(f"=== {doc['name']} ===\n{content}")
     return "\n\n".join(parts)
-
-
-# ─── IPC: expose SE Ranking credentials to other extensions ──────────────────
-
-@ext.expose("seranking_config")
-async def ipc_seranking_config(ctx) -> ActionResult:
-    """Share SE Ranking credentials with analytics and other extensions.
-
-    Allows analytics extension to pull AI visibility data using SEO's
-    already-configured SE Ranking key — no duplicate config needed.
-    """
-    from wpb_app import load_settings
-    s = await load_settings(ctx)
-    key    = s.get("seranking_data_key", "")
-    domain = s.get("seranking_domain", "")
-    source = s.get("seranking_source", "us")
-    if not key or not domain:
-        return ActionResult.error(error="SE Ranking not configured in SEO extension.")
-    return ActionResult.success(data={
-        "seranking_data_key": key,
-        "seranking_domain":   domain,
-        "seranking_source":   source,
-        "configured":         True,
-    })
