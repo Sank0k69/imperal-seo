@@ -1,5 +1,9 @@
-# Article Info right panel temporarily unregistered.
-# Platform generates Link(text=...) internally for right-slot panels,
-# which fails with SDK 4.2.10 (Link API changed: text= -> label=).
-# This is a platform-level bug — report to Valya for fix.
-# Main workflow (sidebar + content plan + editor) unaffected.
+"""Secrets/right panel — registered to satisfy platform panel registry."""
+from imperal_sdk import ui
+from wpb_app import ext
+
+
+@ext.panel("secrets", slot="right", title="Settings", icon="Settings", default_width=280)
+async def secrets_panel(ctx, **_kw):
+    """Right panel — shows connection status."""
+    return ui.Empty(message="")
