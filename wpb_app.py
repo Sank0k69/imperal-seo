@@ -26,14 +26,16 @@ chat = ChatExtension(
     ext,
     tool_name="wp_blogger",
     description=(
-        "WP Blogger — SEO and blog content tool. "
-        "ALWAYS use for: Google search positions/rankings (покажи позиции в Google, "
-        "какие позиции сайта, SEO rankings, где ранжируется), "
+        "WP Blogger — SEO, content and Google Search Console tool. "
+        "ALWAYS use for: Google search positions/rankings (покажи позиции в Google, SEO rankings), "
         "keyword research (найди ключевые слова), "
         "content plan (придумай контент план для блога), "
-        "write/rewrite articles (напиши статью, перепиши вступление), "
-        "WordPress: publish, draft, show posts, SEO settings, Rank Math, "
-        "SE Ranking tracking (добавь кейворд в трекинг)."
+        "write/rewrite articles (напиши статью), "
+        "WordPress: publish, draft, show posts, SEO settings, "
+        "SE Ranking tracking, "
+        "GSC отчёт, Google Search Console, покажи GSC, клики из Google, "
+        "аномалии трафика, что падает что растёт, органический трафик Google, "
+        "покажи органику, GSC данные, search console отчёт."
     ),
     max_rounds=10,
 )
