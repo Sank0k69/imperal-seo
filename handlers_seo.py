@@ -528,6 +528,8 @@ class _GSCCredsParams(_BM):
     "save_gsc_credentials",
     description="Save GSC credentials directly to settings. Use: site_url=URL credentials_json=JSON",
     action_type="write",
+    chain_callable=True,
+    effects=["update:settings"],
 )
 async def save_gsc_credentials(ctx, params: _GSCCredsParams) -> ActionResult:
     from wpb_app import save_settings as _save
