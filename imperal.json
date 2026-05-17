@@ -1,8 +1,8 @@
 {
   "manifest_schema_version": 3,
-  "sdk_version": "5.0.0",
+  "sdk_version": "5.0.1",
   "app_id": "wp-blogger",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "name": "WP Blogger",
   "description": "AI-powered WordPress content studio: keyword research, SE Rankings tracking, AI article writing with SEO optimization, and one-click publishing to WordPress.",
   "icon": "icon.svg",
@@ -48,6 +48,12 @@
     {
       "name": "skeleton_refresh_wp_config",
       "description": "WordPress + SE Ranking connection status and domain",
+      "scopes": [],
+      "parameters": {}
+    },
+    {
+      "name": "skeleton_refresh_content_list",
+      "description": "All content items: id, keyword, title, status, word_count, wp_post_id \u2014 full list for article management",
       "scopes": [],
       "parameters": {}
     },

@@ -6,7 +6,7 @@ from params import UIStateModel
 
 ext = Extension(
     "wp-blogger",
-    version="1.3.1",
+    version="1.3.2",
     display_name="WP Blogger",
     description="AI-powered WordPress content studio: keyword research, SE Rankings tracking, AI article writing with SEO optimization, and one-click publishing to WordPress.",
     icon="icon.svg",

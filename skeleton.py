@@ -1,15 +1,14 @@
 """Skeleton context providers — inject background facts into Webbee LLM context.
 
-Per SDK docs: skeleton = eventually consistent background facts (slow-changing data).
-For active UI state (open article), handlers read ctx.store directly.
-Skeleton TTLs: current_article=30s, content_overview=120s, wp_config=600s.
+Per Valya/SDK: skeleton = LLM context cache holding ready API responses.
+More data in skeleton = better Webbee routing and answers.
 """
-from wpb_app import ext, load_ui_state, get_content, load_settings, list_content
+from wpb_app import ext, load_ui_state, get_content, load_settings, list_content, ser_ready, wp_ready, gsc_ready
 
 
 @ext.skeleton("current_article", ttl=30,
               description="Currently open article in editor — keyword, title, word count, status, article_id")
-async def refresh_current_article(ctx) -> dict:
+async def skeleton_refresh_current_article(ctx) -> dict:
     """Slow-changing background fact: which article is in the editor."""
     state = await load_ui_state(ctx)
     selected_id = state.get("selected_id")
@@ -54,7 +53,7 @@ async def refresh_current_article(ctx) -> dict:
 
 @ext.skeleton("content_overview", ttl=120,
               description="Content plan totals: ideas, writing, review, published counts")
-async def refresh_content_overview(ctx) -> dict:
+async def skeleton_refresh_content_overview(ctx) -> dict:
     """Background snapshot of content plan state."""
     try:
         items = await list_content(ctx)
@@ -86,24 +85,68 @@ async def refresh_content_overview(ctx) -> dict:
 
 
 @ext.skeleton("wp_config", ttl=600,
-              description="WordPress + SE Ranking connection status and domain")
-async def refresh_wp_config(ctx) -> dict:
-    """Background config fact — changes rarely."""
+              description="WordPress, SE Ranking, GSC connection status and site domain")
+async def skeleton_refresh_wp_config(ctx) -> dict:
     s = await load_settings(ctx)
-    wp_ok  = bool(s.get("wp_app_password") and s.get("wp_url"))
-    ser_ok = bool(s.get("seranking_data_key"))
+    wp_ok  = wp_ready(s)
+    ser_ok = ser_ready(s)
+    gsc_ok = gsc_ready(s)
     proj_ok = bool(s.get("seranking_project_key"))
 
     return {"response": {
         "wordpress_connected": wp_ok,
         "seranking_data_connected": ser_ok,
         "seranking_project_connected": proj_ok,
+        "gsc_connected": gsc_ok,
         "wp_url": s.get("wp_url", ""),
+        "blog_url": s.get("blog_url", ""),
+        "gsc_site_url": s.get("gsc_site_url", ""),
         "blog_domain": s.get("seranking_domain", ""),
+        "company_name": s.get("company_name", ""),
+        "brand_voice": s.get("brand_voice", ""),
         "instruction": (
-            f"WordPress: {'✓ connected' if wp_ok else '✗ NOT connected — Settings needed'}. "
-            f"SE Ranking data: {'✓' if ser_ok else '✗ NOT configured'}. "
-            f"SE Ranking tracking: {'✓' if proj_ok else '✗ NOT configured'}. "
-            f"Domain: {s.get('seranking_domain','not set')}."
+            f"WordPress: {'✓' if wp_ok else '✗ NOT connected'}. "
+            f"SE Ranking: {'✓ data+tracking' if (ser_ok and proj_ok) else '✓ data only' if ser_ok else '✗'}. "
+            f"GSC: {'✓' if gsc_ok else '✗'}. "
+            f"Domain: {s.get('seranking_domain','not set')}. "
+            f"Brand: {s.get('company_name','not set')}."
         ),
+    }}
+
+
+@ext.skeleton("content_list", ttl=60,
+              description="All content items: id, keyword, title, status, word_count, wp_post_id — full list for article management")
+async def skeleton_refresh_content_list(ctx) -> dict:
+    try:
+        items = await list_content(ctx)
+    except Exception:
+        items = []
+
+    summaries = []
+    by_status = {}
+    for i in items:
+        content = i.get("content", "")
+        wc = len(content.split()) if content else 0
+        status = i.get("status", "idea")
+        by_status[status] = by_status.get(status, 0) + 1
+        summaries.append({
+            "id": i.get("id", ""),
+            "keyword": i.get("keyword", ""),
+            "title": i.get("title", ""),
+            "status": status,
+            "word_count": wc,
+            "wp_post_id": str(i.get("wp_post_id") or ""),
+        })
+
+    instruction = (
+        f"{len(summaries)} articles total: "
+        + ", ".join(f"{v} {k}" for k, v in by_status.items())
+        + ". Use id= to reference specific articles with open_editor/ai_write/patch_wp_article."
+    )
+
+    return {"response": {
+        "items": summaries,
+        "total": len(summaries),
+        "by_status": by_status,
+        "instruction": instruction,
     }}
