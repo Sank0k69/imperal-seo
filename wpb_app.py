@@ -6,7 +6,7 @@ from params import UIStateModel
 
 ext = Extension(
     "wp-blogger",
-    version="1.3.0",
+    version="1.3.1",
     display_name="WP Blogger",
     description="AI-powered WordPress content studio: keyword research, SE Rankings tracking, AI article writing with SEO optimization, and one-click publishing to WordPress.",
     icon="icon.svg",
@@ -24,7 +24,6 @@ ext = Extension(
 
 chat = ChatExtension(
     ext,
-    tool_name="wp_blogger",
     description=(
         "WP Blogger — SEO, content and Google Search Console tool. "
         "ALWAYS use for: Google search positions/rankings (покажи позиции в Google, SEO rankings), "
