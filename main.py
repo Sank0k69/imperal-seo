@@ -20,12 +20,16 @@ for _m in list(sys.modules):
               "panels_editor_newsletter", "panels_settings_view", "panels_docs"):
         del sys.modules[_m]
 
-# Force-register OUR api_client from absolute path before any imports.
-# This prevents shared Python env from picking up another extension's api_client.
-_ac_spec = importlib.util.spec_from_file_location("api_client", os.path.join(_dir, "api_client.py"))
-_ac_mod = importlib.util.module_from_spec(_ac_spec)
-_ac_spec.loader.exec_module(_ac_mod)
-sys.modules["api_client"] = _ac_mod
+# Force-register OUR modules by absolute path — prevents shared Python env
+# from picking up same-named files from other extensions (tg-bot/params.py etc.)
+for _name, _fname in [
+    ("params",     "params.py"),
+    ("api_client", "api_client.py"),
+]:
+    _spec = importlib.util.spec_from_file_location(_name, os.path.join(_dir, _fname))
+    _mod  = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    sys.modules[_name] = _mod
 
 from wpb_app import ext, chat  # noqa: E402, F401
 
