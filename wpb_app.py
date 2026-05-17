@@ -24,6 +24,7 @@ ext = Extension(
 
 chat = ChatExtension(
     ext,
+    tool_name="wp_blogger",
     description=(
         "WP Blogger — SEO, content and Google Search Console tool. "
         "ALWAYS use for: Google search positions/rankings (покажи позиции в Google, SEO rankings), "
