@@ -398,7 +398,7 @@ async def _rankings_view(ctx, state: dict) -> ui.UINode:
             collapsible=True,
             children=[
                 ui.Alert(
-                    message="Configure Matomo in Settings to see AI referrer traffic (ChatGPT, Perplexity, Gemini, etc.)",
+                    message="No AI referrer traffic this month (ChatGPT, Perplexity, Gemini). Data via Analytics extension.",
                     type="info",
                 ),
             ],

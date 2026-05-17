@@ -121,7 +121,7 @@ async def fetch_rankings(ctx, params: FetchRankingsParams) -> ActionResult:
     summary = (
         f"Loaded {len(rankings)} tracked keywords: {len(ranked)} ranked, {top3} top-3, {top10} top-10.\n"
         f"Top positions: {', '.join(lines)}\n"
-        + (ai_line or "No AI referrer data (configure Matomo in Settings).")
+        + (ai_line or "No AI referrer traffic detected this month (ChatGPT, Perplexity, Gemini).")
     )
     return ActionResult.success(
         {"count": len(rankings), "rankings": rankings, "ai_traffic": ai_data},
